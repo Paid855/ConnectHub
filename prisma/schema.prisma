@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  name               String
+  email              String   @unique
+  password           String
+  age                Int?
+  gender             String?
+  lookingFor         String?
+  bio                String?
+  country            String?
+  profilePhoto       String?
+  tier               String   @default("basic")
+  verified           Boolean  @default(false)
+  verificationStatus String   @default("none")
+  verificationPhoto  String?
+  idDocument         String?
+  securityQuestion   String?
+  securityAnswer     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
