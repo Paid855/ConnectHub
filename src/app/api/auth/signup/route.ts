@@ -4,15 +4,10 @@ import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { name, email, password, age, gender, lookingFor, securityQuestion, securityAnswer } = body;
+    const { name, email, password, phone, age, gender, lookingFor, country, securityQuestion, securityAnswer } = await req.json();
 
     if (!name || !email || !password) {
-      return NextResponse.json({ error: "Name, email, and password are required" }, { status: 400 });
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+      return NextResponse.json({ error: "Name, email and password are required" }, { status: 400 });
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
@@ -27,21 +22,19 @@ export async function POST(req: NextRequest) {
         name,
         email: email.toLowerCase(),
         password: hashedPassword,
+        phone: phone || null,
         age: age ? parseInt(age) : null,
         gender: gender || null,
         lookingFor: lookingFor || null,
+        country: country || null,
         securityQuestion: securityQuestion || null,
         securityAnswer: securityAnswer ? securityAnswer.toLowerCase() : null,
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      user: { id: user.id, name: user.name, email: user.email, tier: user.tier },
-    }, { status: 201 });
-
+    return NextResponse.json({ success: true, userId: user.id });
   } catch (error) {
     console.error("Signup error:", error);
-    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
