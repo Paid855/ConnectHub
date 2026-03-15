@@ -2,7 +2,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles } from "lucide-react";
+import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss } from "lucide-react";
 
 type UserData = { id:string; name:string; email:string; age:number|null; gender:string|null; lookingFor:string|null; bio:string|null; country:string|null; profilePhoto:string|null; tier:string; verified:boolean; verificationStatus:string; };
 const UserCtx = createContext<{ user:UserData|null; reload:()=>void; unread:number }>({ user:null, reload:()=>{}, unread:0 });
@@ -48,6 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const nav = [
     { href:"/dashboard", label:"Discover", icon:Compass },
     { href:"/dashboard/browse", label:"Browse", icon:Search },
+    { href:"/dashboard/feed", label:"Feed", icon:Rss },
     { href:"/dashboard/messages", label:"Messages", icon:MessageCircle, badge:unread },
     { href:"/dashboard/video", label:"Video", icon:Video },
     { href:"/dashboard/verify", label:"Verification", icon:Shield },
@@ -76,7 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
           )}
-          <nav className="flex-1 px-3 py-2 space-y-0.5">
+          <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
             {nav.map(item => {
               const active = pathname === item.href;
               return <Link key={item.href} href={item.href} className={"flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all " + (active?"bg-rose-50 text-rose-600":"text-gray-600 hover:bg-gray-50")}>
@@ -96,7 +97,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button onClick={() => setSideOpen(!sideOpen)} className="p-2"><Menu className="w-5 h-5 text-gray-600" /></button>
         </div>
 
-        {sideOpen && <div className="lg:hidden fixed inset-0 z-50"><div className="absolute inset-0 bg-black/30" onClick={() => setSideOpen(false)} /><div className="absolute left-0 top-0 bottom-0 w-[260px] bg-white shadow-xl p-4"><div className="flex justify-between items-center mb-4"><span className="font-bold">Menu</span><button onClick={() => setSideOpen(false)}><X className="w-5 h-5 text-gray-500" /></button></div><nav className="space-y-1">{nav.map(item => <Link key={item.href} href={item.href} onClick={() => setSideOpen(false)} className={"flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium " + (pathname===item.href?"bg-rose-50 text-rose-600":"text-gray-600 hover:bg-gray-50")}><item.icon className="w-5 h-5" /> {item.label}{item.badge && item.badge > 0 ? <span className="ml-auto bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{item.badge}</span> : null}</Link>)}<button onClick={logout} className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 w-full mt-4 border-t border-gray-100 pt-4"><LogOut className="w-5 h-5" /> Log Out</button></nav></div></div>}
+        {sideOpen && <div className="lg:hidden fixed inset-0 z-50"><div className="absolute inset-0 bg-black/30" onClick={() => setSideOpen(false)} /><div className="absolute left-0 top-0 bottom-0 w-[260px] bg-white shadow-xl p-4 overflow-y-auto"><div className="flex justify-between items-center mb-4"><span className="font-bold">Menu</span><button onClick={() => setSideOpen(false)}><X className="w-5 h-5 text-gray-500" /></button></div><nav className="space-y-1">{nav.map(item => <Link key={item.href} href={item.href} onClick={() => setSideOpen(false)} className={"flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium " + (pathname===item.href?"bg-rose-50 text-rose-600":"text-gray-600 hover:bg-gray-50")}><item.icon className="w-5 h-5" /> {item.label}{item.badge && item.badge > 0 ? <span className="ml-auto bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{item.badge}</span> : null}</Link>)}<button onClick={logout} className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 w-full mt-4 border-t border-gray-100 pt-4"><LogOut className="w-5 h-5" /> Log Out</button></nav></div></div>}
 
         <main className="flex-1 lg:ml-[230px] pt-14 lg:pt-0"><div className="p-6 lg:p-8 max-w-6xl mx-auto">{children}</div></main>
       </div>
