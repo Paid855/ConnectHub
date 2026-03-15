@@ -17,9 +17,10 @@ export async function PUT(req: NextRequest) {
         gender: body.gender || undefined,
         lookingFor: body.lookingFor || undefined,
         country: body.country || undefined,
+        phone: body.phone || undefined,
         profilePhoto: body.profilePhoto || undefined,
       },
-      select: { id:true, name:true, email:true, age:true, gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, verificationStatus:true }
+      select: { id:true, name:true, email:true, phone:true, age:true, gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, verificationStatus:true }
     });
     return NextResponse.json({ success: true, user });
   } catch (error) {
