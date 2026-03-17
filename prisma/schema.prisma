@@ -89,3 +89,13 @@ model Friend {
   createdAt DateTime @default(now())
   @@unique([userId, friendId])
 }
+
+model Call {
+  id         String   @id @default(cuid())
+  callerId   String
+  receiverId String
+  type       String   @default("voice")
+  status     String   @default("missed")
+  duration   Int      @default(0)
+  createdAt  DateTime @default(now())
+}
