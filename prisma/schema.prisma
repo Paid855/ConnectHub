@@ -99,3 +99,13 @@ model Call {
   duration   Int      @default(0)
   createdAt  DateTime @default(now())
 }
+
+model LiveStream {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String?
+  isLive      Boolean   @default(true)
+  viewerCount Int       @default(0)
+  createdAt   DateTime  @default(now())
+  endedAt     DateTime?
+}
