@@ -8,10 +8,11 @@ export async function GET(req: NextRequest) {
     const data = JSON.parse(session.value);
     const user = await prisma.user.findUnique({
       where: { id: data.id },
-      select: { id:true, name:true, email:true, phone:true, age:true, gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, verificationStatus:true, createdAt:true }
+      select: { id:true, name:true, email:true, phone:true, age:true, gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, verificationStatus:true, isPrivate:true, lastSeen:true, createdAt:true }
     });
     if (!user) return NextResponse.json({ user: null }, { status: 401 });
     if (user.tier === "banned") return NextResponse.json({ user: null, banned: true }, { status: 403 });
+    await prisma.user.update({ where: { id: data.id }, data: { lastSeen: new Date() } }).catch(() => {});
     return NextResponse.json({ user });
   } catch { return NextResponse.json({ user: null }, { status: 401 }); }
 }

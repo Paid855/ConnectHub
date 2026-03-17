@@ -2,9 +2,9 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss } from "lucide-react";
+import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users } from "lucide-react";
 
-type UserData = { id:string; name:string; email:string; age:number|null; gender:string|null; lookingFor:string|null; bio:string|null; country:string|null; profilePhoto:string|null; tier:string; verified:boolean; verificationStatus:string; };
+type UserData = { id:string; name:string; email:string; age:number|null; gender:string|null; lookingFor:string|null; bio:string|null; country:string|null; profilePhoto:string|null; tier:string; verified:boolean; verificationStatus:string; phone:string|null; isPrivate:boolean; };
 const UserCtx = createContext<{ user:UserData|null; reload:()=>void; unread:number }>({ user:null, reload:()=>{}, unread:0 });
 export const useUser = () => useContext(UserCtx);
 
@@ -14,7 +14,6 @@ function TierBadge({ tier }: { tier: string }) {
   if (tier === "verified") return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 border border-blue-200"><Shield className="w-3 h-3" />Verified</span>;
   return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500"><Sparkles className="w-3 h-3" />Basic</span>;
 }
-
 export { TierBadge };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -26,19 +25,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [unread, setUnread] = useState(0);
 
   const loadUser = async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.status === 403) { router.push("/login?banned=true"); return; }
-      const data = await res.json();
-      if (!data.user) { router.push("/login"); return; }
-      setUser(data.user);
-    } catch { router.push("/login"); }
+    try { const res = await fetch("/api/auth/me"); if (res.status===403) { router.push("/login?banned=true"); return; } const data = await res.json(); if (!data.user) { router.push("/login"); return; } setUser(data.user); } catch { router.push("/login"); }
     finally { setLoading(false); }
   };
-
-  const loadUnread = async () => {
-    try { const res = await fetch("/api/messages"); if (res.ok) { const d = await res.json(); setUnread((d.conversations||[]).reduce((s:number,c:any)=>s+(c.unreadCount||0),0)); } } catch {}
-  };
+  const loadUnread = async () => { try { const res = await fetch("/api/messages"); if (res.ok) { const d = await res.json(); setUnread((d.conversations||[]).reduce((s:number,c:any)=>s+(c.unreadCount||0),0)); } } catch {} };
 
   useEffect(() => { loadUser(); }, []);
   useEffect(() => { if (user) { loadUnread(); const i = setInterval(loadUnread, 10000); return () => clearInterval(i); } }, [user]);
@@ -49,6 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href:"/dashboard", label:"Discover", icon:Compass },
     { href:"/dashboard/browse", label:"Browse", icon:Search },
     { href:"/dashboard/feed", label:"Feed", icon:Rss },
+    { href:"/dashboard/friends", label:"Friends", icon:Users },
     { href:"/dashboard/messages", label:"Messages", icon:MessageCircle, badge:unread },
     { href:"/dashboard/video", label:"Video", icon:Video },
     { href:"/dashboard/verify", label:"Verification", icon:Shield },
@@ -70,10 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="mx-3 mt-3 mb-1 p-3 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-100">
               <div className="flex items-center gap-2.5">
                 {user.profilePhoto ? <img src={user.profilePhoto} className="w-10 h-10 rounded-full object-cover" /> : <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold text-sm">{user.name[0]}</div>}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-gray-900 truncate">{user.name.split(" ")[0]}</p>
-                  <TierBadge tier={user.tier} />
-                </div>
+                <div className="flex-1 min-w-0"><p className="text-sm font-bold text-gray-900 truncate">{user.name.split(" ")[0]}</p><TierBadge tier={user.tier} /></div>
               </div>
             </div>
           )}

@@ -27,6 +27,7 @@ model User {
   securityQuestion   String?
   securityAnswer     String?
   isPrivate          Boolean  @default(false)
+  lastSeen           DateTime @default(now())
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -54,7 +55,6 @@ model PostLike {
   userId    String
   emoji     String   @default("heart")
   createdAt DateTime @default(now())
-
   @@unique([postId, userId])
 }
 
@@ -71,7 +71,6 @@ model Block {
   blockerId String
   blockedId String
   createdAt DateTime @default(now())
-
   @@unique([blockerId, blockedId])
 }
 
@@ -80,4 +79,13 @@ model ProfileView {
   viewerId  String
   viewedId  String
   createdAt DateTime @default(now())
+}
+
+model Friend {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  @@unique([userId, friendId])
 }
