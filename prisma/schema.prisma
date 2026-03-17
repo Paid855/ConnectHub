@@ -26,6 +26,7 @@ model User {
   idDocument         String?
   securityQuestion   String?
   securityAnswer     String?
+  isPrivate          Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -51,6 +52,7 @@ model PostLike {
   id        String   @id @default(cuid())
   postId    String
   userId    String
+  emoji     String   @default("heart")
   createdAt DateTime @default(now())
 
   @@unique([postId, userId])
@@ -61,5 +63,21 @@ model PostComment {
   postId    String
   userId    String
   content   String
+  createdAt DateTime @default(now())
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+model ProfileView {
+  id        String   @id @default(cuid())
+  viewerId  String
+  viewedId  String
   createdAt DateTime @default(now())
 }
