@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useUser, TierBadge } from "../layout";
-import { Shield, Heart, Calendar, User, Globe, MessageCircle, ArrowLeft, Crown, Gem, Rss, Phone, Video } from "lucide-react";
+import { Shield, Heart, Calendar, User, Globe, MessageCircle, ArrowLeft, Crown, Gem, Rss, Phone, Video, UserPlus, UserMinus, Ban, Check } from "lucide-react";
 import Link from "next/link";
 
 type ViewUser = { id:string; name:string; age:number|null; gender:string|null; lookingFor:string|null; bio:string|null; country:string|null; profilePhoto:string|null; tier:string; verified:boolean; createdAt:string; };
@@ -18,12 +18,30 @@ function UserProfileContent() {
   const [loading, setLoading] = useState(true);
   const [postCount, setPostCount] = useState(0);
   const [activeTab, setActiveTab] = useState("posts");
+  const [friendStatus, setFriendStatus] = useState<"none"|"pending"|"accepted"|"sent">("none");
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
     fetch("/api/users/profile?id="+userId).then(r=>r.json()).then(d=>{
       setProfile(d.user); setPosts(d.posts||[]); setPostCount(d.postCount||0); setLoading(false);
     }).catch(()=>setLoading(false));
+
+    // Check friend status
+    fetch("/api/friends").then(r=>r.json()).then(d=>{
+      const friends = d.friends||[];
+      const pending = d.pending||[];
+      if (friends.some((f:any)=>f.id===userId)) setFriendStatus("accepted");
+      else if (pending.some((p:any)=>p.id===userId)) setFriendStatus("pending");
+    }).catch(()=>{});
+
+    // Check block status
+    fetch("/api/block").then(r=>r.json()).then(d=>{
+      if ((d.blockedIds||[]).includes(userId)) setIsBlocked(true);
+    }).catch(()=>{});
+
+    // Track profile view
+    fetch("/api/profile-views", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ viewedId:userId }) }).catch(()=>{});
   }, [userId]);
 
   const toggleLike = async (postId: string) => {
@@ -37,9 +55,35 @@ function UserProfileContent() {
     router.push("/dashboard/messages");
   };
 
+  const addFriend = async () => {
+    await fetch("/api/friends", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ friendId:userId, action:"add" }) });
+    setFriendStatus("sent");
+  };
+
+  const acceptFriend = async () => {
+    await fetch("/api/friends", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ friendId:userId, action:"accept" }) });
+    setFriendStatus("accepted");
+  };
+
+  const unfriend = async () => {
+    if (!confirm("Remove this friend?")) return;
+    await fetch("/api/friends", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ friendId:userId, action:"unfriend" }) });
+    setFriendStatus("none");
+  };
+
+  const toggleBlock = async () => {
+    if (isBlocked) {
+      await fetch("/api/block", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ userId, action:"unblock" }) });
+      setIsBlocked(false);
+    } else {
+      if (!confirm("Block this user? They won't be able to message you.")) return;
+      await fetch("/api/block", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ userId, action:"block" }) });
+      setIsBlocked(true);
+    }
+  };
+
   const formatTime = (d: string) => { const diff = Date.now()-new Date(d).getTime(); if(diff<3600000) return Math.floor(diff/60000)+"m ago"; if(diff<86400000) return Math.floor(diff/3600000)+"h ago"; return new Date(d).toLocaleDateString([],{month:"short",day:"numeric"}); };
 
-  // Simple online simulation (users created in last 24h show as online)
   const isOnline = profile ? (Date.now() - new Date(profile.createdAt).getTime()) < 86400000 * 30 : false;
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin" /></div>;
@@ -51,7 +95,6 @@ function UserProfileContent() {
     <div className="max-w-2xl mx-auto">
       <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Back</button>
 
-      {/* Profile Hero */}
       <div className="relative rounded-3xl overflow-hidden mb-6 shadow-lg">
         <div className={"h-44 bg-gradient-to-br "+tierColor+" relative"}><div className="absolute inset-0 bg-black/10" /><div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full" /></div>
         <div className="bg-white px-6 pb-6 pt-16 relative">
@@ -60,43 +103,42 @@ function UserProfileContent() {
               <div className="ring-4 ring-white rounded-2xl shadow-xl">
                 {profile.profilePhoto ? <img src={profile.profilePhoto} className="w-28 h-28 rounded-2xl object-cover" /> : <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-rose-300 to-pink-300 flex items-center justify-center text-white text-4xl font-bold">{profile.name[0]}</div>}
               </div>
-              {/* Online indicator */}
-              <div className={"absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-3 border-white flex items-center justify-center " + (isOnline ? "bg-emerald-400" : "bg-gray-300")}>
-                <div className={"w-2.5 h-2.5 rounded-full " + (isOnline ? "bg-white animate-pulse" : "bg-gray-400")} />
-              </div>
+              <div className={"absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-3 border-white " + (isOnline ? "bg-emerald-400" : "bg-gray-300")} />
             </div>
           </div>
 
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h1 className="text-2xl font-bold text-gray-900">{profile.name}{profile.age?", "+profile.age:""}</h1>
-                {profile.tier==="verified"&&<Shield className="w-5 h-5 text-blue-500 fill-blue-100"/>}
-                {profile.tier==="gold"&&<Crown className="w-5 h-5 text-amber-500"/>}
-                {profile.tier==="premium"&&<Gem className="w-5 h-5 text-rose-500"/>}
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className={"text-xs font-semibold px-2 py-0.5 rounded-full " + (isOnline ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-500")}>{isOnline ? "Online now" : "Offline"}</span>
-                <TierBadge tier={profile.tier} />
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                {profile.gender && <span>{profile.gender}</span>}
-                {profile.lookingFor && <span>Looking for {profile.lookingFor}</span>}
-                {profile.country && <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5" />{profile.country}</span>}
-                <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />Joined {new Date(profile.createdAt).toLocaleDateString("en-US",{month:"short",year:"numeric"})}</span>
-              </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h1 className="text-2xl font-bold text-gray-900">{profile.name}{profile.age?", "+profile.age:""}</h1>
+              {profile.tier==="verified"&&<Shield className="w-5 h-5 text-blue-500 fill-blue-100"/>}
+              {profile.tier==="gold"&&<Crown className="w-5 h-5 text-amber-500"/>}
+              {profile.tier==="premium"&&<Gem className="w-5 h-5 text-rose-500"/>}
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={"text-xs font-semibold px-2 py-0.5 rounded-full " + (isOnline?"bg-emerald-100 text-emerald-600":"bg-gray-100 text-gray-500")}>{isOnline?"Online":"Offline"}</span>
+              <TierBadge tier={profile.tier} />
+              {friendStatus==="accepted" && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 flex items-center gap-1"><Check className="w-3 h-3" /> Friend</span>}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+              {profile.gender && <span>{profile.gender}</span>}
+              {profile.lookingFor && <span>Looking for {profile.lookingFor}</span>}
+              {profile.country && <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5"/>{profile.country}</span>}
+              <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5"/>Joined {new Date(profile.createdAt).toLocaleDateString("en-US",{month:"short",year:"numeric"})}</span>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 mt-5 pt-5 border-t border-gray-100">
-            <button onClick={sendMessage} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all"><MessageCircle className="w-4 h-4" /> Message</button>
-            <button onClick={sendMessage} className="w-11 h-11 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-center text-emerald-600 hover:bg-emerald-100 transition-all"><Phone className="w-5 h-5" /></button>
-            <button onClick={sendMessage} className="w-11 h-11 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-all"><Video className="w-5 h-5" /></button>
-            <button onClick={() => toggleLike(profile.id)} className="w-11 h-11 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-center text-rose-500 hover:bg-rose-100 transition-all"><Heart className="w-5 h-5" /></button>
+          <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-gray-100">
+            <button onClick={sendMessage} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all"><MessageCircle className="w-4 h-4" /> Message</button>
+
+            {friendStatus === "none" && <button onClick={addFriend} className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-semibold hover:bg-blue-100 border border-blue-200"><UserPlus className="w-4 h-4" /> Add Friend</button>}
+            {friendStatus === "sent" && <span className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 text-gray-500 rounded-xl text-sm font-semibold border border-gray-200"><Check className="w-4 h-4" /> Request Sent</span>}
+            {friendStatus === "pending" && <button onClick={acceptFriend} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-semibold hover:bg-emerald-100 border border-emerald-200"><Check className="w-4 h-4" /> Accept Friend</button>}
+            {friendStatus === "accepted" && <button onClick={unfriend} className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 text-gray-500 rounded-xl text-sm font-semibold hover:bg-red-50 hover:text-red-500 border border-gray-200"><UserMinus className="w-4 h-4" /> Unfriend</button>}
+
+            <button onClick={toggleBlock} className={"flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border " + (isBlocked?"bg-red-50 text-red-500 border-red-200 hover:bg-red-100":"bg-gray-50 text-gray-500 border-gray-200 hover:bg-red-50 hover:text-red-500")}><Ban className="w-4 h-4" /> {isBlocked?"Unblock":"Block"}</button>
           </div>
 
-          {/* Stats */}
           <div className="flex items-center gap-6 mt-5 pt-5 border-t border-gray-100">
             <div className="text-center"><p className="text-xl font-bold text-gray-900">{postCount}</p><p className="text-[11px] text-gray-500">Posts</p></div>
             <div className="w-px h-8 bg-gray-200" />
@@ -109,7 +151,6 @@ function UserProfileContent() {
         </div>
       </div>
 
-      {/* Bio */}
       {profile.bio && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">About</h3>
@@ -117,13 +158,11 @@ function UserProfileContent() {
         </div>
       )}
 
-      {/* Tabs */}
       <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1">
         <button onClick={() => setActiveTab("posts")} className={"flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all " + (activeTab==="posts"?"bg-white text-gray-900 shadow-sm":"text-gray-500")}><Rss className="w-4 h-4" /> Posts ({postCount})</button>
         <button onClick={() => setActiveTab("info")} className={"flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all " + (activeTab==="info"?"bg-white text-gray-900 shadow-sm":"text-gray-500")}><User className="w-4 h-4" /> Info</button>
       </div>
 
-      {/* Posts Tab */}
       {activeTab === "posts" && (
         posts.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center"><p className="text-gray-400 text-sm">No posts yet</p></div>
@@ -138,9 +177,7 @@ function UserProfileContent() {
                 {post.content && <p className="px-4 pb-3 text-sm text-gray-800">{post.content}</p>}
                 {post.image && <img src={post.image} className="w-full max-h-[400px] object-cover" />}
                 <div className="flex border-t border-gray-100">
-                  <button onClick={() => toggleLike(post.id)} className={"flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium " + (post.liked?"text-rose-500":"text-gray-500 hover:bg-gray-50")}>
-                    <Heart className={"w-5 h-5 " + (post.liked?"fill-rose-500":"")} /> {post.likeCount>0?post.likeCount+" ":""}{post.liked?"Liked":"Like"}
-                  </button>
+                  <button onClick={() => toggleLike(post.id)} className={"flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium " + (post.liked?"text-rose-500":"text-gray-500 hover:bg-gray-50")}><Heart className={"w-5 h-5 " + (post.liked?"fill-rose-500":"")} /> {post.likeCount>0?post.likeCount+" ":""}{post.liked?"Liked":"Like"}</button>
                   <Link href="/dashboard/feed" className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium text-gray-500 hover:bg-gray-50"><MessageCircle className="w-5 h-5" /> Comment</Link>
                 </div>
               </div>
@@ -149,17 +186,16 @@ function UserProfileContent() {
         )
       )}
 
-      {/* Info Tab */}
       {activeTab === "info" && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="space-y-4">
             {[
               { icon:User, label:"Name", value:profile.name },
-              { icon:Calendar, label:"Age", value:profile.age ? profile.age + " years old" : "Not shared" },
-              { icon:User, label:"Gender", value:profile.gender || "Not shared" },
-              { icon:Heart, label:"Looking For", value:profile.lookingFor || "Not shared" },
-              { icon:Globe, label:"Country", value:profile.country || "Not shared" },
-              { icon:Shield, label:"Account Type", value:profile.tier.charAt(0).toUpperCase()+profile.tier.slice(1) },
+              { icon:Calendar, label:"Age", value:profile.age?profile.age+" years old":"Not shared" },
+              { icon:User, label:"Gender", value:profile.gender||"Not shared" },
+              { icon:Heart, label:"Looking For", value:profile.lookingFor||"Not shared" },
+              { icon:Globe, label:"Country", value:profile.country||"Not shared" },
+              { icon:Shield, label:"Account", value:profile.tier.charAt(0).toUpperCase()+profile.tier.slice(1) },
               { icon:Calendar, label:"Joined", value:new Date(profile.createdAt).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}) },
             ].map((item,i) => (
               <div key={i} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
