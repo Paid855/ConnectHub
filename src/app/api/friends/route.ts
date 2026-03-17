@@ -9,24 +9,40 @@ export async function GET(req: NextRequest) {
   // Update lastSeen
   await prisma.user.update({ where: { id }, data: { lastSeen: new Date() } }).catch(() => {});
 
-  const friends = await prisma.friend.findMany({
+  // Get explicit friends
+  const friendRecords = await prisma.friend.findMany({
     where: { OR: [{ userId: id, status: "accepted" }, { friendId: id, status: "accepted" }] }
   });
+  const explicitFriendIds = friendRecords.map(f => f.userId === id ? f.friendId : f.userId);
 
-  const pending = await prisma.friend.findMany({
-    where: { friendId: id, status: "pending" }
-  });
-
-  const friendIds = friends.map(f => f.userId === id ? f.friendId : f.userId);
+  // Get pending requests TO me
+  const pending = await prisma.friend.findMany({ where: { friendId: id, status: "pending" } });
   const pendingIds = pending.map(p => p.userId);
 
+  // Auto-friends: anyone I've exchanged messages with
+  const sentMsgs = await prisma.message.findMany({ where: { senderId: id }, select: { receiverId: true } });
+  const recvMsgs = await prisma.message.findMany({ where: { receiverId: id }, select: { senderId: true } });
+  const messagedIds = [...new Set([...sentMsgs.map(m => m.receiverId), ...recvMsgs.map(m => m.senderId)])];
+
+  // Combine: explicit friends + message contacts (no duplicates)
+  const allFriendIds = [...new Set([...explicitFriendIds, ...messagedIds])];
+
+  // Get blocked users to exclude
+  const blocks = await prisma.block.findMany({ where: { OR: [{ blockerId: id }, { blockedId: id }] } });
+  const blockedIds = blocks.map(b => b.blockerId === id ? b.blockedId : b.blockerId);
+
+  const filteredFriendIds = allFriendIds.filter(fid => fid !== id && !blockedIds.includes(fid));
+
+  // Get all user data
+  const allUserIds = [...new Set([...filteredFriendIds, ...pendingIds])];
   const users = await prisma.user.findMany({
-    where: { id: { in: [...friendIds, ...pendingIds] } },
+    where: { id: { in: allUserIds }, tier: { not: "banned" } },
     select: { id: true, name: true, profilePhoto: true, tier: true, lastSeen: true, country: true }
   });
 
   const now = Date.now();
-  const friendList = friendIds.map(fid => {
+
+  const friendList = filteredFriendIds.map(fid => {
     const u = users.find(u => u.id === fid);
     if (!u) return null;
     const online = u.lastSeen ? (now - new Date(u.lastSeen).getTime()) < 300000 : false;
@@ -39,7 +55,14 @@ export async function GET(req: NextRequest) {
     return { ...u, online: false, isPending: true };
   }).filter(Boolean);
 
-  return NextResponse.json({ friends: friendList, pending: pendingList, totalFriends: friendIds.length });
+  // Sort: online first, then by name
+  friendList.sort((a: any, b: any) => {
+    if (a.online && !b.online) return -1;
+    if (!a.online && b.online) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  return NextResponse.json({ friends: friendList, pending: pendingList, totalFriends: filteredFriendIds.length });
 }
 
 export async function POST(req: NextRequest) {
