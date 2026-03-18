@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
+  const session = req.cookies.get("session");
+  if (!session) return NextResponse.json({ messages: [] });
+  const { id } = JSON.parse(session.value);
+
   const url = new URL(req.url);
-  const streamId = url.searchParams.get("streamId");
-  if (!streamId) return NextResponse.json({ messages: [] });
+  let streamId = url.searchParams.get("streamId");
+
+  // If no streamId provided, check if user has an active stream
+  if (!streamId) {
+    const myStream = await prisma.liveStream.findFirst({ where: { userId: id, isLive: true } });
+    if (myStream) streamId = myStream.id;
+    if (!streamId) return NextResponse.json({ messages: [] });
+  }
 
   const messages = await prisma.liveChat.findMany({
     where: { streamId },
@@ -24,7 +34,8 @@ export async function GET(req: NextRequest) {
       content: m.content,
       createdAt: m.createdAt,
       user: users.find(u => u.id === m.userId) || { id: m.userId, name: "User", profilePhoto: null }
-    }))
+    })),
+    streamId
   });
 }
 
@@ -36,18 +47,11 @@ export async function POST(req: NextRequest) {
 
   if (!content?.trim() || !streamId) return NextResponse.json({ error: "Empty" }, { status: 400 });
 
-  // Check stream exists and is live
   const stream = await prisma.liveStream.findUnique({ where: { id: streamId } });
   if (!stream || !stream.isLive) return NextResponse.json({ error: "Stream ended" }, { status: 400 });
 
-  const msg = await prisma.liveChat.create({
-    data: { streamId, userId: id, content: content.trim() }
-  });
-
-  // Return the message with user info immediately
+  const msg = await prisma.liveChat.create({ data: { streamId, userId: id, content: content.trim() } });
   const user = await prisma.user.findUnique({ where: { id }, select: { id: true, name: true, profilePhoto: true } });
 
-  return NextResponse.json({
-    message: { id: msg.id, content: msg.content, createdAt: msg.createdAt, user }
-  });
+  return NextResponse.json({ message: { id: msg.id, content: msg.content, createdAt: msg.createdAt, user } });
 }
