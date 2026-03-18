@@ -109,3 +109,11 @@ model LiveStream {
   createdAt   DateTime  @default(now())
   endedAt     DateTime?
 }
+
+model LiveChat {
+  id        String   @id @default(cuid())
+  streamId  String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+}

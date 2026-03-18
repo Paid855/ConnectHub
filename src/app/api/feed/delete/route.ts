@@ -7,12 +7,25 @@ export async function POST(req: NextRequest) {
   const { id } = JSON.parse(session.value);
   const { postId } = await req.json();
 
-  const post = await prisma.post.findUnique({ where: { id: postId } });
-  if (!post || post.userId !== id) return NextResponse.json({ error: "Not your post" }, { status: 403 });
+  if (!postId) return NextResponse.json({ error: "No post ID" }, { status: 400 });
 
-  await prisma.postComment.deleteMany({ where: { postId } });
-  await prisma.postLike.deleteMany({ where: { postId } });
-  await prisma.post.delete({ where: { id: postId } });
+  const post = await prisma.post.findUnique({ where: { id: postId } });
+  if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+  if (post.userId !== id) return NextResponse.json({ error: "Not your post" }, { status: 403 });
+
+  // Delete in correct order to avoid FK issues
+  try {
+    await prisma.postComment.deleteMany({ where: { postId } });
+  } catch {}
+  try {
+    await prisma.postLike.deleteMany({ where: { postId } });
+  } catch {}
+  try {
+    await prisma.post.delete({ where: { id: postId } });
+  } catch (err) {
+    console.error("Delete error:", err);
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }
