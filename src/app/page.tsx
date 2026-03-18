@@ -48,10 +48,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white overflow-hidden">
       <header className={"fixed top-0 left-0 right-0 z-50 transition-all duration-300 " + (scrolled ? "bg-white/95 backdrop-blur-lg shadow-sm" : "bg-transparent")}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            
-            
-          </Link>
+          <Link href="/" className="flex items-center gap-2.5"><img src="/logo.png" alt="ConnectHub" className="h-14 w-auto" /></Link>
           <nav className="hidden lg:flex items-center gap-8">
             {["Features","How It Works","Pricing","FAQ"].map(item => (
               <a key={item} href={"#"+item.toLowerCase().replace(/ /g,"")} className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">{item}</a>
@@ -314,7 +311,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
             <div>
-              <div className="flex items-center gap-2 mb-4"><img src="/logo.png" alt="ConnectHub" className="h-12 w-auto" /></div>
+              <Link href="/" className="flex items-center gap-2 mb-4"><img src="/logo.png" alt="ConnectHub" className="h-14 w-auto" /></Link>
               <p className="text-sm text-gray-400 mb-5">Finding meaningful connections in the digital age.</p>
               <div className="space-y-2">
                 <a href="https://apps.apple.com" target="_blank" className="flex items-center gap-3 bg-white/5 hover:bg-white/10 rounded-xl px-4 py-2.5 transition-all">

@@ -1,3 +1,4 @@
+import { createNotification } from "@/lib/notify";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -15,7 +16,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ liked: false });
     } else {
       await prisma.postLike.update({ where: { id: existing.id }, data: { emoji: reaction } });
-      return NextResponse.json({ liked: true, emoji: reaction });
+      const post = await prisma.post.findUnique({ where: { id: postId } });
+    if (post && post.userId !== id) createNotification(post.userId, "like", "Post Liked", "reacted to your post", id);
+    return NextResponse.json({ liked: true, emoji: reaction });
     }
   } else {
     await prisma.postLike.create({ data: { postId, userId: id, emoji: reaction } });

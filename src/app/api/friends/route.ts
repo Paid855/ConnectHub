@@ -1,3 +1,4 @@
+import { createNotification } from "@/lib/notify";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -77,11 +78,13 @@ export async function POST(req: NextRequest) {
     });
     if (existing) return NextResponse.json({ error: "Already connected" }, { status: 400 });
     await prisma.friend.create({ data: { userId: id, friendId, status: "pending" } });
+    createNotification(friendId, "friend_request", "Friend Request", "wants to be your friend", id);
     return NextResponse.json({ sent: true });
   }
 
   if (action === "accept") {
     await prisma.friend.updateMany({ where: { userId: friendId, friendId: id, status: "pending" }, data: { status: "accepted" } });
+    createNotification(friendId, "friend_accepted", "Friend Accepted", "accepted your friend request", id);
     return NextResponse.json({ accepted: true });
   }
 

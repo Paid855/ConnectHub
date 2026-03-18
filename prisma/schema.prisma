@@ -28,6 +28,7 @@ model User {
   securityQuestion   String?
   securityAnswer     String?
   isPrivate          Boolean  @default(false)
+  interests          String[]  @default([])
   lastSeen           DateTime @default(now())
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -117,4 +118,15 @@ model LiveChat {
   userId    String
   content   String
   createdAt DateTime @default(now())
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  title      String
+  message    String
+  fromUserId String?
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
 }
