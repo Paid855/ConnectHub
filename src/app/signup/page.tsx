@@ -66,8 +66,8 @@ export default function SignupPage() {
         </div>
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30"><Heart className="w-5 h-5 text-white fill-white" /></div>
-            <span className="text-2xl font-bold text-white">ConnectHub</span>
+            <img src="/logo.png" alt="ConnectHub" className="h-14 w-auto" />
+            
           </Link>
           <div className="max-w-md">
             <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.3}}>
@@ -101,8 +101,8 @@ export default function SignupPage() {
       <div className="flex-1 flex items-center justify-center p-6 sm:p-8 bg-gradient-to-b from-white to-rose-50/30">
         <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="w-full max-w-md">
           <Link href="/" className="lg:hidden flex items-center gap-2 mb-8">
-            <Heart className="w-6 h-6 text-rose-500 fill-rose-500" />
-            <span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">ConnectHub</span>
+            <img src="/logo.png" alt="ConnectHub" className="h-14 w-auto" />
+            
           </Link>
 
           <h2 className="text-3xl font-bold text-gray-900 mb-1">Create Account</h2>

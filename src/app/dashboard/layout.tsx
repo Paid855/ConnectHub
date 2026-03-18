@@ -54,8 +54,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex min-h-screen bg-gray-50">
         <aside className="hidden lg:flex w-[230px] flex-col bg-white border-r border-gray-100 fixed inset-y-0 left-0 z-40">
           <Link href="/dashboard" className="flex items-center gap-2.5 px-5 py-5 border-b border-gray-100">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center"><Heart className="w-4 h-4 text-white fill-white" /></div>
-            <span className="text-lg font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">ConnectHub</span>
+            <img src="/logo.png" alt="ConnectHub" className="h-12 w-auto" />
+            
           </Link>
           {user && (
             <div className="mx-3 mt-3 mb-1 p-3 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-100">
@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </aside>
 
         <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2"><div className="w-7 h-7 rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center"><Heart className="w-3.5 h-3.5 text-white fill-white" /></div><span className="text-base font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">ConnectHub</span></Link>
+          <Link href="/dashboard" className="flex items-center gap-2"><img src="/logo.png" alt="ConnectHub" className="h-10 w-auto" /></Link>
           <button onClick={() => setSideOpen(!sideOpen)} className="p-2"><Menu className="w-5 h-5 text-gray-600" /></button>
         </div>
 
