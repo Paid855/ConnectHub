@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useUser, TierBadge } from "../layout";
-import { Shield, Camera, Check, Heart, Edit3, Calendar, User, Mail, Crown, Star, Settings, Globe, Gem, Phone, MapPin, MessageCircle, Rss, Tag, X } from "lucide-react";
+import { Shield, Camera, Check, Heart, Edit3, Calendar, User, Mail, Crown, Star, Settings, Globe, Gem, Phone, MapPin, MessageCircle, Rss, Tag, X, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 const COUNTRIES = ["Afghanistan","Albania","Algeria","Argentina","Australia","Bangladesh","Brazil","Canada","China","Colombia","Egypt","Ethiopia","France","Germany","Ghana","India","Indonesia","Iran","Iraq","Italy","Japan","Kenya","Malaysia","Mexico","Morocco","Nepal","Netherlands","New Zealand","Nigeria","Pakistan","Philippines","Poland","Russia","Saudi Arabia","Singapore","South Africa","South Korea","Spain","Sri Lanka","Sudan","Sweden","Switzerland","Tanzania","Thailand","Turkey","UAE","Uganda","UK","Ukraine","USA","Vietnam","Zimbabwe"];
@@ -19,6 +19,11 @@ export default function ProfilePage() {
   const [interests, setInterests] = useState<string[]>([]);
   const [showInterests, setShowInterests] = useState(false);
   const [activeTab, setActiveTab] = useState("about");
+  const [showDelete, setShowDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [postCount, setPostCount] = useState(0);
 
   useEffect(() => {
@@ -41,6 +46,18 @@ export default function ProfilePage() {
       const res = await fetch("/api/auth/profile", { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({...form, interests}) });
       if (res.ok) { setSuccess("Profile updated!"); setEditing(false); setShowInterests(false); reload(); setTimeout(()=>setSuccess(""),3000); }
     } catch {} finally { setSaving(false); }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== "DELETE MY ACCOUNT") { setDeleteError("Please type DELETE MY ACCOUNT exactly"); return; }
+    if (!deletePassword) { setDeleteError("Enter your password"); return; }
+    setDeleteError(""); setDeleting(true);
+    try {
+      const res = await fetch("/api/auth/delete", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ password: deletePassword, confirm: deleteConfirm }) });
+      const data = await res.json();
+      if (!res.ok) { setDeleteError(data.error); setDeleting(false); return; }
+      window.location.href = "/";
+    } catch { setDeleteError("Network error"); setDeleting(false); }
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -216,6 +233,26 @@ export default function ProfilePage() {
           <Link href="/dashboard/upgrade" className={"block rounded-2xl border p-5 hover:shadow-md transition-all " + (dc?"bg-amber-500/10 border-amber-500/30":"bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200")}>
             <div className="flex items-center gap-4"><div className={"w-12 h-12 rounded-xl flex items-center justify-center " + (dc?"bg-amber-500/20":"bg-amber-100")}><Crown className="w-6 h-6 text-amber-600" /></div><div className="flex-1"><h3 className={"font-bold " + (dc?"text-white":"text-amber-900")}>Upgrade Plan</h3><p className={"text-sm " + (dc?"text-amber-300":"text-amber-700")}>Unlock unlimited features</p></div></div>
           </Link>
+
+          {/* Account Deletion */}
+          <div className={(dc?"bg-red-500/10 border-red-500/20":"bg-red-50 border-red-200") + " rounded-2xl border p-5"}>
+            <h3 className="font-bold text-red-600 mb-2 flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> Delete Account</h3>
+            <p className={"text-sm mb-4 " + (dc?"text-gray-400":"text-gray-600")}>Permanently delete your account and all data. <span className="font-bold text-red-500">You will NOT be able to create a new account with the same email, phone, or username for 30 days.</span></p>
+            {!showDelete ? (
+              <button onClick={() => setShowDelete(true)} className="px-5 py-2.5 bg-red-500 text-white rounded-full text-sm font-semibold hover:bg-red-600 transition-all">Delete My Account</button>
+            ) : (
+              <div className={"rounded-xl border p-4 space-y-3 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-200")}>
+                <p className={"text-sm font-semibold text-red-500"}>This action is permanent and cannot be undone!</p>
+                <div><label className={"block text-sm font-medium mb-1 " + (dc?"text-gray-300":"text-gray-700")}>Enter your password</label><input type="password" className={"w-full px-4 py-3 rounded-xl border outline-none text-sm " + (dc?"bg-gray-700 border-gray-600 text-white":"bg-white border-gray-200")} value={deletePassword} onChange={e => setDeletePassword(e.target.value)} placeholder="Your current password" /></div>
+                <div><label className={"block text-sm font-medium mb-1 " + (dc?"text-gray-300":"text-gray-700")}>Type <span className="font-bold text-red-500">DELETE MY ACCOUNT</span> to confirm</label><input className={"w-full px-4 py-3 rounded-xl border outline-none text-sm " + (dc?"bg-gray-700 border-gray-600 text-white":"bg-white border-gray-200")} value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)} placeholder="DELETE MY ACCOUNT" /></div>
+                {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
+                <div className="flex gap-3">
+                  <button onClick={() => { setShowDelete(false); setDeletePassword(""); setDeleteConfirm(""); setDeleteError(""); }} className={"flex-1 py-2.5 rounded-full text-sm font-semibold border " + (dc?"border-gray-600 text-gray-400":"border-gray-200 text-gray-600")}>Cancel</button>
+                  <button onClick={handleDeleteAccount} disabled={deleting} className="flex-[2] py-2.5 bg-red-500 text-white rounded-full text-sm font-semibold hover:bg-red-600 disabled:opacity-60">{deleting ? "Deleting..." : "Delete Forever"}</button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
