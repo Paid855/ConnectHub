@@ -26,9 +26,10 @@ export default function ResetPasswordPage() {
       setLoading(false);
       if (!res.ok) { setError(data.error || "Could not find account"); return; }
       setQuestion(data.question); setStep("answer");
-    } catch (e) {
+    } catch (e: any) {
       setLoading(false);
-      setError("Network error. Please try again.");
+      setError("Connection error. Check your internet and try again.");
+      console.error("Reset fetch error:", e);
     }
   };
 
