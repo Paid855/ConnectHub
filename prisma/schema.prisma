@@ -28,6 +28,7 @@ model User {
   securityQuestion   String?
   securityAnswer     String?
   isPrivate          Boolean  @default(false)
+  coins              Int      @default(0)
   interests          String[]  @default([])
   lastSeen           DateTime @default(now())
   createdAt          DateTime @default(now())
@@ -129,4 +130,24 @@ model Notification {
   fromUserId String?
   read       Boolean  @default(false)
   createdAt  DateTime @default(now())
+}
+
+model Gift {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  streamId   String?
+  giftType   String
+  giftName   String
+  coinValue  Int
+  createdAt  DateTime @default(now())
+}
+
+model CoinTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Int
+  type        String
+  description String
+  createdAt   DateTime @default(now())
 }
