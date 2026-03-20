@@ -2,7 +2,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins } from "lucide-react";
+import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins, Eye, Trophy } from "lucide-react";
 
 type UserData = { id:string; name:string; email:string; username?:string; age:number|null; gender:string|null; lookingFor:string|null; bio:string|null; country:string|null; profilePhoto:string|null; tier:string; verified:boolean; verificationStatus:string; phone:string|null; isPrivate:boolean; interests:string[]; coins:number; createdAt:string; };
 const UserCtx = createContext<{ user:UserData|null; reload:()=>void; unread:number; dark:boolean; setDark:(v:boolean)=>void }>({ user:null, reload:()=>{}, unread:0, dark:false, setDark:()=>{} });
@@ -49,6 +49,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href:"/dashboard/video", label:"Video", icon:Video },
     { href:"/dashboard/verify", label:"Verification", icon:Shield },
     { href:"/dashboard/profile", label:"Profile", icon:User },
+    { href:"/dashboard/views", label:"Who Viewed", icon:Eye },
+    { href:"/dashboard/leaderboard", label:"Leaderboard", icon:Trophy },
     { href:"/dashboard/support", label:"Support", icon:HelpCircle },
   ];
 
