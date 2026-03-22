@@ -1,22 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 
-const ADMIN_EMAIL = "admin@connecthub.com";
-const ADMIN_PASS = "ConnectHub@2026";
+const ADMIN_CREDENTIALS = {
+  email: "admin@connecthub.com",
+  password: "ConnectHub@2026",
+  secretKey: process.env.ADMIN_SECRET || "ConnectHub_Admin_2026_Secret"
+};
 
 export async function POST(req: NextRequest) {
-  const { email, password } = await req.json();
-  if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
-    const res = NextResponse.json({ success: true });
-    res.cookies.set({
-      name: "admin_session",
-      value: "authenticated",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false,
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
+  try {
+    const { email, password, secretKey } = await req.json();
+
+    if (!email || !password || !secretKey) {
+      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+    }
+
+    if (secretKey !== ADMIN_CREDENTIALS.secretKey) {
+      return NextResponse.json({ error: "Invalid admin secret key" }, { status: 403 });
+    }
+
+    if (email.toLowerCase() !== ADMIN_CREDENTIALS.email || password !== ADMIN_CREDENTIALS.password) {
+      return NextResponse.json({ error: "Invalid admin credentials" }, { status: 401 });
+    }
+
+    const response = NextResponse.json({ success: true });
+    response.cookies.set("admin_session", JSON.stringify({ email, role: "admin", loginAt: Date.now() }), {
+      httpOnly: true, secure: false, sameSite: "lax", maxAge: 60 * 60 * 8, path: "/"
     });
-    return res;
+
+    return response;
+  } catch {
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-  return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 }

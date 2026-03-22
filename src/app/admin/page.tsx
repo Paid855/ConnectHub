@@ -1,48 +1,82 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Heart, Lock, Shield } from "lucide-react";
+import { Shield, Lock, Mail, Eye, EyeOff, KeyRound, ArrowRight, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function AdminLogin() {
+export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
-  const [error, setError] = useState("");
+  const [password, setPassword] = useState("");
+  const [secretKey, setSecretKey] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const login = async () => {
-    if (!email || !pw) return setError("Enter credentials");
+  const handleLogin = async () => {
+    if (!email || !password || !secretKey) { setError("All fields are required"); return; }
     setError(""); setLoading(true);
-    const res = await fetch("/api/admin/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password:pw}) });
-    if (res.ok) { router.push("/admin/dashboard"); }
-    else { setError("Invalid admin credentials"); setLoading(false); }
+    try {
+      const res = await fetch("/api/admin/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ email, password, secretKey }) });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error); setLoading(false); return; }
+      router.push("/admin/dashboard");
+    } catch { setError("Network error"); setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-gray-800 p-6">
       <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/25"><Heart className="w-6 h-6 text-white fill-white" /></div>
-            <span className="text-2xl font-bold text-white">ConnectHub</span>
-            <span className="bg-rose-500/20 text-rose-400 text-xs font-bold px-3 py-1 rounded-full border border-rose-500/30">ADMIN</span>
-          </div>
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-lg"><Shield className="w-8 h-8 text-white" /></div>
+          <h1 className="text-3xl font-bold text-white mb-1">Admin Panel</h1>
+          <p className="text-gray-400 text-sm">ConnectHub Administration — Authorized Access Only</p>
         </div>
-        <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center"><Shield className="w-5 h-5 text-rose-400" /></div>
-            <div><h2 className="text-xl font-bold text-white">Owner Access</h2><p className="text-sm text-slate-400">Manage ConnectHub platform</p></div>
+
+        <div className="bg-gray-800 rounded-2xl border border-gray-700 p-8">
+          <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-6">
+            <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <p className="text-xs text-red-300">This is a restricted area. Unauthorized access is prohibited and will be logged.</p>
           </div>
-          {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">{error}</div>}
+
+          {error && <motion.div initial={{opacity:0}} animate={{opacity:1}} className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">{error}</motion.div>}
+
           <div className="space-y-4">
-            <div><label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label><input className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:ring-2 focus:ring-rose-500/50 focus:border-transparent outline-none text-sm" placeholder="admin@connecthub.com" value={email} onChange={e=>setEmail(e.target.value)} /></div>
-            <div><label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label><input type="password" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:ring-2 focus:ring-rose-500/50 focus:border-transparent outline-none text-sm" placeholder="Admin password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&login()} /></div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Admin Email</label>
+              <div className="relative">
+                <input type="email" className="w-full px-4 py-3.5 pl-11 rounded-xl bg-gray-700 border border-gray-600 text-white outline-none focus:ring-2 focus:ring-red-500 text-sm" placeholder="admin@connecthub.com" value={email} onChange={e=>setEmail(e.target.value)} />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Admin Password</label>
+              <div className="relative">
+                <input type={showPw?"text":"password"} className="w-full px-4 py-3.5 pl-11 pr-11 rounded-xl bg-gray-700 border border-gray-600 text-white outline-none focus:ring-2 focus:ring-red-500 text-sm" placeholder="Enter admin password" value={password} onChange={e=>setPassword(e.target.value)} />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <button type="button" onClick={()=>setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">{showPw?<EyeOff className="w-4 h-4"/>:<Eye className="w-4 h-4"/>}</button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Secret Access Key</label>
+              <div className="relative">
+                <input type={showKey?"text":"password"} className="w-full px-4 py-3.5 pl-11 pr-11 rounded-xl bg-gray-700 border border-gray-600 text-white outline-none focus:ring-2 focus:ring-red-500 text-sm" placeholder="Enter secret key" value={secretKey} onChange={e=>setSecretKey(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} />
+                <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <button type="button" onClick={()=>setShowKey(!showKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">{showKey?<EyeOff className="w-4 h-4"/>:<Eye className="w-4 h-4"/>}</button>
+              </div>
+            </div>
           </div>
-          <button onClick={login} disabled={loading} className="w-full mt-6 py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-semibold hover:shadow-lg hover:shadow-rose-500/25 transition-all disabled:opacity-60 flex items-center justify-center gap-2">{loading?<span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>:"Access Dashboard"}</button>
+
+          <button onClick={handleLogin} disabled={loading} className="w-full mt-6 py-3.5 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-full font-semibold hover:shadow-lg hover:shadow-red-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+            {loading?<><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Authenticating...</>:<><Shield className="w-4 h-4"/>Access Admin Panel</>}
+          </button>
         </div>
-        <p className="text-center mt-6"><Link href="/" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">Back to site</Link></p>
+
+        <p className="text-center mt-6 text-sm text-gray-500"><Link href="/" className="text-gray-400 hover:text-white transition-colors">Back to ConnectHub</Link></p>
       </motion.div>
     </div>
   );
