@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser } from "../layout";
-import { Send, ArrowLeft, Shield, MessageCircle, Search, Heart, Smile, Phone, Video, Image as ImageIcon, X, PhoneOff, Mic, MicOff, VideoOff, PhoneCall } from "lucide-react";
+import { Send, ArrowLeft, Shield, MessageCircle, Search, Heart, Smile, Phone, Video, Image as ImageIcon, X, PhoneOff, Mic, Square, Play, Pause, MicOff, VideoOff, PhoneCall } from "lucide-react";
 import Link from "next/link";
 
 type Partner = { id:string; name:string; profilePhoto:string|null; tier:string; };
@@ -20,6 +20,13 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [audioBlob, setAudioBlob] = useState<Blob|null>(null);
+  const [audioUrl, setAudioUrl] = useState<string|null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder|null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<any>(null);
   const [limitHit, setLimitHit] = useState(false);
   const [callState, setCallState] = useState<"idle"|"ringing"|"connected">("idle");
   const [callType, setCallType] = useState<"voice"|"video">("voice");
@@ -41,15 +48,70 @@ export default function MessagesPage() {
 
   const openChat = async (partner: Partner) => {
     setActivePartner(partner); setShowEmoji(false); setLimitHit(false); endCall();
-    const res = await fetch("/api/messages?partnerId="+partner.id);
+    const res = await fetch("/api/messages?with="+partner.id);
     if (res.ok) { const d = await res.json(); setMessages(d.messages||[]); }
     setTimeout(() => endRef.current?.scrollIntoView({behavior:"smooth"}), 100);
     if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(async () => { if (callState !== "idle") return; const r = await fetch("/api/messages?partnerId="+partner.id); if (r.ok) { const d = await r.json(); setMessages(d.messages||[]); } }, 3000);
+    pollRef.current = setInterval(async () => { if (callState !== "idle") return; const r = await fetch("/api/messages?with="+partner.id); if (r.ok) { const d = await r.json(); setMessages(d.messages||[]); } }, 3000);
   };
 
   useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); endCall(); }; }, []);
   useEffect(() => { endRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      recorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        setAudioBlob(blob);
+        setAudioUrl(URL.createObjectURL(blob));
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordTimerRef.current = setInterval(() => setRecordingTime(p => p + 1), 1000);
+    } catch { alert("Microphone access denied"); }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) { mediaRecorderRef.current.stop(); }
+    setIsRecording(false);
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setRecordingTime(0);
+    if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+  };
+
+  const sendVoiceMessage = async () => {
+    if (!audioBlob || !activePartner) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target?.result as string;
+      const content = "[VOICE]" + base64;
+      await fetch("/api/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ receiverId:activePartner.id, content }) });
+      setAudioBlob(null);
+      setAudioUrl(null);
+      setRecordingTime(0);
+      const r2 = await fetch("/api/messages?with=" + activePartner.id);
+      if (r2.ok) { const d2 = await r2.json(); setMessages(d2.messages||[]); }
+    };
+    reader.readAsDataURL(audioBlob);
+  };
+
+  const formatRecTime = (s: number) => Math.floor(s/60).toString().padStart(2,"0") + ":" + (s%60).toString().padStart(2,"0");
 
   const sendMessage = async (content?: string) => {
     const msg = content||newMsg.trim();
@@ -59,7 +121,7 @@ export default function MessagesPage() {
     if (res.status===403) { const d = await res.json(); if (d.limited) { setLimitHit(true); setSending(false); return; } }
     if (!content) setNewMsg("");
     setShowEmoji(false);
-    const r2 = await fetch("/api/messages?partnerId="+activePartner.id);
+    const r2 = await fetch("/api/messages?with="+activePartner.id);
     if (r2.ok) { const d = await r2.json(); setMessages(d.messages||[]); }
     setSending(false); loadConversations();
   };
@@ -107,7 +169,7 @@ export default function MessagesPage() {
         setCallState("idle");
         await fetch("/api/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ receiverId:activePartner.id, content:type==="video"?"📹 Missed video call":"📞 Missed call" }) });
         await fetch("/api/calls", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ receiverId:activePartner.id, type, status:"missed", duration:0 }) });
-        const r2 = await fetch("/api/messages?partnerId="+activePartner.id);
+        const r2 = await fetch("/api/messages?with="+activePartner.id);
         if (r2.ok) { const d = await r2.json(); setMessages(d.messages||[]); }
       }
     }, 3000 + Math.random()*2000);
@@ -140,10 +202,12 @@ export default function MessagesPage() {
 
   const formatCallTime = (s: number) => { const m = Math.floor(s/60); const sec = s%60; return `${m.toString().padStart(2,"0")}:${sec.toString().padStart(2,"0")}`; };
   const isImage = (content: string) => content.startsWith("[IMG]data:image");
+  const isVoice = (content: string) => content.startsWith("[VOICE]");
+  const getVoiceSrc = (content: string) => content.replace("[VOICE]","");
   const getImageSrc = (content: string) => content.replace("[IMG]","");
   const addEmoji = (emoji: string) => { setNewMsg(p=>p+emoji); inputRef.current?.focus(); };
   const formatTime = (d: string) => { const diff = Date.now()-new Date(d).getTime(); if(diff<60000) return "Now"; if(diff<3600000) return Math.floor(diff/60000)+"m"; if(diff<86400000) return new Date(d).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); return new Date(d).toLocaleDateString([],{month:"short",day:"numeric"}); };
-  const filteredConvos = convos.filter(c => !search||c.partner.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredConvos = convos.filter(c => !search||c.user.name.toLowerCase().includes(search.toLowerCase()));
   if (!user) return null;
 
   return (
@@ -223,9 +287,9 @@ export default function MessagesPage() {
           {loading ? <div className="p-8 text-center"><div className="w-8 h-8 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin mx-auto" /></div> : filteredConvos.length===0 ? (
             <div className="p-8 text-center"><Heart className="w-12 h-12 text-gray-200 mx-auto mb-3" /><h3 className="font-bold text-gray-900 mb-1">No messages</h3><p className="text-sm text-gray-500">Match with someone to chat!</p></div>
           ) : filteredConvos.map(c => (
-            <button key={c.partner.id} onClick={()=>openChat(c.partner)} className={"w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-all text-left border-b border-gray-50 "+(activePartner?.id===c.partner.id?"bg-rose-50":"")}>
-              <div className="relative flex-shrink-0">{c.partner.profilePhoto?<img src={c.partner.profilePhoto} className="w-12 h-12 rounded-full object-cover"/>:<div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{c.partner.name[0]}</div>}{c.unreadCount>0&&<span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{c.unreadCount}</span>}</div>
-              <div className="flex-1 min-w-0"><div className="flex items-center justify-between"><p className="text-sm font-bold text-gray-900 truncate flex items-center gap-1">{c.partner.name}{c.partner.tier==="verified"&&<Shield className="w-3.5 h-3.5 text-blue-500"/>}</p><span className="text-[11px] text-gray-400 flex-shrink-0">{c.lastMessage?formatTime(c.lastMessage.createdAt):""}</span></div><p className={"text-xs truncate mt-0.5 "+(c.unreadCount>0?"text-gray-900 font-semibold":"text-gray-500")}>{c.lastMessage?.content?.startsWith("[IMG]")?"📷 Photo":c.lastMessage?.content||"Start chatting!"}</p></div>
+            <button key={c.user.id} onClick={()=>openChat(c.user)} className={"w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-all text-left border-b border-gray-50 "+(activePartner?.id===c.user.id?"bg-rose-50":"")}>
+              <div className="relative flex-shrink-0">{c.user.profilePhoto?<img src={c.user.profilePhoto} className="w-12 h-12 rounded-full object-cover"/>:<div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{c.user.name[0]}</div>}{c.unreadCount>0&&<span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{c.unreadCount}</span>}</div>
+              <div className="flex-1 min-w-0"><div className="flex items-center justify-between"><p className="text-sm font-bold text-gray-900 truncate flex items-center gap-1">{c.user.name}{c.user.tier==="verified"&&<Shield className="w-3.5 h-3.5 text-blue-500"/>}</p><span className="text-[11px] text-gray-400 flex-shrink-0">{c.lastMessage?formatTime(c.lastMessage.createdAt):""}</span></div><p className={"text-xs truncate mt-0.5 "+(c.unreadCount>0?"text-gray-900 font-semibold":"text-gray-500")}>{c.lastMessage?.content?.startsWith("[IMG]")?"📷 Photo":c.lastMessage?.content?.startsWith("[VOICE]")?"🎤 Voice message":c.lastMessage?.content||"Start chatting!"}</p></div>
             </button>
           ))}
         </div>
@@ -254,6 +318,17 @@ export default function MessagesPage() {
                 <div key={m.id} className={"flex "+(isMine?"justify-end":"justify-start")}>
                   {img ? (
                     <div className="max-w-[70%]"><img src={getImageSrc(m.content)} className="rounded-2xl max-h-64 object-cover border border-gray-200 shadow-sm"/><p className={"text-[10px] mt-1 "+(isMine?"text-right text-gray-400":"text-gray-400")}>{formatTime(m.createdAt)}{isMine&&m.read&&" · Read"}</p></div>
+                  ) : isVoice(m.content) ? (
+                    <div className={"max-w-[75%] " + (isMine?"ml-auto":"")}>
+                      <div className={(isMine?"bg-gradient-to-r from-rose-500 to-pink-500":"bg-white border border-gray-100") + " rounded-2xl px-4 py-3 shadow-sm"}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm">{isMine?"🎤":"🎵"}</span>
+                          <span className={(isMine?"text-rose-100":"text-gray-500") + " text-xs font-medium"}>Voice message</span>
+                        </div>
+                        <audio controls className="w-full h-8" style={{filter:isMine?"invert(1) brightness(2) contrast(0.8)":"none"}} src={getVoiceSrc(m.content)} />
+                      </div>
+                      <p className={"text-[10px] mt-1 " + (isMine?"text-right text-gray-400":"text-gray-400")}>{formatTime(m.createdAt)}{isMine && m.read && " · Read"}</p>
+                    </div>
                   ) : isCallMsg ? (
                     <div className="bg-gray-100 border border-gray-200 rounded-2xl px-4 py-2.5 max-w-[75%] text-center">
                       <p className="text-sm text-gray-600">{m.content}</p>
@@ -281,11 +356,38 @@ export default function MessagesPage() {
           <div className="relative border-t border-gray-100 bg-white">
             {showEmoji&&<div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-100 p-3 shadow-lg"><div className="flex flex-wrap gap-1.5">{EMOJIS.map(e=><button key={e} onClick={()=>addEmoji(e)} className="w-9 h-9 flex items-center justify-center text-xl hover:bg-gray-100 rounded-lg">{e}</button>)}</div></div>}
             <div className="flex items-center gap-2 p-3">
-              <button onClick={()=>setShowEmoji(!showEmoji)} className={"w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 "+(showEmoji?"bg-rose-100 text-rose-500":"bg-gray-100 text-gray-400")}><Smile className="w-5 h-5"/></button>
-              <input ref={imageRef} type="file" accept="image/*" onChange={handleImageSend} className="hidden"/>
-              <button onClick={()=>imageRef.current?.click()} className="w-9 h-9 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center flex-shrink-0 hover:bg-emerald-100 hover:text-emerald-500"><ImageIcon className="w-5 h-5"/></button>
-              <input ref={inputRef} className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl outline-none text-sm focus:ring-2 focus:ring-rose-300" placeholder={limitHit?"Upgrade to send more...":"Type a message..."} value={newMsg} onChange={e=>setNewMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMessage()} onFocus={()=>setShowEmoji(false)} disabled={limitHit}/>
-              <button onClick={()=>sendMessage()} disabled={!newMsg.trim()||sending||limitHit} className="w-9 h-9 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0"><Send className="w-4 h-4"/></button>
+              {isRecording ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="flex items-center gap-2 flex-1 bg-red-50 border border-red-200 rounded-2xl px-4 py-2.5">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-sm font-bold text-red-500">{formatRecTime(recordingTime)}</span>
+                    <span className="text-xs text-red-400 flex-1">Recording...</span>
+                  </div>
+                  <button onClick={cancelRecording} className="w-9 h-9 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center flex-shrink-0 hover:bg-red-100 hover:text-red-500"><X className="w-5 h-5"/></button>
+                  <button onClick={stopRecording} className="w-9 h-9 bg-red-500 rounded-full flex items-center justify-center text-white flex-shrink-0 hover:bg-red-600"><div className="w-3.5 h-3.5 bg-white rounded-sm"/></button>
+                </div>
+              ) : audioUrl ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="flex items-center gap-2 flex-1 bg-violet-50 border border-violet-200 rounded-2xl px-3 py-2">
+                    <span className="text-sm">🎤</span>
+                    <audio controls className="flex-1 h-8" src={audioUrl} />
+                  </div>
+                  <button onClick={cancelRecording} className="w-9 h-9 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center flex-shrink-0 hover:bg-red-100 hover:text-red-500"><X className="w-5 h-5"/></button>
+                  <button onClick={sendVoiceMessage} className="w-9 h-9 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full flex items-center justify-center text-white flex-shrink-0 hover:shadow-lg"><Send className="w-4 h-4"/></button>
+                </div>
+              ) : (
+                <>
+                  <button onClick={()=>setShowEmoji(!showEmoji)} className={"w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 "+(showEmoji?"bg-rose-100 text-rose-500":"bg-gray-100 text-gray-400")}><Smile className="w-5 h-5"/></button>
+                  <input ref={imageRef} type="file" accept="image/*" onChange={handleImageSend} className="hidden"/>
+                  <button onClick={()=>imageRef.current?.click()} className="w-9 h-9 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center flex-shrink-0 hover:bg-emerald-100 hover:text-emerald-500"><ImageIcon className="w-5 h-5"/></button>
+                  <input ref={inputRef} className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl outline-none text-sm focus:ring-2 focus:ring-rose-300" placeholder={limitHit?"Upgrade to send more...":"Type a message..."} value={newMsg} onChange={e=>setNewMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMessage()} onFocus={()=>setShowEmoji(false)} disabled={limitHit}/>
+                  {newMsg.trim() ? (
+                    <button onClick={()=>sendMessage()} disabled={sending||limitHit} className="w-9 h-9 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0"><Send className="w-4 h-4"/></button>
+                  ) : (
+                    <button onClick={startRecording} disabled={limitHit} className="w-9 h-9 rounded-full bg-violet-100 text-violet-500 flex items-center justify-center flex-shrink-0 hover:bg-violet-200 disabled:opacity-40"><Mic className="w-5 h-5"/></button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </>) : (
