@@ -2,7 +2,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins, Eye, Trophy } from "lucide-react";
+import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins, Eye, Trophy, Ban } from "lucide-react";
 
 type UserData = { id:string; name:string; email:string; username?:string; age:number|null; gender:string|null; lookingFor:string|null; bio:string|null; country:string|null; profilePhoto:string|null; tier:string; verified:boolean; verificationStatus:string; phone:string|null; isPrivate:boolean; interests:string[]; coins:number; createdAt:string; };
 const UserCtx = createContext<{ user:UserData|null; reload:()=>void; unread:number; dark:boolean; setDark:(v:boolean)=>void }>({ user:null, reload:()=>{}, unread:0, dark:false, setDark:()=>{} });
@@ -25,6 +25,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [dark, setDark] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
+  const [showReward, setShowReward] = useState(false);
+  const [rewardClaimed, setRewardClaimed] = useState(false);
+  const [rewardCoins, setRewardCoins] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   const loadUser = async () => { try { const res = await fetch("/api/auth/me"); if (res.status===403) { router.push("/login?banned=true"); return; } const data = await res.json(); if (!data.user) { router.push("/login"); return; } setUser(data.user); } catch { router.push("/login"); } finally { setLoading(false); } };
@@ -33,7 +36,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const markAllRead = async () => { await fetch("/api/notifications", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"readAll" }) }); setNotifCount(0); setNotifications(p => p.map(n => ({...n, read:true}))); };
 
   useEffect(() => { loadUser(); }, []);
-  useEffect(() => { if (user) { loadUnread(); loadNotifications(); const i = setInterval(loadUnread, 10000); const j = setInterval(loadNotifications, 15000); return () => { clearInterval(i); clearInterval(j); }; } }, [user]);
+  const checkDailyReward = async () => {
+    const today = new Date().toDateString();
+    const last = typeof window !== "undefined" ? localStorage.getItem("lastRewardCheck") : null;
+    if (last === today) return;
+    if (typeof window !== "undefined") localStorage.setItem("lastRewardCheck", today);
+    setTimeout(() => setShowReward(true), 2000);
+  };
+
+  const claimReward = async () => {
+    try {
+      const res = await fetch("/api/daily-reward", { method:"POST" });
+      const data = await res.json();
+      if (res.ok) { setRewardCoins(data.reward); setRewardClaimed(true); loadUser(); }
+      else { setRewardClaimed(true); setRewardCoins(0); }
+    } catch {}
+  };
+
+  useEffect(() => { if (user) { loadUnread(); loadNotifications(); checkDailyReward(); const i = setInterval(loadUnread, 10000); const j = setInterval(loadNotifications, 15000); return () => { clearInterval(i); clearInterval(j); }; } }, [user]);
   useEffect(() => { const s = typeof window !== "undefined" ? localStorage.getItem("dark") : null; if (s === "true") setDark(true); }, []);
   useEffect(() => { if (dark) document.documentElement.classList.add("dark"); else document.documentElement.classList.remove("dark"); if (typeof window !== "undefined") localStorage.setItem("dark", String(dark)); }, [dark]);
 
@@ -51,6 +71,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href:"/dashboard/profile", label:"Profile", icon:User },
     { href:"/dashboard/views", label:"Who Viewed", icon:Eye },
     { href:"/dashboard/leaderboard", label:"Leaderboard", icon:Trophy },
+    { href:"/dashboard/search", label:"Search", icon:Search },
+    { href:"/dashboard/blocked", label:"Blocked", icon:Ban },
     { href:"/dashboard/support", label:"Support", icon:HelpCircle },
   ];
 
@@ -143,6 +165,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-6 lg:p-8 max-w-6xl mx-auto">{children}</div></main>
+
+        {showReward && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => { if(rewardClaimed) setShowReward(false); }}>
+            <div className={(dc?"bg-gray-800 border-gray-700":"bg-white border-gray-200") + " w-full max-w-sm rounded-3xl border shadow-2xl overflow-hidden"} onClick={e => e.stopPropagation()}>
+              <div className="bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 p-8 text-center">
+                <div className="text-6xl mb-3">{rewardClaimed ? "🎉" : "🎁"}</div>
+                <h2 className="text-2xl font-bold text-white">{rewardClaimed ? "Coins Claimed!" : "Daily Reward!"}</h2>
+                <p className="text-amber-100 text-sm mt-1">{rewardClaimed ? (rewardCoins > 0 ? "+" + rewardCoins + " coins added!" : "Already claimed today!") : "Claim your free coins"}</p>
+              </div>
+              <div className="p-6 text-center">
+                {!rewardClaimed ? (
+                  <>
+                    <div className={"flex items-center justify-center gap-2 mb-4 " + (dc?"text-white":"text-gray-900")}><Coins className="w-6 h-6 text-amber-500" /><span className="text-3xl font-bold">+10</span><span className="text-lg">coins</span></div>
+                    <p className={"text-sm mb-5 " + (dc?"text-gray-400":"text-gray-500")}>Log in every day to earn free coins!</p>
+                    <button onClick={claimReward} className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold hover:shadow-lg">Claim Reward</button>
+                  </>
+                ) : (
+                  <button onClick={() => setShowReward(false)} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg">Continue</button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </UserCtx.Provider>
   );

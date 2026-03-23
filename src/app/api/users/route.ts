@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
     const users = await prisma.user.findMany({
       where: { id: { not: id, notIn: blockedIds }, tier: { not: "banned" } },
-      select: { id:true, name:true, age:true, gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, interests:true, boostedUntil:true },
+      select: { id:true, name:true, age:true, gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, interests:true, boostedUntil:true, lastSeen:true },
       orderBy: { createdAt: "desc" },
       take: 100
     });
