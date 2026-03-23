@@ -21,7 +21,7 @@ const TESTIMONIALS = [
 export default function LandingPage() {
   const [currentProfile, setCurrentProfile] = useState(0);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  const [isMonthly, setIsMonthly] = useState(true);
+  
   const [activeFaq, setActiveFaq] = useState<number|null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -242,22 +242,18 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Simple <span className="text-rose-500">Pricing</span></h2>
-            <p className="text-gray-500 mb-6">Choose the plan that fits your dating journey</p>
-            <div className="inline-flex bg-gray-100 rounded-full p-1">
-              <button onClick={() => setIsMonthly(true)} className={"px-5 py-2 rounded-full text-sm font-semibold transition-all " + (isMonthly?"bg-white text-gray-900 shadow-sm":"text-gray-500")}>Monthly</button>
-              <button onClick={() => setIsMonthly(false)} className={"px-5 py-2 rounded-full text-sm font-semibold transition-all " + (!isMonthly?"bg-white text-gray-900 shadow-sm":"text-gray-500")}>Yearly <span className="text-rose-500 text-xs">-20%</span></button>
-            </div>
+            <p className="text-gray-500 mb-6">One-time payment — yours forever. No subscriptions.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { name:"Basic", price:"$0", features:["Limited daily matches","5 messages per day","Basic profile","Browse members","Community feed"], featured:false, cta:"Get Started" },
-              { name:"Premium", price:isMonthly?"$29":"$23", features:["Unlimited matches","Unlimited messages","Video calls","Advanced filters","See who likes you"], featured:true, cta:"Go Premium" },
-              { name:"Gold", price:isMonthly?"$49":"$39", features:["Everything in Premium","VIP profile badge","Live streaming","Profile boost monthly","Priority support"], featured:false, cta:"Go Gold" },
+              { name:"Basic", price:"Free", features:["Limited daily matches","5 messages per day","Basic profile","Browse members","Community feed"], featured:false, cta:"Get Started" },
+              { name:"Premium", price:"2,000", coin:true, features:["Unlimited matches","Unlimited messages","Video calls","Advanced filters","See who likes you"], featured:true, cta:"Go Premium" },
+              { name:"Gold", price:"5,000", coin:true, features:["Everything in Premium","VIP profile badge","Live streaming","Profile boost","Priority support"], featured:false, cta:"Go Gold" },
             ].map((plan,i) => (
               <div key={i} className={"rounded-3xl p-8 border transition-all " + (plan.featured ? "bg-gradient-to-b from-rose-500 to-pink-500 text-white border-rose-400 shadow-2xl shadow-rose-200 scale-105" : "bg-white border-gray-200 hover:shadow-xl")}>
                 {plan.featured && <span className="inline-block bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full mb-4">MOST POPULAR</span>}
                 <h3 className={"text-xl font-bold mb-2 " + (plan.featured?"text-white":"text-gray-900")}>{plan.name}</h3>
-                <div className="mb-6"><span className="text-4xl font-bold">{plan.price}</span><span className={plan.featured?"text-rose-100":"text-gray-400"}>/month</span></div>
+                <div className="mb-6"><span className="text-4xl font-bold">{plan.price}</span>{plan.coin?<span className={plan.featured?"text-rose-100":"text-gray-400"}> coins</span>:<span className={plan.featured?"text-rose-100":"text-gray-400"}> forever</span>}<p className={"text-xs mt-1 " + (plan.featured?"text-rose-200":"text-gray-400")}>{plan.coin?"One-time purchase — lifetime access":"No credit card needed"}</p></div>
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((f,j) => (
                     <li key={j} className="flex items-center gap-3 text-sm"><Check className={"w-4 h-4 flex-shrink-0 " + (plan.featured?"text-white":"text-emerald-500")} /><span className={plan.featured?"text-rose-50":"text-gray-600"}>{f}</span></li>
