@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useUser } from "../layout";
-import { Video, Shield, Lock, Users, Eye, Radio, X, MessageCircle, Heart, AlertCircle, ArrowLeft, Mic, MicOff, Upload, Film, Send, Smile, Trash2 } from "lucide-react";
+import { Video, Shield, Lock, Users, Eye, Radio, X, MessageCircle, Heart, AlertCircle, ArrowLeft, Mic, MicOff, Upload, Film, Send, Smile, Trash2, Gift, Coins } from "lucide-react";
 import Link from "next/link";
 
 const RULES = ["No nudity or sexually explicit content","No hate speech, bullying, or harassment","No violence or harmful activities","No illegal content or activities","Must be 18+ to go live","No spam or misleading content","Respect other users at all times","Violations result in permanent ban"];
@@ -38,8 +38,13 @@ export default function VideoPage() {
   const uploadRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+  const [showGifts, setShowGifts] = useState(false);
+  const [giftList, setGiftList] = useState<{id:string;name:string;emoji:string;coins:number}[]>([]);
+  const [myCoins, setMyCoins] = useState(0);
+  const [sendingGift, setSendingGift] = useState("");
+  const [giftAnimation, setGiftAnimation] = useState<{emoji:string;name:string}|null>(null);
 
-  const isVerified = user?.tier === "verified" || user?.tier === "premium" || user?.tier === "gold";
+  const isVerified = user?.verified === true || user?.verificationStatus === "approved" || user?.tier === "premium" || user?.tier === "gold";
 
   const loadStreams = async () => { try { const res = await fetch("/api/live"); if (res.ok) { const d = await res.json(); setActiveStreams((d.streams||[]).filter((s:any) => s.userId !== user?.id)); } } catch {} };
   const loadVideoPosts = async () => { try { const res = await fetch("/api/feed"); if (res.ok) { const d = await res.json(); setVideoPosts((d.feed||[]).filter((p:any) => p.image && (p.image.startsWith("[VID]") || p.image.startsWith("data:video")))); } } catch {} };
@@ -47,6 +52,26 @@ export default function VideoPage() {
   const loadChat = useCallback(async (sid: string) => {
     try { const res = await fetch("/api/live/chat?streamId="+sid); if (res.ok) { const d = await res.json(); setChatMessages(d.messages||[]); } } catch {}
   }, []);
+
+  const loadGifts = async () => {
+    try { const res = await fetch("/api/gifts"); if (res.ok) { const d = await res.json(); setGiftList(d.gifts||[]); } } catch {}
+    try { const res = await fetch("/api/coins"); if (res.ok) { const d = await res.json(); setMyCoins(d.coins||0); } } catch {}
+  };
+
+  const sendGift = async (giftId: string, receiverId: string, streamId: string) => {
+    setSendingGift(giftId);
+    try {
+      const res = await fetch("/api/gifts", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ giftId, receiverId, streamId }) });
+      const data = await res.json();
+      if (res.ok) {
+        setMyCoins(data.coins);
+        setGiftAnimation({ emoji: data.giftEmoji, name: data.giftName });
+        setTimeout(() => setGiftAnimation(null), 3000);
+        loadChat(streamId);
+      } else { alert(data.error || "Could not send gift"); }
+    } catch { alert("Network error"); }
+    setSendingGift("");
+  };
 
   // Check if stream we are watching is still live
   const checkStreamAlive = useCallback(async (sid: string) => {
@@ -102,7 +127,7 @@ export default function VideoPage() {
 
   const joinStream = async (s: LiveStreamData) => {
     await fetch("/api/live", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"join", streamId:s.id }) });
-    setWatching(s); setView("watch"); setChatMessages([]);
+    setWatching(s); setView("watch"); setChatMessages([]); loadGifts();
     loadChat(s.id);
     if (chatPollRef.current) clearInterval(chatPollRef.current);
     chatPollRef.current = setInterval(() => { loadChat(s.id); checkStreamAlive(s.id); }, 2000);
@@ -227,12 +252,48 @@ export default function VideoPage() {
           )}
           {showChatEmoji && <div className="px-4 py-2 flex flex-wrap gap-1 border-t border-gray-800">{CHAT_EMOJIS.map(e=><button key={e} onMouseDown={ev=>{ev.preventDefault();setChatInput(p=>p+e);}} className="w-8 h-8 flex items-center justify-center text-lg hover:bg-white/10 rounded-lg">{e}</button>)}</div>}
           <div className="flex items-center gap-2 p-3">
-            <button onMouseDown={e=>{e.preventDefault();setShowChatEmoji(!showChatEmoji);}} className={"w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 "+(showChatEmoji?"bg-rose-500/30 text-rose-400":"bg-white/10 text-white/50")}><Smile className="w-5 h-5"/></button>
+            <button onMouseDown={e=>{e.preventDefault();setShowChatEmoji(!showChatEmoji);setShowGifts(false);}} className={"w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 "+(showChatEmoji?"bg-rose-500/30 text-rose-400":"bg-white/10 text-white/50")}><Smile className="w-5 h-5"/></button>
+            <button onMouseDown={e=>{e.preventDefault();setShowGifts(!showGifts);setShowChatEmoji(false);if(!showGifts)loadGifts();}} className={"w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 "+(showGifts?"bg-amber-500/30 text-amber-400":"bg-white/10 text-white/50")}><Gift className="w-5 h-5"/></button>
             <input ref={chatInputRef} className="flex-1 bg-gray-800 border border-gray-700 rounded-full px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-rose-500" placeholder="Send a message..." value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();const t=chatInput;setChatInput("");sendChat(watching.id,t);}}} />
             <button onMouseDown={e=>{e.preventDefault();const t=chatInput;setChatInput("");sendChat(watching.id,t);}} disabled={!chatInput.trim()} className="w-9 h-9 bg-rose-500 rounded-full flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0 hover:bg-rose-600"><Send className="w-4 h-4"/></button>
           </div>
         </div>
       </div>
+      {/* Gift Panel */}
+      {showGifts && watching && (
+        <div className="mt-3 bg-gray-900 rounded-2xl border border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-white font-bold text-sm flex items-center gap-2"><Gift className="w-4 h-4 text-amber-400" /> Send a Gift</h4>
+            <div className="flex items-center gap-2">
+              <Coins className="w-4 h-4 text-amber-400" />
+              <span className="text-sm font-bold text-amber-400">{myCoins.toLocaleString()}</span>
+              <a href="/dashboard/coins" target="_blank" className="text-[10px] text-rose-400 font-bold hover:underline ml-1">+Buy</a>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {giftList.map(g => (
+              <button key={g.id} onClick={() => sendGift(g.id, watching.userId, watching.id)} disabled={sendingGift === g.id || myCoins < g.coins} className={"flex flex-col items-center gap-1 p-3 rounded-xl border transition-all " + (myCoins >= g.coins ? "border-gray-700 hover:border-amber-500 hover:bg-amber-500/10" : "border-gray-800 opacity-40 cursor-not-allowed")}>
+                <span className="text-2xl">{g.emoji}</span>
+                <span className="text-[10px] text-white font-medium">{g.name}</span>
+                <span className="text-[10px] text-amber-400 font-bold flex items-center gap-0.5"><Coins className="w-2.5 h-2.5" />{g.coins}</span>
+                {sendingGift === g.id && <div className="w-3 h-3 border-2 border-amber-300 border-t-amber-500 rounded-full animate-spin" />}
+              </button>
+            ))}
+          </div>
+          {myCoins < 10 && <p className="text-xs text-gray-500 text-center mt-2">Not enough coins. <a href="/dashboard/coins" target="_blank" className="text-rose-400 font-bold hover:underline">Buy Coins</a></p>}
+        </div>
+      )}
+
+      {/* Gift animation overlay */}
+      {giftAnimation && (
+        <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
+          <div className="animate-bounce text-center">
+            <span className="text-8xl block">{giftAnimation.emoji}</span>
+            <span className="text-white text-xl font-bold bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full mt-2 inline-block">Sent {giftAnimation.name}!</span>
+          </div>
+        </div>
+      )}
+
       <button onClick={leaveStream} className="mt-4 flex items-center gap-2 text-gray-500 hover:text-gray-700 text-sm font-medium"><ArrowLeft className="w-4 h-4"/> Back to Video</button>
     </div>
   );
