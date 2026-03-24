@@ -13,8 +13,8 @@ const PACKAGES = [
 ];
 
 const UPGRADES = [
-  { tier:"premium", label:"Premium", coins:2000, icon:Gem, color:"from-rose-500 to-pink-500", features:["Unlimited matches","Unlimited messages","Video calls","Advanced filters","See who likes you"] },
-  { tier:"gold", label:"Gold", coins:5000, icon:Crown, color:"from-amber-400 to-orange-500", features:["Everything in Premium","VIP profile badge","Live streaming","Profile boost","Priority support"] },
+  { tier:"premium", label:"Premium", coins:2000, icon:Gem, color:"from-rose-500 to-pink-500", features:["Unlimited matches","Unlimited messages","Video calls","Advanced filters","See who likes you","Ad-free experience"] },
+  { tier:"gold", label:"Gold", coins:5000, icon:Crown, color:"from-amber-400 to-orange-500", features:["Everything in Premium","VIP profile badge","Live streaming","Profile boost","Priority support","Ad-free experience"] },
 ];
 
 export default function CoinsPage() {

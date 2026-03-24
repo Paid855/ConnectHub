@@ -247,8 +247,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { name:"Basic", price:"Free", features:["Limited daily matches","5 messages per day","Basic profile","Browse members","Community feed"], featured:false, cta:"Get Started" },
-              { name:"Premium", price:"2,000", coin:true, features:["Unlimited matches","Unlimited messages","Video calls","Advanced filters","See who likes you"], featured:true, cta:"Go Premium" },
-              { name:"Gold", price:"5,000", coin:true, features:["Everything in Premium","VIP profile badge","Live streaming","Profile boost","Priority support"], featured:false, cta:"Go Gold" },
+              { name:"Premium", price:"2,000", coin:true, features:["Unlimited matches","Unlimited messages","Video calls","Advanced filters","See who likes you","Ad-free experience"], featured:true, cta:"Go Premium" },
+              { name:"Gold", price:"5,000", coin:true, features:["Everything in Premium","VIP profile badge","Live streaming","Profile boost","Priority support","Ad-free experience"], featured:false, cta:"Go Gold" },
             ].map((plan,i) => (
               <div key={i} className={"rounded-3xl p-8 border transition-all " + (plan.featured ? "bg-gradient-to-b from-rose-500 to-pink-500 text-white border-rose-400 shadow-2xl shadow-rose-200 scale-105" : "bg-white border-gray-200 hover:shadow-xl")}>
                 {plan.featured && <span className="inline-block bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full mb-4">MOST POPULAR</span>}

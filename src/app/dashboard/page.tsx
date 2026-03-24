@@ -1,4 +1,5 @@
 "use client";
+import AdBanner from "@/components/AdBanner";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Heart, X, Star, Shield, Sparkles, MessageCircle, Users, Crown, Gem, Globe } from "lucide-react";

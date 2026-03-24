@@ -1,4 +1,5 @@
 "use client";
+import AdBanner from "@/components/AdBanner";
 import { useState, useEffect, useRef } from "react";
 import { useUser, TierBadge } from "../layout";
 import { Heart, MessageCircle, Send, Image as ImageIcon, Shield, Smile, X, MoreHorizontal, Trash2, Crown, Gem, Ban, Film } from "lucide-react";
@@ -89,6 +90,7 @@ export default function FeedPage() {
   useEffect(() => { fetch("/api/stories").then(r=>r.json()).then(d=>setStoryGroups(d.storyGroups||[])).catch(()=>{}); }, []);
 return (
     <div className="max-w-2xl mx-auto">
+      <AdBanner placement="feed" dark={dark} />
       <div className="mb-6"><h1 className="text-2xl font-bold text-gray-900">Feed</h1><p className="text-sm text-gray-500">See what people are sharing</p></div>
 
       {/* Create Post */}

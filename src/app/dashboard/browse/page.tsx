@@ -1,4 +1,5 @@
 "use client";
+import AdBanner from "@/components/AdBanner";
 import { useState, useEffect } from "react";
 import { Shield, Search, Heart, MessageCircle, Crown, Gem, Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -31,7 +32,8 @@ export default function BrowsePage() {
 
   return (
     <div>
-      <div className="mb-6"><h1 className="text-2xl font-bold text-gray-900">Browse</h1><p className="text-sm text-gray-500">{profiles.length} people on ConnectHub</p></div>
+      <div className="mb-6"><h1 className="text-2xl font-bold text-gray-900">Browse</h1>
+      <AdBanner placement="browse" /><p className="text-sm text-gray-500">{profiles.length} people on ConnectHub</p></div>
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="flex-1 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5"><Search className="w-4 h-4 text-gray-400" /><input className="bg-transparent border-none outline-none text-sm w-full" placeholder="Search by name..." value={search} onChange={e=>setSearch(e.target.value)} /></div>
         <div className="flex gap-2">

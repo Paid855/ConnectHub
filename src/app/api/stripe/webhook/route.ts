@@ -21,48 +21,57 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  // PAYMENT SUCCESS
+  // 1. CHECKOUT COMPLETED — deliver coins
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const userId = session.metadata?.userId;
     const coins = parseInt(session.metadata?.coins || "0");
-
     if (userId && coins > 0) {
-      const existing = await prisma.coinTransaction.findFirst({
-        where: { userId, description: { contains: session.id } }
-      });
+      const existing = await prisma.coinTransaction.findFirst({ where: { userId, description: { contains: session.id } } });
       if (!existing) {
         await prisma.user.update({ where: { id: userId }, data: { coins: { increment: coins } } });
-        await prisma.coinTransaction.create({
-          data: { userId, amount: coins, type: "purchase", description: "Purchased " + coins + " coins via Stripe (session: " + session.id + ")" }
-        });
+        await prisma.coinTransaction.create({ data: { userId, amount: coins, type: "purchase", description: "Purchased " + coins + " coins (session: " + session.id + ")" } });
         createNotification(userId, "purchase", "Coins Added!", "+" + coins + " coins added to your account", null);
-        console.log("[Stripe] Delivered " + coins + " coins to " + userId);
+        console.log("[Stripe] SUCCESS: " + coins + " coins → " + userId);
       }
     }
   }
 
-  // PAYMENT EXPIRED (user didn't complete checkout)
+  // 2. ASYNC PAYMENT SUCCEEDED (delayed payment methods like bank transfers)
+  if (event.type === "checkout.session.async_payment_succeeded") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const userId = session.metadata?.userId;
+    const coins = parseInt(session.metadata?.coins || "0");
+    if (userId && coins > 0) {
+      const existing = await prisma.coinTransaction.findFirst({ where: { userId, description: { contains: session.id } } });
+      if (!existing) {
+        await prisma.user.update({ where: { id: userId }, data: { coins: { increment: coins } } });
+        await prisma.coinTransaction.create({ data: { userId, amount: coins, type: "purchase", description: "Delayed payment completed: " + coins + " coins (session: " + session.id + ")" } });
+        createNotification(userId, "purchase", "Payment Confirmed!", "Your payment was confirmed. +" + coins + " coins added!", null);
+        console.log("[Stripe] ASYNC SUCCESS: " + coins + " coins → " + userId);
+      }
+    }
+  }
+
+  // 3. ASYNC PAYMENT FAILED (delayed payment failed)
+  if (event.type === "checkout.session.async_payment_failed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const userId = session.metadata?.userId;
+    const coins = session.metadata?.coins || "0";
+    if (userId) {
+      await prisma.coinTransaction.create({ data: { userId, amount: 0, type: "purchase_failed", description: "Payment failed for " + coins + " coins (session: " + session.id + ")" } });
+      createNotification(userId, "purchase_failed", "Payment Failed", "Your payment for " + coins + " coins was declined. Please try again with a different payment method.", null);
+      console.log("[Stripe] ASYNC FAILED for " + userId);
+    }
+  }
+
+  // 4. CHECKOUT EXPIRED (user didn't complete)
   if (event.type === "checkout.session.expired") {
     const session = event.data.object as Stripe.Checkout.Session;
     const userId = session.metadata?.userId;
     if (userId) {
-      createNotification(userId, "purchase_failed", "Payment Incomplete", "Your coin purchase wasn't completed. Try again anytime!", null);
-      console.log("[Stripe] Checkout expired for " + userId);
-    }
-  }
-
-  // PAYMENT FAILED
-  if (event.type === "payment_intent.payment_failed") {
-    const intent = event.data.object as Stripe.PaymentIntent;
-    const userId = intent.metadata?.userId;
-    const reason = intent.last_payment_error?.message || "Payment declined";
-    if (userId) {
-      createNotification(userId, "purchase_failed", "Payment Failed", reason + ". Please try a different card.", null);
-      await prisma.coinTransaction.create({
-        data: { userId, amount: 0, type: "purchase_failed", description: "Payment failed: " + reason }
-      });
-      console.log("[Stripe] Payment failed for " + userId + ": " + reason);
+      createNotification(userId, "purchase_failed", "Checkout Expired", "Your coin purchase session expired. You can try again anytime!", null);
+      console.log("[Stripe] EXPIRED for " + userId);
     }
   }
 
