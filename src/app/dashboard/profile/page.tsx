@@ -118,7 +118,7 @@ export default function ProfilePage() {
               <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Joined {new Date(user.createdAt).toLocaleDateString("en-US",{month:"long",year:"numeric"})}</span>
             </div>
           </div>
-          <div className={"grid grid-cols-4 gap-4 mt-5 pt-5 border-t " + (dc?"border-gray-700":"border-gray-100")}>
+          <div className={"grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-5 pt-5 border-t " + (dc?"border-gray-700":"border-gray-100")}>
             <div className="text-center"><p className={"text-xl font-bold " + (dc?"text-white":"text-gray-900")}>{postCount}</p><p className="text-[11px] text-gray-500">Posts</p></div>
             <div className="text-center"><p className={"text-xl font-bold " + (dc?"text-white":"text-gray-900")}>{interests.length}</p><p className="text-[11px] text-gray-500">Interests</p></div>
             <div className="text-center"><div className="flex justify-center"><TierBadge tier={user.tier} /></div><p className="text-[11px] text-gray-500 mt-1">Plan</p></div>
@@ -143,7 +143,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Quick stats cards */}
-          <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
             {[
               { icon:Mail, label:"Email", value:user.email, color:"text-blue-500", bg:dc?"bg-blue-500/10":"bg-blue-50" },
               { icon:Phone, label:"Phone", value:user.phone||"Not set", color:"text-emerald-500", bg:dc?"bg-emerald-500/10":"bg-emerald-50" },

@@ -167,7 +167,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">{children}</div></main>
+        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-3 sm:p-6 lg:p-8 max-w-6xl mx-auto pb-20 lg:pb-8">{children}</div></main>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800 safe-area-bottom">
+          <div className="flex items-center justify-around py-2">
+            {[
+              { href:"/dashboard", icon:Compass, label:"Discover" },
+              { href:"/dashboard/messages", icon:MessageCircle, label:"Messages" },
+              { href:"/dashboard/feed", icon:Rss, label:"Feed" },
+              { href:"/dashboard/stories", icon:Camera, label:"Stories" },
+              { href:"/dashboard/profile", icon:User, label:"Profile" },
+            ].map(item => {
+              const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              return (
+                <Link key={item.href} href={item.href} className={"flex flex-col items-center gap-0.5 px-2 py-1 " + (active ? "text-rose-500" : (dc ? "text-gray-500" : "text-gray-400"))}>
+                  <item.icon className={"w-5 h-5 " + (active ? "text-rose-500" : "")} />
+                  <span className="text-[10px] font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
 
         {showReward && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => { if(rewardClaimed) setShowReward(false); }}>

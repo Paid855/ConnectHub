@@ -177,7 +177,7 @@ export default function VideoPage() {
     <div className="max-w-3xl mx-auto">
       <div className="mb-4"><h1 className="text-2xl font-bold text-gray-900">You are Live!</h1></div>
       <div className="bg-black rounded-2xl overflow-hidden shadow-xl">
-        <div className="relative h-[420px] bg-gray-900">
+        <div className="relative h-[300px] sm:h-[420px] bg-gray-900">
           <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{transform:"scaleX(-1)"}} />
           <div className="absolute top-4 left-4 flex items-center gap-3 z-10">
             <div className="flex items-center gap-2 bg-red-500 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg"><Radio className="w-4 h-4 animate-pulse" /> LIVE</div>
@@ -219,7 +219,7 @@ export default function VideoPage() {
   if (view === "watch" && watching) return (
     <div className="max-w-3xl mx-auto">
       <div className="bg-black rounded-2xl overflow-hidden shadow-xl">
-        <div className="relative h-[380px] flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+        <div className="relative h-[280px] sm:h-[380px] flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
           <div className="text-center">
             <div className="w-24 h-24 rounded-full mx-auto mb-4 ring-4 ring-red-500/50 ring-offset-4 ring-offset-gray-900">
               {watching.user?.profilePhoto?<img src={watching.user.profilePhoto} className="w-full h-full rounded-full object-cover"/>:<div className="w-full h-full rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white text-3xl font-bold">{watching.user?.name?.[0]}</div>}
@@ -309,7 +309,7 @@ export default function VideoPage() {
       {activeStreams.length > 0 && (
         <div className="mb-6">
           <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2"><Radio className="w-5 h-5 text-red-500 animate-pulse"/> Live Now ({activeStreams.length})</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {activeStreams.map(s => (
               <button key={s.id} onClick={()=>joinStream(s)} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all text-left group">
                 <div className="relative h-36 bg-gradient-to-br from-rose-500 via-pink-500 to-purple-500">

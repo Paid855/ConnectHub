@@ -91,7 +91,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
       {/* SIDEBAR */}
-      <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col fixed h-full">
+      <div className="hidden lg:flex w-64 bg-gray-900 border-r border-gray-800 flex-col fixed h-full">
         <div className="p-5 border-b border-gray-800">
           <div className="flex items-center gap-3"><img src="/logo.png" alt="ConnectHub" className="w-9 h-9 rounded-lg" /><div><p className="font-bold text-sm">ConnectHub</p><p className="text-[10px] text-gray-500">Admin Panel</p></div></div>
         </div>
@@ -116,14 +116,22 @@ export default function AdminDashboard() {
       </div>
 
       {/* MAIN */}
-      <div className="flex-1 ml-64">
-        <div className="p-6">
+      <div className="flex-1 lg:ml-64">
+        <div className="lg:hidden sticky top-0 z-40 bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2"><img src="/logo.png" alt="ConnectHub" className="w-7 h-7 rounded-lg" /><span className="font-bold text-sm">Admin</span></div>
+            <div className="flex gap-1 overflow-x-auto">
+              {[{k:"overview",l:"Overview"},{k:"users",l:"Users"},{k:"verifications",l:"Verif"},{k:"reports",l:"Reports"},{k:"revenue",l:"Revenue"}].map(t=>(
+                <button key={t.k} onClick={()=>{setTab(t.k);setSelectedUser(null);}} className={"px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap " + (tab===t.k?"bg-rose-500/20 text-rose-400":"text-gray-500")}>{t.l}</button>
+              ))}
+            </div>
+          </div>
+          <div className="p-4 sm:p-6">
 
           {/* OVERVIEW TAB */}
           {tab === "overview" && (
             <div>
               <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4 mb-6">
                 {[
                   {label:"Total Users",value:stats.total,icon:Users,color:"bg-blue-500/10 text-blue-400 border-blue-500/20"},
                   {label:"Online Now",value:stats.online,icon:Heart,color:"bg-emerald-500/10 text-emerald-400 border-emerald-500/20"},
@@ -182,7 +190,7 @@ export default function AdminDashboard() {
                 </select>
               </div>
               <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-                <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-5 py-3 bg-gray-800/50 text-xs text-gray-500 font-medium">
+                <div className="hidden lg:grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-5 py-3 bg-gray-800/50 text-xs text-gray-500 font-medium">
                   <span>Photo</span><span>User</span><span>Tier</span><span>Status</span><span>Joined</span><span>Actions</span>
                 </div>
                 <div className="max-h-[60vh] overflow-y-auto">
@@ -208,7 +216,7 @@ export default function AdminDashboard() {
           {tab === "users" && selectedUser && (
             <div>
               <button onClick={()=>setSelectedUser(null)} className="text-sm text-gray-500 hover:text-white mb-4 flex items-center gap-1">← Back to all users</button>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
                 {/* Profile card */}
                 <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
                   <div className={"h-24 bg-gradient-to-r " + (selectedUser.tier==="gold"?"from-amber-500 to-orange-500":selectedUser.tier==="premium"?"from-rose-500 to-pink-500":"from-gray-600 to-gray-700")} />

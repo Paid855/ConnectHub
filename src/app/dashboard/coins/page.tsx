@@ -117,7 +117,7 @@ export default function CoinsPage() {
       <div className={"rounded-2xl border p-6 mb-6 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-sm")}>
         <div className="flex items-center gap-2 mb-1"><CreditCard className={"w-5 h-5 " + (dc?"text-rose-400":"text-rose-500")} /><h2 className={"text-lg font-bold " + (dc?"text-white":"text-gray-900")}>Buy Coins</h2></div>
         <p className={"text-xs mb-5 " + (dc?"text-gray-500":"text-gray-400")}>Secure payment via Stripe. Coins are added instantly.</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {PACKAGES.map(pkg => (
             <button key={pkg.id} onClick={() => buyCoins(pkg.id)} disabled={buying === pkg.id} className={"relative rounded-2xl border p-5 text-center transition-all hover:shadow-lg hover:scale-[1.02] " + (pkg.popular ? "border-rose-300 ring-2 ring-rose-200" : (dc?"border-gray-600 hover:border-gray-500":"border-gray-200 hover:border-rose-200"))}>
               {pkg.popular && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-rose-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full">BEST VALUE</span>}
@@ -136,7 +136,7 @@ export default function CoinsPage() {
       {/* Upgrade plans */}
       <div className={"rounded-2xl border p-6 mb-6 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-sm")}>
         <h2 className={"text-lg font-bold mb-4 " + (dc?"text-white":"text-gray-900")}>Upgrade Your Plan</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           {UPGRADES.map(up => {
             const isActive = user.tier === up.tier || (up.tier === "premium" && user.tier === "gold");
             return (

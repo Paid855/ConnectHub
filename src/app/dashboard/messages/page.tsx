@@ -232,7 +232,7 @@ export default function MessagesPage() {
   if (!user) return null;
 
   return (
-    <div className="h-[calc(100vh-7rem)] flex bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative">
+    <div className="h-[calc(100vh-8rem)] lg:h-[calc(100vh-7rem)] flex bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative">
       {/* CALL OVERLAY */}
       {callState !== "idle" && activePartner && (
         <div className="absolute inset-0 z-50 bg-gray-900 flex flex-col">

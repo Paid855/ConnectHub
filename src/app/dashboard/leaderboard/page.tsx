@@ -32,7 +32,7 @@ export default function LeaderboardPage() {
   );
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl w-full mx-auto">
       <div className="flex items-center gap-3 mb-6"><Trophy className="w-7 h-7 text-amber-500" /><h1 className={"text-2xl font-bold " + (dc?"text-white":"text-gray-900")}>Leaderboard</h1></div>
 
       <div className={"flex gap-1 mb-6 rounded-xl p-1 " + (dc?"bg-gray-800":"bg-gray-100")}>

@@ -57,7 +57,7 @@ export default function QuizPage() {
 
   // INTRO
   if (phase === "intro") return (
-    <div className="max-w-md mx-auto text-center py-8">
+    <div className="max-w-md mx-auto text-center py-4 sm:py-8">
       <div className={"rounded-3xl border overflow-hidden " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
         <div className="bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500 p-8">
           <div className="text-6xl mb-4">💕</div>
@@ -83,7 +83,7 @@ export default function QuizPage() {
   if (phase === "quiz" && questions.length > 0) {
     const q = questions[current];
     return (
-      <div className="max-w-md mx-auto py-4">
+      <div className="max-w-md mx-auto py-2 sm:py-4">
         <div className={"rounded-3xl border overflow-hidden " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
           <div className="bg-gradient-to-r from-violet-500 to-pink-500 px-6 py-4 flex items-center justify-between">
             <span className="text-white font-bold text-sm">Question {current+1}/{questions.length}</span>
@@ -111,7 +111,7 @@ export default function QuizPage() {
 
   // DONE
   if (phase === "done") return (
-    <div className="max-w-md mx-auto text-center py-8">
+    <div className="max-w-md mx-auto text-center py-4 sm:py-8">
       <div className={"rounded-3xl border overflow-hidden " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
         <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-8">
           <div className="text-6xl mb-4">🎉</div>

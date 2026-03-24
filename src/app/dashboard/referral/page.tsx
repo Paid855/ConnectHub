@@ -46,7 +46,7 @@ export default function ReferralPage() {
       {/* Reward card */}
       <div className="bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500 rounded-2xl p-6 mb-6 text-white">
         <div className="flex items-center gap-3 mb-4"><Gift className="w-8 h-8" /><div><h2 className="text-xl font-bold">Earn 50 Coins Per Invite</h2><p className="text-purple-100 text-sm">Your friend gets 25 coins too!</p></div></div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center"><p className="text-3xl font-bold">{data.referralCount}</p><p className="text-purple-100 text-xs">Friends Invited</p></div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center"><div className="flex items-center justify-center gap-1"><Coins className="w-5 h-5" /><p className="text-3xl font-bold">{data.totalEarned}</p></div><p className="text-purple-100 text-xs">Coins Earned</p></div>
         </div>

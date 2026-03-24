@@ -154,7 +154,7 @@ export default function StoriesPage() {
 
     return (
       <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-        <div className="relative w-full max-w-lg h-full max-h-[100dvh] mx-auto flex flex-col">
+        <div className="relative w-full max-w-lg h-full max-h-[100dvh] h-[100dvh] mx-auto flex flex-col">
           {/* Progress bars */}
           <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 px-3 pt-3">
             {viewing.group.stories.map((_, i) => (
@@ -290,7 +290,7 @@ export default function StoriesPage() {
 
       {/* Story circles */}
       <div className={"rounded-2xl border p-5 mb-6 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-sm")}>
-        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-hide">
           {/* Add story */}
           <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
             <button onClick={() => fileRef.current?.click()} className={"w-16 h-16 rounded-full border-2 border-dashed flex items-center justify-center " + (dc?"border-gray-600 hover:border-rose-400 bg-gray-700":"border-gray-200 hover:border-rose-300 bg-gray-50")}>
@@ -333,7 +333,7 @@ export default function StoriesPage() {
       {myStories.length > 0 && (
         <div className={"rounded-2xl border p-5 mb-6 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-sm")}>
           <h3 className={"font-bold mb-3 " + (dc?"text-white":"text-gray-900")}>Your Active Stories</h3>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
             {myStories.map((s, si) => {
               const isVid = s.image.startsWith("[VID]");
               return (

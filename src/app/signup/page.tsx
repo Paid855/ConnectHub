@@ -109,7 +109,7 @@ export default function SignupPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-white overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-12 bg-white overflow-y-auto">
         <div className="w-full max-w-md">
           <Link href="/" className="flex items-center gap-2 mb-6"><img src="/logo.png" alt="ConnectHub" className="w-8 h-8 rounded-lg" /><span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">ConnectHub</span></Link>
 

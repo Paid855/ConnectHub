@@ -113,7 +113,7 @@ export default function LandingPage() {
           </div>
           <div className="flex-1 relative max-w-md">
             <div className="relative z-10">
-              <img src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=500&h=600&fit=crop" alt="Happy couple" className="rounded-3xl shadow-2xl w-full object-cover" style={{height:"500px"}} />
+              <img src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=500&h=600&fit=crop" alt="Happy couple" className="rounded-3xl shadow-2xl w-full object-cover" style={{height:"400px"}} />
               <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3 border border-gray-100">
                 <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center"><Heart className="w-5 h-5 text-rose-500 fill-rose-500" /></div>
                 <div><p className="font-bold text-sm text-gray-900">New Match!</p><p className="text-xs text-gray-500">94% compatible</p></div>
@@ -199,7 +199,7 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">One-Time Payment, <span className="bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">Forever Yours</span></h2>
             <p className="text-gray-500">No subscriptions. No hidden fees. Pay once, keep forever.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             {/* Basic */}
             <div className="bg-white rounded-2xl border border-gray-200 p-8">
               <h3 className="text-xl font-bold text-gray-900">Basic</h3>
@@ -264,7 +264,7 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="py-20 px-6 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Your Perfect Match is Waiting</h2>
+          <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4">Your Perfect Match is Waiting</h2>
           <p className="text-rose-100 text-lg mb-8">Join thousands of verified singles finding real love on ConnectHub.</p>
           <Link href="/signup" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-rose-500 rounded-full font-bold text-lg hover:shadow-xl transition-all">Create Free Account <ArrowRight className="w-5 h-5" /></Link>
         </div>
@@ -273,7 +273,7 @@ export default function LandingPage() {
       {/* FOOTER */}
       <footer className="py-12 px-6 bg-gray-900 text-gray-400">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-8 mb-10">
             <div><Link href="/" className="flex items-center gap-2 mb-4"><img src="/logo.png" alt="ConnectHub" className="w-7 h-7 rounded-lg" /><span className="text-lg font-bold text-white">ConnectHub</span></Link><p className="text-sm">Connecting hearts together since 2022.</p></div>
             <div><h4 className="text-white font-semibold mb-3 text-sm">Product</h4><div className="space-y-2 text-sm"><a href="#features" className="block hover:text-white">{t(lang, "features")}</a><a href="#pricing" className="block hover:text-white">{t(lang, "pricing")}</a><Link href="/login" className="block hover:text-white">Log In</Link><Link href="/signup" className="block hover:text-white">Sign Up</Link></div></div>
             <div><h4 className="text-white font-semibold mb-3 text-sm">Company</h4><div className="space-y-2 text-sm"><Link href="/terms" className="block hover:text-white">Terms of Service</Link><Link href="/privacy" className="block hover:text-white">Privacy Policy</Link><Link href="/advertise" className="block hover:text-white">Advertise</Link></div></div>
