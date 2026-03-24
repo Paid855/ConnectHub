@@ -4,7 +4,7 @@ import { useUser } from "../layout";
 import { Send, ArrowLeft, Shield, MessageCircle, Search, Heart, Smile, Phone, Video, Image as ImageIcon, X, PhoneOff, Mic, Square, Play, Pause, MicOff, VideoOff, PhoneCall } from "lucide-react";
 import Link from "next/link";
 
-type Partner = { id:string; name:string; profilePhoto:string|null; tier:string; };
+type Partner = { id:string; name:string; profilePhoto:string|null; tier:string; lastSeen?:string|null; verified?:boolean; };
 type Conversation = { partner:Partner; lastMessage:any; unreadCount:number; };
 type Msg = { id:string; senderId:string; receiverId:string; content:string; read:boolean; createdAt:string; };
 
@@ -20,6 +20,8 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [selectedMsg, setSelectedMsg] = useState<string|null>(null);
+  const [showConvoMenu, setShowConvoMenu] = useState<string|null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob|null>(null);
@@ -112,6 +114,23 @@ export default function MessagesPage() {
   };
 
   const formatRecTime = (s: number) => Math.floor(s/60).toString().padStart(2,"0") + ":" + (s%60).toString().padStart(2,"0");
+
+  const deleteMessage = async (messageId: string, deleteFor: "me"|"everyone") => {
+    await fetch("/api/messages/delete", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ messageId, deleteFor }) });
+    setSelectedMsg(null);
+    if (activePartner) { const r = await fetch("/api/messages?with="+activePartner.id); if (r.ok) { const d = await r.json(); setMessages(d.messages||[]); } }
+  };
+
+  const clearConversation = async (partnerId: string) => {
+    if (!confirm("Clear all messages with this user? This cannot be undone.")) return;
+    await fetch("/api/messages/actions", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"clear", partnerId }) });
+    setShowConvoMenu(null);
+    if (activePartner?.id === partnerId) { setMessages([]); }
+    loadConversations();
+  };
+
+  const isOnline = (d: string|null) => d ? Date.now() - new Date(d).getTime() < 5*60*1000 : false;
+  const lastSeenText = (d: string|null) => { if (!d) return "Offline"; const diff = Date.now()-new Date(d).getTime(); if (diff<300000) return "Online"; if (diff<3600000) return Math.floor(diff/60000)+"m ago"; if (diff<86400000) return Math.floor(diff/3600000)+"h ago"; return "Long time ago"; };
 
   const sendMessage = async (content?: string) => {
     const msg = content||newMsg.trim();
@@ -287,10 +306,32 @@ export default function MessagesPage() {
           {loading ? <div className="p-8 text-center"><div className="w-8 h-8 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin mx-auto" /></div> : filteredConvos.length===0 ? (
             <div className="p-8 text-center"><Heart className="w-12 h-12 text-gray-200 mx-auto mb-3" /><h3 className="font-bold text-gray-900 mb-1">No messages</h3><p className="text-sm text-gray-500">Match with someone to chat!</p></div>
           ) : filteredConvos.map(c => (
-            <button key={c.user.id} onClick={()=>openChat(c.user)} className={"w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-all text-left border-b border-gray-50 "+(activePartner?.id===c.user.id?"bg-rose-50":"")}>
-              <div className="relative flex-shrink-0">{c.user.profilePhoto?<img src={c.user.profilePhoto} className="w-12 h-12 rounded-full object-cover"/>:<div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{c.user.name[0]}</div>}{c.unreadCount>0&&<span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{c.unreadCount}</span>}</div>
-              <div className="flex-1 min-w-0"><div className="flex items-center justify-between"><p className="text-sm font-bold text-gray-900 truncate flex items-center gap-1">{c.user.name}{c.user.tier==="verified"&&<Shield className="w-3.5 h-3.5 text-blue-500"/>}</p><span className="text-[11px] text-gray-400 flex-shrink-0">{c.lastMessage?formatTime(c.lastMessage.createdAt):""}</span></div><p className={"text-xs truncate mt-0.5 "+(c.unreadCount>0?"text-gray-900 font-semibold":"text-gray-500")}>{c.lastMessage?.content?.startsWith("[IMG]")?"📷 Photo":c.lastMessage?.content?.startsWith("[VOICE]")?"🎤 Voice message":c.lastMessage?.content||"Start chatting!"}</p></div>
-            </button>
+            <div key={c.user.id} className={"relative w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-all text-left border-b border-gray-50 "+(activePartner?.id===c.user.id?"bg-rose-50":"")}>
+              <button onClick={()=>openChat(c.user)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                <div className="relative flex-shrink-0">
+                  {c.user.profilePhoto?<img src={c.user.profilePhoto} className="w-12 h-12 rounded-full object-cover"/>:<div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{c.user.name[0]}</div>}
+                  {isOnline(c.user.lastSeen) ? <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white"/> : <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-gray-300 rounded-full border-2 border-white"/>}
+                  {c.unreadCount>0&&<span className="absolute -top-1 -left-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{c.unreadCount}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-gray-900 truncate flex items-center gap-1">{c.user.name}{c.user.verified&&<Shield className="w-3.5 h-3.5 text-blue-500 fill-blue-100"/>}</p>
+                    <span className="text-[11px] text-gray-400 flex-shrink-0">{c.lastMessage?formatTime(c.lastMessage.createdAt):""}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className={"text-xs truncate flex-1 "+(c.unreadCount>0?"text-gray-900 font-semibold":"text-gray-500")}>{c.lastMessage?.content?.startsWith("[DELETED]")?"🚫 Message deleted":c.lastMessage?.content?.startsWith("[IMG]")?"📷 Photo":c.lastMessage?.content?.startsWith("[VOICE]")?"🎤 Voice message":c.lastMessage?.content||"Start chatting!"}</p>
+                    {c.unreadCount>0&&<span className="ml-2 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">{c.unreadCount}</span>}
+                  </div>
+                </div>
+              </button>
+              <button onClick={(e)=>{e.stopPropagation();setShowConvoMenu(showConvoMenu===c.user.id?null:c.user.id);}} className="p-1.5 rounded-full hover:bg-gray-100 flex-shrink-0"><MoreVertical className="w-4 h-4 text-gray-400"/></button>
+              {showConvoMenu===c.user.id && (
+                <div className="absolute right-12 top-2 bg-white rounded-xl shadow-2xl border border-gray-200 z-30 overflow-hidden w-44">
+                  <button onClick={()=>clearConversation(c.user.id)} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 text-left"><Trash2 className="w-4 h-4"/> Clear chat</button>
+                  <Link href={"/dashboard/user?id="+c.user.id} onClick={()=>setShowConvoMenu(null)} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"><Shield className="w-4 h-4"/> View profile</Link>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>
@@ -301,23 +342,33 @@ export default function MessagesPage() {
           <div className="flex items-center gap-3 p-4 border-b border-gray-100 bg-white">
             <button onClick={()=>{setActivePartner(null);if(pollRef.current)clearInterval(pollRef.current);loadConversations();}} className="md:hidden p-1"><ArrowLeft className="w-5 h-5 text-gray-600"/></button>
             <Link href={"/dashboard/user?id="+activePartner.id}>{activePartner.profilePhoto?<img src={activePartner.profilePhoto} className="w-10 h-10 rounded-full object-cover hover:ring-2 hover:ring-rose-200"/>:<div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{activePartner.name[0]}</div>}</Link>
-            <div className="flex-1"><Link href={"/dashboard/user?id="+activePartner.id} className="font-bold text-gray-900 hover:text-rose-500 flex items-center gap-1">{activePartner.name}{activePartner.tier==="verified"&&<Shield className="w-4 h-4 text-blue-500"/>}</Link><p className="text-xs text-emerald-500">Online</p></div>
+            <div className="flex-1"><Link href={"/dashboard/user?id="+activePartner.id} className="font-bold text-gray-900 hover:text-rose-500 flex items-center gap-1">{activePartner.name}{activePartner.tier==="verified"&&<Shield className="w-4 h-4 text-blue-500"/>}</Link><p className={"text-xs " + (isOnline(activePartner.lastSeen)?"text-emerald-500":"text-gray-400")}>{isOnline(activePartner.lastSeen)?"Online":lastSeenText(activePartner.lastSeen)}</p></div>
             <div className="flex items-center gap-1.5">
               <button onClick={()=>startCall("voice")} className="w-9 h-9 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 hover:bg-emerald-100 transition-all" title="Voice Call"><Phone className="w-4 h-4"/></button>
               <button onClick={()=>startCall("video")} className="w-9 h-9 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-all" title="Video Call"><Video className="w-4 h-4"/></button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" onClick={()=>{setSelectedMsg(null);setShowConvoMenu(null);}}>
             {messages.length===0&&<div className="text-center py-12"><p className="text-gray-400 text-sm">Say hello to {activePartner.name}!</p></div>}
             {messages.map(m => {
               const isMine = m.senderId===user.id;
               const img = isImage(m.content);
               const isCallMsg = m.content.startsWith("📞")||m.content.startsWith("📹");
+              const isDeleted = m.content.startsWith("[DELETED]");
               return (
-                <div key={m.id} className={"flex "+(isMine?"justify-end":"justify-start")}>
-                  {img ? (
-                    <div className="max-w-[70%]"><img src={getImageSrc(m.content)} className="rounded-2xl max-h-64 object-cover border border-gray-200 shadow-sm"/><p className={"text-[10px] mt-1 "+(isMine?"text-right text-gray-400":"text-gray-400")}>{formatTime(m.createdAt)}{isMine&&m.read&&" · Read"}</p></div>
+                <div key={m.id} className={"flex "+(isMine?"justify-end":"justify-start")+" group relative"}>
+                  {isDeleted ? (
+                    <div className="bg-gray-100 border border-gray-200 rounded-2xl px-4 py-2.5 max-w-[75%] italic">
+                      <p className="text-sm text-gray-400 flex items-center gap-1.5"><Ban className="w-3.5 h-3.5"/> This message was deleted</p>
+                      <p className="text-[10px] text-gray-300 mt-1">{formatTime(m.createdAt)}</p>
+                    </div>
+                  ) : img ? (
+                    <div className="max-w-[70%] relative" onClick={()=>setSelectedMsg(selectedMsg===m.id?null:m.id)}>
+                      <img src={getImageSrc(m.content)} className="rounded-2xl max-h-64 object-cover border border-gray-200 shadow-sm"/>
+                      <p className={"text-[10px] mt-1 "+(isMine?"text-right text-gray-400":"text-gray-400")}>{formatTime(m.createdAt)}{isMine&&m.read&&" · ✓✓ Read"}</p>
+                      {selectedMsg===m.id && <div className="absolute top-full mt-1 right-0 bg-white rounded-xl shadow-2xl border border-gray-200 z-20 overflow-hidden w-48"><button onClick={()=>deleteMessage(m.id,"me")} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"><Trash2 className="w-4 h-4"/> Delete for me</button>{isMine&&<button onClick={()=>deleteMessage(m.id,"everyone")} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"><Trash2 className="w-4 h-4"/> Delete for everyone</button>}</div>}
+                    </div>
                   ) : isVoice(m.content) ? (
                     <div className={"max-w-[75%] " + (isMine?"ml-auto":"")}>
                       <div className={(isMine?"bg-gradient-to-r from-rose-500 to-pink-500":"bg-white border border-gray-100") + " rounded-2xl px-4 py-3 shadow-sm"}>
@@ -335,9 +386,17 @@ export default function MessagesPage() {
                       <p className="text-[10px] text-gray-400 mt-1">{formatTime(m.createdAt)}</p>
                     </div>
                   ) : (
-                    <div className={(isMine?"bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-2xl rounded-br-md":"bg-white text-gray-900 rounded-2xl rounded-bl-md border border-gray-100")+" px-4 py-2.5 max-w-[75%] shadow-sm"}>
-                      <p className="text-sm leading-relaxed">{m.content}</p>
-                      <p className={"text-[10px] mt-1 "+(isMine?"text-rose-200":"text-gray-400")}>{formatTime(m.createdAt)}{isMine&&m.read&&" · Read"}</p>
+                    <div className="relative max-w-[75%]" onClick={()=>setSelectedMsg(selectedMsg===m.id?null:m.id)}>
+                      <div className={(isMine?"bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-2xl rounded-br-md":"bg-white text-gray-900 rounded-2xl rounded-bl-md border border-gray-100")+" px-4 py-2.5 shadow-sm cursor-pointer hover:shadow-md transition-shadow"}>
+                        <p className="text-sm leading-relaxed">{m.content}</p>
+                        <p className={"text-[10px] mt-1 "+(isMine?"text-rose-200":"text-gray-400")}>{formatTime(m.createdAt)}{isMine&&m.read&&" · ✓✓ Read"}</p>
+                      </div>
+                      {selectedMsg===m.id && (
+                        <div className={"absolute top-full mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 z-20 overflow-hidden w-48 " + (isMine?"right-0":"left-0")}>
+                          <button onClick={(e)=>{e.stopPropagation();deleteMessage(m.id,"me");}} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 text-left"><Trash2 className="w-4 h-4"/> Delete for me</button>
+                          {isMine && <button onClick={(e)=>{e.stopPropagation();deleteMessage(m.id,"everyone");}} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 text-left"><Trash2 className="w-4 h-4"/> Delete for everyone</button>}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
