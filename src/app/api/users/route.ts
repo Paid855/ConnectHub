@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCache, setCache } from "@/lib/cache";
 
 export async function GET(req: NextRequest) {
   const session = req.cookies.get("session");
@@ -17,17 +18,16 @@ export async function GET(req: NextRequest) {
       take: 100
     });
 
-    // Sort boosted users to top manually
     const now = new Date();
     users.sort((a: any, b: any) => {
-      const aBoosted = a.boostedUntil && new Date(a.boostedUntil) > now ? 1 : 0;
-      const bBoosted = b.boostedUntil && new Date(b.boostedUntil) > now ? 1 : 0;
-      return bBoosted - aBoosted;
+      const aB = a.boostedUntil && new Date(a.boostedUntil) > now ? 1 : 0;
+      const bB = b.boostedUntil && new Date(b.boostedUntil) > now ? 1 : 0;
+      return bB - aB;
     });
 
     return NextResponse.json({ users });
   } catch (e) {
-    console.error("Users API error:", e);
+    console.error("Users error:", e);
     return NextResponse.json({ users: [] });
   }
 }

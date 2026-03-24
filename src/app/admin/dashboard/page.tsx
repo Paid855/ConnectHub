@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const [reports, setReports] = useState<any[]>([]);
   const [verifications, setVerifications] = useState<any>({ pending:[], approved:[], rejected:[], stats:{} });
   const [tab, setTab] = useState("users");
+  const [revenue, setRevenue] = useState<any>({});
   const [verifyTab, setVerifyTab] = useState("pending");
   const [actionLoading, setActionLoading] = useState("");
 
@@ -29,6 +30,9 @@ export default function AdminDashboard() {
       if (vRes.ok) setVerifications(await vRes.json());
 
       const rRes = await fetch("/api/admin/reports");
+
+      const revRes = await fetch("/api/admin/revenue");
+      if (revRes.ok) setRevenue(await revRes.json());
       if (rRes.ok) { const rData = await rRes.json(); setReports(rData.reports || []); }
     } catch {} finally { setLoading(false); }
   };
@@ -98,7 +102,7 @@ export default function AdminDashboard() {
 
       {/* Tabs */}
       <div className="px-6 flex gap-1 mb-4">
-        {[{k:"users",l:"All Users ("+users.length+")",icon:Users},{k:"verify",l:"Verifications ("+(verifications.stats?.pending||0)+")",icon:ScanFace},{k:"reports",l:"Reports ("+reports.length+")",icon:AlertTriangle}].map(t => (
+        {[{k:"users",l:"All Users ("+users.length+")",icon:Users},{k:"verify",l:"Verifications ("+(verifications.stats?.pending||0)+")",icon:ScanFace},{k:"reports",l:"Reports ("+reports.length+")",icon:AlertTriangle},{k:"revenue",l:"Revenue",icon:Coins}].map(t => (
           <button key={t.k} onClick={()=>setTab(t.k)} className={"flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium " + (tab===t.k?"bg-red-500/20 text-red-400":"text-gray-400 hover:bg-gray-800")}><t.icon className="w-4 h-4" />{t.l}</button>
         ))}
       </div>
@@ -298,6 +302,42 @@ export default function AdminDashboard() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* REVENUE TAB */}
+      {tab === "revenue" && (
+        <div className="px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4"><p className="text-xs text-emerald-400 mb-1">Coin Sales Revenue</p><p className="text-2xl font-bold text-emerald-400">${revenue.totalRevenueUSD || "0.00"}</p><p className="text-xs text-gray-500">{revenue.totalCoinsSold?.toLocaleString() || 0} coins sold</p></div>
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4"><p className="text-xs text-amber-400 mb-1">Gift Platform Fee (20%)</p><p className="text-2xl font-bold text-amber-400">${revenue.giftFeeUSD || "0.00"}</p><p className="text-xs text-gray-500">{revenue.totalGifts || 0} gifts sent</p></div>
+            <div className="bg-violet-500/10 border border-violet-500/30 rounded-xl p-4"><p className="text-xs text-violet-400 mb-1">Upgrades</p><p className="text-2xl font-bold text-violet-400">{revenue.upgradeRevenue?.toLocaleString() || 0}</p><p className="text-xs text-gray-500">{revenue.totalUpgrades || 0} upgrades</p></div>
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4"><p className="text-xs text-blue-400 mb-1">Profile Boosts</p><p className="text-2xl font-bold text-blue-400">{revenue.boostRevenue?.toLocaleString() || 0}</p><p className="text-xs text-gray-500">{revenue.totalBoosts || 0} boosts</p></div>
+          </div>
+
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 mb-6">
+            <h3 className="text-white text-sm font-medium mb-2">How You Make Money</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4"><p className="text-white font-bold">1. Coin Sales</p><p className="text-emerald-100 text-xs mt-1">Users buy coins with real money. 100 coins = $0.99, 500 = $3.99, 1000 = $6.99, 5000 = $29.99</p></div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4"><p className="text-white font-bold">2. Gift Platform Fee</p><p className="text-emerald-100 text-xs mt-1">You keep 20% of every gift sent between users. If someone sends a 500-coin gift, you earn 100 coins.</p></div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4"><p className="text-white font-bold">3. Premium/Gold Upgrades</p><p className="text-emerald-100 text-xs mt-1">Users spend 2,000 or 5,000 coins to upgrade. More upgrades = more coin purchases.</p></div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4"><p className="text-white font-bold">4. Profile Boosts</p><p className="text-emerald-100 text-xs mt-1">Users spend 100 coins per boost (30 min). Recurring revenue from active users.</p></div>
+            </div>
+          </div>
+
+          {revenue.topSpenders?.length > 0 && (
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-5 mb-6">
+              <h3 className="font-bold text-white mb-3">Top Spenders</h3>
+              <div className="space-y-2">{revenue.topSpenders.map((s:any, i:number) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-xl">
+                  <span className="text-lg w-6 text-center">{i<3?["🥇","🥈","🥉"][i]:"#"+(i+1)}</span>
+                  {s.user?.profilePhoto?<img src={s.user.profilePhoto} className="w-9 h-9 rounded-full object-cover"/>:<div className="w-9 h-9 rounded-full bg-rose-500/30 flex items-center justify-center text-white text-sm font-bold">{s.user?.name?.[0]}</div>}
+                  <div className="flex-1"><p className="font-bold text-sm">{s.user?.name}</p></div>
+                  <span className="text-amber-400 font-bold text-sm">{s.spent?.toLocaleString()} coins</span>
+                </div>
+              ))}</div>
             </div>
           )}
         </div>

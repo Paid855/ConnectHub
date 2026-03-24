@@ -365,6 +365,18 @@ export default function MessagesPage() {
                       <p className="text-sm text-gray-400 flex items-center gap-1.5"><Ban className="w-3.5 h-3.5"/> This message was deleted</p>
                       <p className="text-[10px] text-gray-300 mt-1">{formatTime(m.createdAt)}</p>
                     </div>
+                  ) : (m.content.startsWith("[STORY_REPLY]") || m.content.startsWith("[STORY_REACT]")) ? (
+                    <div className={"max-w-[75%] " + (isMine?"ml-auto":"")}>
+                      <a href="/dashboard/stories" className={(isMine?"bg-gradient-to-r from-violet-500 to-purple-500":"bg-violet-50 border border-violet-200") + " rounded-2xl px-4 py-3 block hover:shadow-md transition-shadow cursor-pointer"}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm">{m.content.startsWith("[STORY_REACT]") ? "❤️" : "💬"}</span>
+                          <span className={(isMine?"text-violet-100":"text-violet-500") + " text-xs font-bold"}>{m.content.startsWith("[STORY_REACT]") ? "Story Reaction" : "Story Reply"}</span>
+                        </div>
+                        <p className={(isMine?"text-white":"text-gray-800") + " text-sm"}>{m.content.replace("[STORY_REPLY]","").replace("[STORY_REACT]","")}</p>
+                        <p className={(isMine?"text-violet-200":"text-violet-400") + " text-[10px] mt-1 underline"}>Tap to view stories →</p>
+                      </a>
+                      <p className={"text-[10px] mt-1 " + (isMine?"text-right text-gray-400":"text-gray-400")}>{formatTime(m.createdAt)}{isMine && m.read && " · ✓✓ Read"}</p>
+                    </div>
                   ) : img ? (
                     <div className="max-w-[70%] relative" onClick={()=>setSelectedMsg(selectedMsg===m.id?null:m.id)}>
                       <img src={getImageSrc(m.content)} className="rounded-2xl max-h-64 object-cover border border-gray-200 shadow-sm"/>
