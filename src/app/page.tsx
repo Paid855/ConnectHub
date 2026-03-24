@@ -55,7 +55,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Heart className="w-6 h-6 text-rose-500 fill-rose-500" />
+            <img src="/logo.png" alt="ConnectHub" className="w-8 h-8 rounded-lg" />
             <span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">ConnectHub</span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
@@ -255,13 +255,13 @@ export default function LandingPage() {
       <footer className="py-12 px-6 bg-gray-900 text-gray-400">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-            <div><Link href="/" className="flex items-center gap-2 mb-4"><Heart className="w-5 h-5 text-rose-500 fill-rose-500" /><span className="text-lg font-bold text-white">ConnectHub</span></Link><p className="text-sm">Connecting hearts together since 2026.</p></div>
+            <div><Link href="/" className="flex items-center gap-2 mb-4"><img src="/logo.png" alt="ConnectHub" className="w-7 h-7 rounded-lg" /><span className="text-lg font-bold text-white">ConnectHub</span></Link><p className="text-sm">Connecting hearts together since 2022.</p></div>
             <div><h4 className="text-white font-semibold mb-3 text-sm">Product</h4><div className="space-y-2 text-sm"><a href="#features" className="block hover:text-white">Features</a><a href="#pricing" className="block hover:text-white">Pricing</a><Link href="/login" className="block hover:text-white">Log In</Link><Link href="/signup" className="block hover:text-white">Sign Up</Link></div></div>
             <div><h4 className="text-white font-semibold mb-3 text-sm">Company</h4><div className="space-y-2 text-sm"><Link href="/terms" className="block hover:text-white">Terms of Service</Link><Link href="/privacy" className="block hover:text-white">Privacy Policy</Link><Link href="/advertise" className="block hover:text-white">Advertise</Link></div></div>
             <div><h4 className="text-white font-semibold mb-3 text-sm">Support</h4><div className="space-y-2 text-sm"><a href="mailto:support@connecthub.com" className="block hover:text-white">support@connecthub.com</a><Link href="/dashboard/support" className="block hover:text-white">Help Center</Link></div></div>
           </div>
           <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm">© 2026 ConnectHub. All rights reserved.</p>
+            <p className="text-sm">© 2022 ConnectHub. All rights reserved.</p>
             <p className="text-sm flex items-center gap-1">Made with <Heart className="w-3 h-3 text-rose-500 fill-rose-500" /> for lovers everywhere</p>
           </div>
         </div>

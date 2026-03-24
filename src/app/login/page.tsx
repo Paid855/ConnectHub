@@ -26,7 +26,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-rose-500 via-pink-500 to-purple-600 items-center justify-center p-12">
         <div className="max-w-md text-center">
-          <Heart className="w-16 h-16 text-white/80 mx-auto mb-6 fill-white/30" />
+          <img src="/logo.png" alt="ConnectHub" className="w-20 h-20 mx-auto mb-6 rounded-2xl" />
           <h1 className="text-4xl font-bold text-white mb-4">Welcome Back</h1>
           <p className="text-rose-100 text-lg">Your matches are waiting. Sign in to continue your journey to love.</p>
           <div className="flex items-center justify-center gap-6 mt-10">
@@ -37,7 +37,7 @@ export default function LoginPage() {
 
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-white">
         <div className="w-full max-w-md">
-          <Link href="/" className="flex items-center gap-2 mb-8"><Heart className="w-6 h-6 text-rose-500 fill-rose-500" /><span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">ConnectHub</span></Link>
+          <Link href="/" className="flex items-center gap-2 mb-8"><img src="/logo.png" alt="ConnectHub" className="w-8 h-8 rounded-lg" /><span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">ConnectHub</span></Link>
           <h2 className="text-2xl font-bold text-gray-900 mb-1">Sign in to your account</h2>
           <p className="text-gray-500 text-sm mb-8">Don't have an account? <Link href="/signup" className="text-rose-500 font-semibold hover:underline">Sign up free</Link></p>
           
