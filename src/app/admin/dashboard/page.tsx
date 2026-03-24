@@ -34,13 +34,11 @@ export default function AdminDashboard() {
   }, []);
 
   const loadAll = async () => {
-    const [uRes, vRes, rRes, revRes] = await Promise.all([
-      fetch("/api/admin/users"), fetch("/api/admin/verifications"), fetch("/api/admin/reports"), fetch("/api/admin/revenue")
-    ]);
-    if (uRes.ok) setUsers(await uRes.json().then(d => d.users || []));
-    if (vRes.ok) setVerifications(await vRes.json().then(d => d.verifications || []));
-    if (rRes.ok) setReports(await rRes.json().then(d => d.reports || []));
-    if (revRes.ok) setRevenue(await revRes.json());
+    // Load in parallel - don't block on any single request
+    fetch("/api/admin/users").then(r=>r.ok?r.json():null).then(d=>{if(d)setUsers(d.users||[])}).catch(()=>{});
+    fetch("/api/admin/verifications").then(r=>r.ok?r.json():null).then(d=>{if(d)setVerifications(d.verifications||[])}).catch(()=>{});
+    fetch("/api/admin/reports").then(r=>r.ok?r.json():null).then(d=>{if(d)setReports(d.reports||[])}).catch(()=>{});
+    fetch("/api/admin/revenue").then(r=>r.ok?r.json():null).then(d=>{if(d)setRevenue(d)}).catch(()=>{});
   };
 
   const handleLogout = async () => { await fetch("/api/admin/logout", { method:"POST" }); router.push("/admin"); };
