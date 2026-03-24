@@ -6,10 +6,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 const PACKAGES = [
-  { id:"coins_100", coins:100, price:"$0.99", popular:false, color:"from-blue-500 to-cyan-500" },
-  { id:"coins_500", coins:500, price:"$3.99", popular:false, color:"from-violet-500 to-purple-500" },
-  { id:"coins_1000", coins:1000, price:"$6.99", popular:true, color:"from-rose-500 to-pink-500" },
-  { id:"coins_5000", coins:5000, price:"$29.99", popular:false, color:"from-amber-500 to-orange-500" },
+  { id:"coins_100", coins:100, price:"₦1,500", sub:"~$0.99", popular:false, color:"from-blue-500 to-cyan-500" },
+  { id:"coins_500", coins:500, price:"₦6,000", sub:"~$3.99", popular:false, color:"from-violet-500 to-purple-500" },
+  { id:"coins_1000", coins:1000, price:"₦10,500", sub:"~$6.99", popular:true, color:"from-rose-500 to-pink-500" },
+  { id:"coins_5000", coins:5000, price:"₦45,000", sub:"~$29.99", popular:false, color:"from-amber-500 to-orange-500" },
 ];
 
 const UPGRADES = [
@@ -30,7 +30,21 @@ export default function CoinsPage() {
 
   useEffect(() => {
     fetch("/api/coins").then(r => r.json()).then(d => setHistory(d.history || [])).catch(() => {});
-    // Check for Stripe success
+    // Check for Paystack redirect
+    const ref = params.get("verify") || params.get("reference") || params.get("trxref");
+    const coinCount = parseInt(params.get("coins") || "0");
+    if (ref) {
+      setShowSuccess(true);
+      fetch("/api/stripe/verify?reference=" + ref + "&coins=" + coinCount)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) { setSuccessCoins(d.coins || coinCount); reload(); }
+          else { setSuccessCoins(0); }
+          fetch("/api/coins").then(r => r.json()).then(d => setHistory(d.history || [])).catch(() => {});
+        })
+        .catch(() => {});
+      setTimeout(() => setShowSuccess(false), 6000);
+    }
     if (params.get("success") === "true") {
       const c = parseInt(params.get("coins") || "0");
       setSuccessCoins(c); setShowSuccess(true);
@@ -109,14 +123,14 @@ export default function CoinsPage() {
               {pkg.popular && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-rose-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full">BEST VALUE</span>}
               <div className={"w-12 h-12 rounded-xl bg-gradient-to-br " + pkg.color + " flex items-center justify-center mx-auto mb-3"}><Coins className="w-6 h-6 text-white" /></div>
               <p className={"text-2xl font-bold " + (dc?"text-white":"text-gray-900")}>{pkg.coins.toLocaleString()}</p>
-              <p className={"text-xs mb-3 " + (dc?"text-gray-500":"text-gray-400")}>coins</p>
+              <p className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>coins</p>{pkg.sub&&<p className={"text-[10px] mb-2 " + (dc?"text-gray-600":"text-gray-400")}>{pkg.sub}</p>}
               <div className={"py-2 rounded-xl font-bold text-sm " + (buying === pkg.id ? "bg-gray-200 text-gray-500" : "bg-gradient-to-r " + pkg.color + " text-white")}>
-                {buying === pkg.id ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</span> : pkg.price}
+                {buying === pkg.id ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</span> : <><span>{pkg.price}</span></>}
               </div>
             </button>
           ))}
         </div>
-        <p className={"text-[11px] text-center mt-3 flex items-center justify-center gap-1 " + (dc?"text-gray-500":"text-gray-400")}><CreditCard className="w-3 h-3" /> Powered by Stripe · 256-bit SSL encrypted</p>
+        <p className={"text-[11px] text-center mt-3 flex items-center justify-center gap-1 " + (dc?"text-gray-500":"text-gray-400")}><CreditCard className="w-3 h-3" /> Powered by Paystack · Secured & Encrypted</p>
       </div>
 
       {/* Upgrade plans */}
