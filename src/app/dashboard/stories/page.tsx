@@ -63,6 +63,7 @@ export default function StoriesPage() {
   };
 
   const deleteStory = async (storyId: string) => {
+    if (!confirm("Are you sure you want to delete this story? This cannot be undone.")) return;
     await fetch("/api/stories", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"delete", storyId }) });
     load(); setViewing(null);
   };
