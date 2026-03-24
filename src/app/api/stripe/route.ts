@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
         },
         quantity: 1,
       }],
-      success_url: (req.headers.get("origin") || "http://localhost:5173") + "/dashboard/coins?success=true&coins=" + pkg.coins,
-      cancel_url: (req.headers.get("origin") || "http://localhost:5173") + "/dashboard/coins?canceled=true",
+      success_url: (req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:5173") + "/dashboard/coins?success=true&coins=" + pkg.coins,
+      cancel_url: (req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:5173") + "/dashboard/coins?canceled=true",
     });
 
     return NextResponse.json({ url: checkoutSession.url });
