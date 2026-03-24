@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { LANGUAGES, t } from "@/lib/translations";
 import Link from "next/link";
 import { Heart, Shield, Video, MessageCircle, Sparkles, Star, ChevronDown, ChevronRight, Users, Zap, Crown, Gem, Check, X as XIcon, ArrowRight, Globe, Lock, Camera } from "lucide-react";
 
@@ -42,6 +43,8 @@ const FAQS = [
 
 export default function LandingPage() {
   const [activeFAQ, setActiveFAQ] = useState<number|null>(null);
+  const [lang, setLang] = useState("en");
+  const [showLang, setShowLang] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
   useEffect(() => {
@@ -59,14 +62,30 @@ export default function LandingPage() {
             <span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">ConnectHub</span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">Features</a>
-            <a href="#how" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">How It Works</a>
-            <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">Pricing</a>
+            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">{t(lang, "features")}</a>
+            <a href="#how" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">{t(lang, "how")}</a>
+            <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">{t(lang, "pricing")}</a>
             <a href="#faq" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">FAQ</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-rose-500 hidden sm:block">Log In</Link>
-            <Link href="/signup" className="px-5 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-semibold hover:shadow-lg transition-all">Get Started</Link>
+            <div className="relative">
+              <button onClick={() => setShowLang(!showLang)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50">
+                <span>{LANGUAGES.find(l => l.code === lang)?.flag}</span>
+                <span className="hidden sm:inline text-xs">{LANGUAGES.find(l => l.code === lang)?.name}</span>
+              </button>
+              {showLang && (
+                <><div className="fixed inset-0 z-40" onClick={() => setShowLang(false)} />
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-50 w-48 max-h-60 overflow-y-auto">
+                  {LANGUAGES.map(l => (
+                    <button key={l.code} onClick={() => { setLang(l.code); setShowLang(false); }} className={"w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left " + (lang === l.code ? "bg-rose-50 text-rose-600" : "hover:bg-gray-50 text-gray-700")}>
+                      <span>{l.flag}</span><span>{l.name}</span>
+                    </button>
+                  ))}
+                </div></>
+              )}
+            </div>
+            <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-rose-500 hidden sm:block">{t(lang, "login")}</Link>
+            <Link href="/signup" className="px-5 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-semibold hover:shadow-lg transition-all">{t(lang, "signup")}</Link>
           </div>
         </div>
       </nav>
@@ -79,13 +98,13 @@ export default function LandingPage() {
               <Sparkles className="w-4 h-4" /> #1 AI-Powered Dating App
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Find Your<br /><span className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">Perfect Match</span>
+              {t(lang, "hero_title")}<br /><span className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">{t(lang, "hero_highlight")}</span>
             </h1>
             <p className="text-lg text-gray-600 mb-8 max-w-lg mx-auto lg:mx-0">
-              AI-powered matching, video-verified profiles, and real connections. Join thousands finding love on ConnectHub.
+              {t(lang, "hero_desc")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
-              <Link href="/signup" className="px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-base hover:shadow-xl transition-all flex items-center justify-center gap-2">Start Matching Free <ArrowRight className="w-5 h-5" /></Link>
+              <Link href="/signup" className="px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-base hover:shadow-xl transition-all flex items-center justify-center gap-2">{t(lang, "cta")} <ArrowRight className="w-5 h-5" /></Link>
               <a href="#how" className="px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-base hover:border-rose-300 hover:text-rose-500 transition-all text-center">See How It Works</a>
             </div>
             <div className="grid grid-cols-4 gap-4 max-w-md mx-auto lg:mx-0">
@@ -110,7 +129,7 @@ export default function LandingPage() {
       </section>
 
       {/* FEATURES */}
-      <section id="features" className="py-20 px-6">
+      <section id="features" className="py-20 px-6 relative bg-gradient-to-b from-white via-rose-50/30 to-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <p className="text-rose-500 font-semibold text-sm mb-2">WHY CONNECTHUB</p>
@@ -222,7 +241,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-20 px-6">
+      <section id="faq" className="py-20 px-6 relative bg-gradient-to-b from-white via-pink-50/20 to-white">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-rose-500 font-semibold text-sm mb-2">FAQ</p>
@@ -256,7 +275,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             <div><Link href="/" className="flex items-center gap-2 mb-4"><img src="/logo.png" alt="ConnectHub" className="w-7 h-7 rounded-lg" /><span className="text-lg font-bold text-white">ConnectHub</span></Link><p className="text-sm">Connecting hearts together since 2022.</p></div>
-            <div><h4 className="text-white font-semibold mb-3 text-sm">Product</h4><div className="space-y-2 text-sm"><a href="#features" className="block hover:text-white">Features</a><a href="#pricing" className="block hover:text-white">Pricing</a><Link href="/login" className="block hover:text-white">Log In</Link><Link href="/signup" className="block hover:text-white">Sign Up</Link></div></div>
+            <div><h4 className="text-white font-semibold mb-3 text-sm">Product</h4><div className="space-y-2 text-sm"><a href="#features" className="block hover:text-white">{t(lang, "features")}</a><a href="#pricing" className="block hover:text-white">{t(lang, "pricing")}</a><Link href="/login" className="block hover:text-white">Log In</Link><Link href="/signup" className="block hover:text-white">Sign Up</Link></div></div>
             <div><h4 className="text-white font-semibold mb-3 text-sm">Company</h4><div className="space-y-2 text-sm"><Link href="/terms" className="block hover:text-white">Terms of Service</Link><Link href="/privacy" className="block hover:text-white">Privacy Policy</Link><Link href="/advertise" className="block hover:text-white">Advertise</Link></div></div>
             <div><h4 className="text-white font-semibold mb-3 text-sm">Support</h4><div className="space-y-2 text-sm"><a href="mailto:support@connecthub.com" className="block hover:text-white">support@connecthub.com</a><Link href="/dashboard/support" className="block hover:text-white">Help Center</Link></div></div>
           </div>
@@ -266,6 +285,37 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Floating hearts background */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {[
+          {l:"5%",d:"8s",s:"1.2",o:"0.06"},
+          {l:"15%",d:"12s",s:"0.8",o:"0.04"},
+          {l:"25%",d:"10s",s:"1.0",o:"0.05"},
+          {l:"38%",d:"14s",s:"0.6",o:"0.03"},
+          {l:"50%",d:"9s",s:"1.1",o:"0.05"},
+          {l:"62%",d:"11s",s:"0.9",o:"0.04"},
+          {l:"75%",d:"13s",s:"0.7",o:"0.03"},
+          {l:"85%",d:"10s",s:"1.0",o:"0.05"},
+          {l:"92%",d:"15s",s:"0.5",o:"0.03"},
+        ].map((h,i) => (
+          <div key={i} className="absolute animate-float-heart" style={{left:h.l, animationDuration:h.d, transform:`scale(${h.s})`, opacity:h.o}}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-rose-400"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+        ))}
+      </div>
+
+      <style jsx global>{`
+        @keyframes float-heart {
+          0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+          10% { opacity: 0.06; }
+          90% { opacity: 0.06; }
+          100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+        }
+        .animate-float-heart {
+          animation: float-heart linear infinite;
+        }
+      `}</style>
     </div>
   );
 }

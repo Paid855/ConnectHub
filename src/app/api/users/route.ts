@@ -18,11 +18,21 @@ export async function GET(req: NextRequest) {
       take: 100
     });
 
+    // Get requesting user's country for location-based matching
+    const me = await prisma.user.findUnique({ where: { id }, select: { country: true } });
+    const myCountry = me?.country || "";
     const now = new Date();
     users.sort((a: any, b: any) => {
-      const aB = a.boostedUntil && new Date(a.boostedUntil) > now ? 1 : 0;
-      const bB = b.boostedUntil && new Date(b.boostedUntil) > now ? 1 : 0;
-      return bB - aB;
+      // Boosted users first
+      const aB = a.boostedUntil && new Date(a.boostedUntil) > now ? 100 : 0;
+      const bB = b.boostedUntil && new Date(b.boostedUntil) > now ? 100 : 0;
+      // Same country gets priority
+      const aC = myCountry && a.country === myCountry ? 50 : 0;
+      const bC = myCountry && b.country === myCountry ? 50 : 0;
+      // Online users get priority
+      const aO = a.lastSeen && Date.now() - new Date(a.lastSeen).getTime() < 300000 ? 25 : 0;
+      const bO = b.lastSeen && Date.now() - new Date(b.lastSeen).getTime() < 300000 ? 25 : 0;
+      return (bB + bC + bO) - (aB + aC + aO);
     });
 
     return NextResponse.json({ users });
