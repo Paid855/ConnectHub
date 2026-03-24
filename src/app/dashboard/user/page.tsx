@@ -4,6 +4,7 @@ import { useUser, TierBadge } from "../layout";
 import { useSearchParams } from "next/navigation";
 import { Heart, MessageCircle, UserPlus, UserMinus, Shield, Crown, Gem, Globe, Calendar, Flag, Ban, ArrowLeft, Check, X, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import PhotoGallery from "@/components/PhotoGallery";
 import { Suspense } from "react";
 
 function UserProfileContent() {

@@ -54,7 +54,7 @@ export default function MessagesPage() {
     if (res.ok) { const d = await res.json(); setMessages(d.messages||[]); }
     setTimeout(() => endRef.current?.scrollIntoView({behavior:"smooth"}), 100);
     if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(async () => { if (callState !== "idle") return; const r = await fetch("/api/messages?with="+partner.id); if (r.ok) { const d = await r.json(); setMessages(d.messages||[]); } }, 3000);
+    pollRef.current = setInterval(async () => { if (callState !== "idle") return; const r = await fetch("/api/messages?with="+partner.id); if (r.ok) { const d = await r.json(); setMessages(d.messages||[]); } }, 2000);
   };
 
   useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); endCall(); }; }, []);
@@ -140,9 +140,14 @@ export default function MessagesPage() {
     if (res.status===403) { const d = await res.json(); if (d.limited) { setLimitHit(true); setSending(false); return; } }
     if (!content) setNewMsg("");
     setShowEmoji(false);
+    // Optimistic: add message immediately before server confirms
+    const optimistic = { id:"temp_"+Date.now(), senderId:user.id, receiverId:activePartner.id, content:msg, read:false, createdAt:new Date().toISOString() };
+    setMessages(prev => [...prev, optimistic]);
+    setSending(false);
+    // Then sync with server
     const r2 = await fetch("/api/messages?with="+activePartner.id);
     if (r2.ok) { const d = await r2.json(); setMessages(d.messages||[]); }
-    setSending(false); loadConversations();
+    loadConversations();
   };
 
   const handleImageSend = (e: React.ChangeEvent<HTMLInputElement>) => {

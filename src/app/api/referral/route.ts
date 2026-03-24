@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { id }, select: { referredBy: true } });
   if (user?.referredBy) return NextResponse.json({ error: "You already used a referral code" }, { status: 400 });
 
-  const referrer = await prisma.user.findFirst({ where: { referralCode: referralCode.toUpperCase() } });
+  const referrer = await prisma.user.findFirst({ where: { email: { not: "admin@connecthub.com" }, referralCode: referralCode.toUpperCase() } });
   if (!referrer) return NextResponse.json({ error: "Invalid referral code" }, { status: 404 });
   if (referrer.id === id) return NextResponse.json({ error: "Cannot use your own code" }, { status: 400 });
 
