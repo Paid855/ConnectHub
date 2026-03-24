@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser } from "../layout";
-import { Send, ArrowLeft, Shield, MessageCircle, Search, Heart, Smile, Phone, Video, Image as ImageIcon, X, PhoneOff, Mic, Square, Play, Pause, MicOff, VideoOff, PhoneCall } from "lucide-react";
+import { Send, ArrowLeft, Shield, MessageCircle, Search, Heart, Smile, Phone, Video, Image as ImageIcon, X, PhoneOff, Mic, Square, Play, Pause, MicOff, VideoOff, PhoneCall } , MoreVertical } from "lucide-react";
 import Link from "next/link";
 
 type Partner = { id:string; name:string; profilePhoto:string|null; tier:string; lastSeen?:string|null; verified?:boolean; };
