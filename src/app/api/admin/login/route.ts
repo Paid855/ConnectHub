@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 
-const ADMIN_CREDENTIALS = {
-  email: "admin@connecthub.com",
-  password: "ConnectHub@2026",
-  secretKey: process.env.ADMIN_SECRET || "ConnectHub_Admin_2026_Secret"
-};
+const ADMIN_EMAIL = "admin@connecthub.com";
+const ADMIN_PASSWORD = "ConnectHub@2026";
+const ADMIN_SECRET = "ConnectHub_Admin_2026_Secret";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,21 +12,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
 
-    if (secretKey !== ADMIN_CREDENTIALS.secretKey) {
-      return NextResponse.json({ error: "Invalid admin secret key" }, { status: 403 });
+    if (email !== ADMIN_EMAIL) {
+      return NextResponse.json({ error: "Invalid admin email" }, { status: 401 });
     }
 
-    if (email.toLowerCase() !== ADMIN_CREDENTIALS.email || password !== ADMIN_CREDENTIALS.password) {
-      return NextResponse.json({ error: "Invalid admin credentials" }, { status: 401 });
+    if (password !== ADMIN_PASSWORD) {
+      return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
 
-    const response = NextResponse.json({ success: true });
-    response.cookies.set("admin_session", JSON.stringify({ email, role: "admin", loginAt: Date.now() }), {
-      httpOnly: true, secure: false, sameSite: "lax", maxAge: 60 * 60 * 8, path: "/"
+    if (secretKey !== ADMIN_SECRET) {
+      return NextResponse.json({ error: "Invalid secret key" }, { status: 401 });
+    }
+
+    const sessionData = JSON.stringify({ email: ADMIN_EMAIL, role: "admin", loggedAt: Date.now() });
+    const res = NextResponse.json({ success: true });
+    res.cookies.set("admin_session", sessionData, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 8, // 8 hours
     });
 
-    return response;
-  } catch {
+    return res;
+  } catch (e) {
+    console.error("Admin login error:", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

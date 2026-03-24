@@ -2,17 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
+  const session = req.cookies.get("session");
+  if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+
   try {
-    const session = req.cookies.get("session");
-    if (!session) return NextResponse.json({ user: null }, { status: 401 });
-    const data = JSON.parse(session.value);
+    const { id } = JSON.parse(session.value);
+
+    // Single optimized query with only needed fields
     const user = await prisma.user.findUnique({
-      where: { id: data.id },
-      select: { id:true, name:true, email:true, username:true, phone:true, age:true, gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, verificationStatus:true, isPrivate:true, interests:true, lastSeen:true, createdAt:true, coins:true }
+      where: { id },
+      select: {
+        id:true, name:true, email:true, username:true, phone:true, age:true,
+        gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true,
+        tier:true, verified:true, verificationStatus:true, interests:true,
+        coins:true, createdAt:true, lastSeen:true, referralCode:true
+      }
     });
-    if (!user) return NextResponse.json({ user: null }, { status: 401 });
-    if (user.tier === "banned") return NextResponse.json({ user: null, banned: true }, { status: 403 });
-    await prisma.user.update({ where: { id: data.id }, data: { lastSeen: new Date() } }).catch(() => {});
+
+    if (!user) {
+      // Clear invalid session
+      const res = NextResponse.json({ error: "User not found" }, { status: 401 });
+      res.cookies.set("session", "", { path: "/", maxAge: 0 });
+      return res;
+    }
+
+    // Update lastSeen in background
+    prisma.user.update({ where: { id }, data: { lastSeen: new Date() } }).catch(() => {});
+
     return NextResponse.json({ user });
-  } catch { return NextResponse.json({ user: null }, { status: 401 }); }
+  } catch {
+    return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+  }
 }

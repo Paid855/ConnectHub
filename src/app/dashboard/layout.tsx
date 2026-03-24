@@ -32,7 +32,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [rewardCoins, setRewardCoins] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  const loadUser = async () => { try { const res = await fetch("/api/auth/me"); if (res.status===403) { router.push("/login?banned=true"); return; } const data = await res.json(); if (!data.user) { router.push("/login"); return; } setUser(data.user); } catch { router.push("/login"); } finally { setLoading(false); } };
+  const userCache = useRef<any>(null);
+  const loadUser = async () => {
+    if (userCache.current && Date.now() - userCache.current.time < 10000) {
+      setUser(userCache.current.data);
+      return;
+    } try { const res = await fetch("/api/auth/me"); if (res.status===403) { router.push("/login?banned=true"); return; } const data = await res.json(); if (!data.user) { router.push("/login"); return; } setUser(data.user);
+        userCache.current = { data: data.user, time: Date.now() }; } catch { router.push("/login"); } finally { setLoading(false); } };
   const loadUnread = async () => { try { const res = await fetch("/api/messages"); if (res.ok) { const d = await res.json(); setUnread((d.conversations||[]).reduce((s:number,c:any)=>s+(c.unreadCount||0),0)); } } catch {} };
   const loadNotifications = async () => { try { const res = await fetch("/api/notifications"); if (res.ok) { const d = await res.json(); setNotifCount(d.unreadCount||0); setNotifications(d.notifications||[]); } } catch {} };
   const markAllRead = async () => { await fetch("/api/notifications", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"readAll" }) }); setNotifCount(0); setNotifications(p => p.map(n => ({...n, read:true}))); };
