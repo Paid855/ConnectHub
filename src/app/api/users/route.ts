@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const blockedIds = blocked.map(b => b.blockerId === id ? b.blockedId : b.blockerId);
 
     const users = await prisma.user.findMany({
-      where: { id: { not: id, notIn: blockedIds }, tier: { not: "banned" } },
+      where: { id: { not: id, notIn: blockedIds }, tier: { not: "banned" }, email: { not: "admin@connecthub.com" } },
       select: { id:true, name:true, age:true, gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, interests:true, boostedUntil:true, lastSeen:true },
       orderBy: { createdAt: "desc" },
       take: 100

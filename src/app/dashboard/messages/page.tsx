@@ -221,6 +221,8 @@ export default function MessagesPage() {
 
   const formatCallTime = (s: number) => { const m = Math.floor(s/60); const sec = s%60; return `${m.toString().padStart(2,"0")}:${sec.toString().padStart(2,"0")}`; };
   const isImage = (content: string) => content.startsWith("[IMG]data:image");
+  const isStoryReply = (content: string) => content.startsWith("[STORY_REPLY]") || content.startsWith("[STORY_REACT]");
+  const getStoryContent = (content: string) => content.replace("[STORY_REPLY]", "").replace("[STORY_REACT]", "");
   const isVoice = (content: string) => content.startsWith("[VOICE]");
   const getVoiceSrc = (content: string) => content.replace("[VOICE]","");
   const getImageSrc = (content: string) => content.replace("[IMG]","");

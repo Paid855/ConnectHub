@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   // Get all user data
   const allUserIds = [...new Set([...filteredFriendIds, ...pendingIds])];
   const users = await prisma.user.findMany({
-    where: { id: { in: allUserIds }, tier: { not: "banned" } },
+    where: { id: { in: allUserIds }, tier: { not: "banned" }, email: { not: "admin@connecthub.com" } },
     select: { id: true, name: true, profilePhoto: true, tier: true, lastSeen: true, country: true }
   });
 

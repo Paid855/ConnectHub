@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const blocked = await prisma.block.findMany({ where: { OR: [{ blockerId: id }, { blockedId: id }] } });
   const blockedIds = blocked.map(b => b.blockerId === id ? b.blockedId : b.blockerId);
 
-  let where: any = { id: { not: id, notIn: blockedIds }, tier: { not: "banned" } };
+  let where: any = { id: { not: id, notIn: blockedIds }, tier: { not: "banned" }, email: { not: "admin@connecthub.com" } };
 
   if (q) {
     where.OR = [

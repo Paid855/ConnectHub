@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" }, take: 50
   });
   const userIds = [...new Set(posts.map(p => p.userId))];
-  const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id:true, name:true, profilePhoto:true, tier:true } });
+  const users = await prisma.user.findMany({ where: { email: { not: "admin@connecthub.com" } }, where: { id: { in: userIds } }, select: { id:true, name:true, profilePhoto:true, tier:true } });
   const likes = await prisma.postLike.findMany({ where: { postId: { in: posts.map(p => p.id) } } });
   const comments = await prisma.postComment.findMany({ where: { postId: { in: posts.map(p => p.id) } }, orderBy: { createdAt: "asc" } });
   const commentUserIds = [...new Set(comments.map(c => c.userId))];
