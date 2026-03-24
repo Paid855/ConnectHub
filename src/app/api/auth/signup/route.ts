@@ -1,3 +1,4 @@
+import { emailWelcome } from "@/lib/email-notifications";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    emailWelcome(user.email, user.name).catch(() => {});
     return NextResponse.json({ success: true, userId: user.id });
   } catch (error) {
     console.error("Signup error:", error);

@@ -1,3 +1,4 @@
+import { emailFriendRequest } from "@/lib/email-notifications";
 import { createNotification } from "@/lib/notify";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
@@ -78,6 +79,7 @@ export async function POST(req: NextRequest) {
     });
     if (existing) return NextResponse.json({ error: "Already connected" }, { status: 400 });
     await prisma.friend.create({ data: { userId: id, friendId, status: "pending" } });
+    prisma.user.findUnique({ where: { id: friendId }, select: { email:true, name:true } }).then(u => { if(u) { const sender = "Someone"; emailFriendRequest(u.email, u.name, sender).catch(()=>{}); } }).catch(()=>{});
     createNotification(friendId, "friend_request", "Friend Request", "wants to be your friend", id);
     return NextResponse.json({ sent: true });
   }

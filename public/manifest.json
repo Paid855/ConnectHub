@@ -1,0 +1,14 @@
+{
+  "name": "ConnectHub - Dating App",
+  "short_name": "ConnectHub",
+  "description": "Find your perfect match with AI-powered dating",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e11d48",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

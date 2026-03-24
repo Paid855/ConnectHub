@@ -81,7 +81,7 @@ export default function LandingPage() {
               <Sparkles className="w-4 h-4 text-rose-500" />
               <span className="text-sm font-semibold text-rose-600">The future of dating is here</span>
             </div>
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 leading-[1.1] mb-6 tracking-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-gray-900 leading-[1.1] mb-6 tracking-tight">
               Find Your<br /><span className="bg-gradient-to-r from-rose-500 via-pink-500 to-red-400 bg-clip-text text-transparent">Perfect Match</span>
             </h1>
             <p className="text-lg text-gray-500 mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed">
@@ -105,7 +105,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <div className="flex-shrink-0 w-full max-w-sm">
+          <div className="flex-shrink-0 w-full max-w-sm mx-auto lg:mx-0">
             <div className="bg-white rounded-3xl shadow-2xl shadow-rose-100/50 border border-rose-100 overflow-hidden">
               <div className="relative h-80">
                 <img src={p.img} alt={p.name} className="w-full h-full object-cover transition-all duration-700" />

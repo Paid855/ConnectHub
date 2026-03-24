@@ -1,3 +1,4 @@
+import { emailVerified } from "@/lib/email-notifications";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
 
     if (action === "approve") {
       await prisma.user.update({ where: { id: userId }, data: { verificationStatus: "approved", verified: true } });
+      prisma.user.findUnique({ where: { id: userId }, select: { email:true, name:true } }).then(u => { if(u) emailVerified(u.email, u.name).catch(()=>{}); }).catch(()=>{});
       createNotification(userId, "verification", "Verified!", "Your identity has been verified. You now have the verified badge!", undefined);
       return NextResponse.json({ success: true });
     }

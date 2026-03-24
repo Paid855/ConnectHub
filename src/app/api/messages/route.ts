@@ -1,3 +1,4 @@
+import { emailNewMessage } from "@/lib/email-notifications";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
   if (blocked) return NextResponse.json({ error: "Cannot message this user" }, { status: 403 });
 
   const newMsg = await prisma.message.create({ data: { senderId: id, receiverId, content: content.trim() } });
+  prisma.user.findUnique({ where: { id: receiverId }, select: { email:true, name:true } }).then(u => { if(u) emailNewMessage(u.email, u.name, "Someone").catch(()=>{}); }).catch(()=>{});
   createNotification(receiverId, "message", "New Message", content.startsWith("[IMG]") ? "Sent a photo" : content.startsWith("[VOICE]") ? "Sent a voice message" : content.substring(0, 50), id);
 
   return NextResponse.json({ message: newMsg });
