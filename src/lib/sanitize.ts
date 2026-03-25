@@ -1,4 +1,3 @@
-// Simple but effective XSS sanitizer - no dependencies needed
 export function sanitize(input: string): string {
   if (!input) return "";
   return input
@@ -14,7 +13,6 @@ export function sanitizeObject(obj: Record<string, any>): Record<string, any> {
   const clean: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === "string") {
-      // Don't sanitize base64 images, passwords, or emails
       if (key === "password" || key === "profilePhoto" || key === "image" || key === "photo" ||
           key === "verificationPhoto" || key === "idDocument" || value.startsWith("data:") ||
           value.startsWith("[IMG]") || value.startsWith("[VID]") || value.startsWith("[VOICE]")) {
@@ -29,23 +27,19 @@ export function sanitizeObject(obj: Record<string, any>): Record<string, any> {
   return clean;
 }
 
-// Validate email format
 export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// Validate phone (digits only, 7-15 chars after code)
 export function isValidPhone(phone: string): boolean {
   const digits = phone.replace(/[^0-9]/g, "");
   return digits.length >= 7 && digits.length <= 15;
 }
 
-// Validate username (3-20 chars, lowercase, numbers, underscores)
 export function isValidUsername(username: string): boolean {
   return /^[a-z0-9_]{3,20}$/.test(username);
 }
 
-// Check for suspicious content (SQL injection, XSS attempts)
 export function isSuspicious(input: string): boolean {
   const patterns = [
     /<script/i, /javascript:/i, /on\w+\s*=/i, /eval\(/i,
@@ -55,8 +49,6 @@ export function isSuspicious(input: string): boolean {
   return patterns.some(p => p.test(input));
 }
 
-
-// Validate image size (server-side)
 export function validateImageSize(base64: string, maxSizeMB: number = 5): boolean {
   if (!base64) return true;
   const sizeInBytes = (base64.length * 3) / 4;
