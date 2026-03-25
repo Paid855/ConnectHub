@@ -54,3 +54,11 @@ export function isSuspicious(input: string): boolean {
   ];
   return patterns.some(p => p.test(input));
 }
+
+
+// Validate image size (server-side)
+export function validateImageSize(base64: string, maxSizeMB: number = 5): boolean {
+  if (!base64) return true;
+  const sizeInBytes = (base64.length * 3) / 4;
+  return sizeInBytes <= maxSizeMB * 1024 * 1024;
+}
