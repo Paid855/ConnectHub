@@ -1,21 +1,18 @@
+import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSessionUser } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
-  const sessionCookie = req.cookies.get("session");
-  if (!sessionCookie) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-
-  const sessionData = getSessionUser(sessionCookie.value);
-  if (!sessionData) {
-    const res = NextResponse.json({ error: "Invalid session" }, { status: 401 });
+  const id = getUserId(req);
+  if (!id) {
+    const res = NextResponse.json({ error: "Not logged in" }, { status: 401 });
     res.cookies.set("session", "", { path: "/", maxAge: 0 });
     return res;
   }
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: sessionData.id },
+      where: { id },
       select: {
         id:true, name:true, email:true, username:true, phone:true, age:true,
         gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true,
@@ -36,12 +33,10 @@ export async function GET(req: NextRequest) {
       return res;
     }
 
-    // Background lastSeen update
-    prisma.user.update({ where: { id: user.id }, data: { lastSeen: new Date() } }).catch(() => {});
-
+    prisma.user.update({ where: { id }, data: { lastSeen: new Date() } }).catch(() => {});
     return NextResponse.json({ user });
   } catch (e) {
-    console.error("Session check error:", e);
+    console.error("Session error:", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

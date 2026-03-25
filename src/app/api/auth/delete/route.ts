@@ -1,11 +1,11 @@
+import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
-  const session = req.cookies.get("session");
-  if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { id } = JSON.parse(session.value);
+  const id = getUserId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   const { password, confirm } = await req.json();
 
   if (confirm !== "DELETE MY ACCOUNT") return NextResponse.json({ error: "Type DELETE MY ACCOUNT to confirm" }, { status: 400 });

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const SECRET = process.env.SESSION_SECRET || process.env.PAYSTACK_SECRET_KEY || "connecthub_session_secret_2022_change_me";
+const SECRET = process.env.SESSION_SECRET || "connecthub_default_secret_2022";
 
 export function createSession(data: Record<string, any>): string {
   const payload = JSON.stringify({ ...data, iat: Date.now() });
@@ -8,40 +8,30 @@ export function createSession(data: Record<string, any>): string {
   return Buffer.from(payload).toString("base64") + "." + signature;
 }
 
-export function verifySession(token: string): Record<string, any> | null {
-  try {
-    const [payloadB64, signature] = token.split(".");
-    if (!payloadB64 || !signature) return null;
-
-    const payload = Buffer.from(payloadB64, "base64").toString("utf-8");
-    const expected = crypto.createHmac("sha256", SECRET).update(payload).digest("hex");
-
-    if (signature !== expected) return null;
-
-    const data = JSON.parse(payload);
-
-    // Check if session is expired (7 days)
-    if (data.iat && Date.now() - data.iat > 7 * 24 * 60 * 60 * 1000) return null;
-
-    return data;
-  } catch {
-    return null;
-  }
-}
-
 export function getSessionUser(cookieValue: string): { id: string; email: string; name: string } | null {
-  // Support both old (plain JSON) and new (signed) sessions
+  if (!cookieValue) return null;
   try {
+    // Try signed session first
     if (cookieValue.includes(".")) {
-      const data = verifySession(cookieValue);
-      if (data?.id) return { id: data.id, email: data.email, name: data.name };
-      return null;
+      const [payloadB64, signature] = cookieValue.split(".");
+      const payload = Buffer.from(payloadB64, "base64").toString("utf-8");
+      const expected = crypto.createHmac("sha256", SECRET).update(payload).digest("hex");
+      if (signature === expected) {
+        const data = JSON.parse(payload);
+        if (data?.id) return { id: data.id, email: data.email || "", name: data.name || "" };
+      }
     }
-    // Legacy plain JSON session
+    // Fallback: plain JSON session (legacy)
     const data = JSON.parse(cookieValue);
-    if (data?.id) return { id: data.id, email: data.email, name: data.name };
+    if (data?.id) return { id: data.id, email: data.email || "", name: data.name || "" };
     return null;
   } catch {
+    // Last try: maybe it's URL-encoded JSON
+    try {
+      const decoded = decodeURIComponent(cookieValue);
+      const data = JSON.parse(decoded);
+      if (data?.id) return { id: data.id, email: data.email || "", name: data.name || "" };
+    } catch {}
     return null;
   }
 }

@@ -1,56 +1,40 @@
-import { uploadImage } from "@/lib/cloudinary";
-import { rateLimit } from "@/lib/rate-limit";
+import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
-  const session = req.cookies.get("session");
-  if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { id } = JSON.parse(session.value);
-  const _rl = rateLimit("feed_post:" + id, 10, 60000);
-  if (!_rl.success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-
-  const blocks = await prisma.block.findMany({ where: { OR: [{ blockerId: id }, { blockedId: id }] } });
-  const blockedIds = blocks.map(b => b.blockerId === id ? b.blockedId : b.blockerId);
+  const id = getUserId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
   const posts = await prisma.post.findMany({
-    where: blockedIds.length > 0 ? { userId: { notIn: blockedIds } } : {},
-    orderBy: { createdAt: "desc" }, take: 50
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    include: {
+      user: { select: { id:true, name:true, profilePhoto:true, tier:true, verified:true, country:true } },
+      comments: { include: { user: { select: { id:true, name:true, profilePhoto:true } } }, orderBy: { createdAt: "asc" }, take: 10 },
+      likes: true,
+    }
   });
-  const userIds = [...new Set(posts.map(p => p.userId))];
-  const users = await prisma.user.findMany({ where: { email: { not: "admin@connecthub.com" } }, where: { id: { in: userIds } }, select: { id:true, name:true, profilePhoto:true, tier:true } });
-  const likes = await prisma.postLike.findMany({ where: { postId: { in: posts.map(p => p.id) } } });
-  const comments = await prisma.postComment.findMany({ where: { postId: { in: posts.map(p => p.id) } }, orderBy: { createdAt: "asc" } });
-  const commentUserIds = [...new Set(comments.map(c => c.userId))];
-  const commentUsers = await prisma.user.findMany({ where: { id: { in: commentUserIds } }, select: { id:true, name:true, profilePhoto:true, tier:true } });
 
-  const feed = posts.map(p => {
-    const postLikes = likes.filter(l => l.postId === p.id);
-    const emojiCounts: Record<string, number> = {};
-    postLikes.forEach(l => { emojiCounts[l.emoji] = (emojiCounts[l.emoji] || 0) + 1; });
-    const myLike = postLikes.find(l => l.userId === id);
-
-    return {
+  const feed = posts
+    .filter(p => p.user?.email !== "admin@connecthub.com")
+    .map(p => ({
       ...p,
-      user: users.find(u => u.id === p.userId),
-      likeCount: postLikes.length,
-      liked: !!myLike,
-      myEmoji: myLike?.emoji || null,
-      emojiCounts,
-      comments: comments.filter(c => c.postId === p.id).map(c => ({ ...c, user: commentUsers.find(u => u.id === c.userId) })),
-      commentCount: comments.filter(c => c.postId === p.id).length,
-    };
-  });
+      liked: p.likes?.some((l: any) => l.userId === id),
+      likeCount: p.likes?.length || 0,
+      commentCount: p.comments?.length || 0,
+    }));
 
   return NextResponse.json({ feed });
 }
 
 export async function POST(req: NextRequest) {
-  const session = req.cookies.get("session");
-  if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { id } = JSON.parse(session.value);
+  const id = getUserId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+
   const { content, image } = await req.json();
-  if (!content?.trim() && !image) return NextResponse.json({ error: "Post cannot be empty" }, { status: 400 });
-  const post = await prisma.post.create({ data: { userId: id, content: content?.trim() || null, image: image || null } });
+  if (!content?.trim() && !image) return NextResponse.json({ error: "Empty post" }, { status: 400 });
+
+  const post = await prisma.post.create({ data: { userId: id, content: content?.trim() || "", image: image || null } });
   return NextResponse.json({ post });
 }

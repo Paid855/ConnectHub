@@ -1,3 +1,4 @@
+import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
@@ -18,9 +19,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = req.cookies.get("session");
-  if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { id } = JSON.parse(session.value);
+  const id = getUserId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   const { giftId, receiverId, streamId } = await req.json();
 
   const gift = GIFTS.find(g => g.id === giftId);

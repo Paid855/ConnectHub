@@ -1,11 +1,11 @@
+import { getUserId } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
-  const session = req.cookies.get("session");
-  if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { id } = JSON.parse(session.value);
+  const id = getUserId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   const _rl = rateLimit("block:" + id, 10, 60000);
   if (!_rl.success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
@@ -20,9 +20,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = req.cookies.get("session");
-  if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { id } = JSON.parse(session.value);
+  const id = getUserId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   const { blockedId } = await req.json();
   if (!blockedId) return NextResponse.json({ error: "No user" }, { status: 400 });
 

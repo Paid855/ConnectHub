@@ -1,3 +1,4 @@
+import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
@@ -5,9 +6,8 @@ import { createNotification } from "@/lib/notify";
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "";
 
 export async function GET(req: NextRequest) {
-  const session = req.cookies.get("session");
-  if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { id } = JSON.parse(session.value);
+  const id = getUserId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
   const url = new URL(req.url);
   const reference = url.searchParams.get("reference");

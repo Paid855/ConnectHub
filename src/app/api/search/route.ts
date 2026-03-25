@@ -1,11 +1,11 @@
+import { getUserId } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
-  const session = req.cookies.get("session");
-  if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { id } = JSON.parse(session.value);
+  const id = getUserId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   const url = new URL(req.url);
   const q = url.searchParams.get("q")?.toLowerCase() || "";
   const interest = url.searchParams.get("interest") || "";
