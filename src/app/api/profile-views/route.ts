@@ -7,24 +7,18 @@ export async function GET(req: NextRequest) {
   const { id } = JSON.parse(session.value);
 
   const user = await prisma.user.findUnique({ where: { id }, select: { tier: true } });
-  if (!user || user.tier === "basic") return NextResponse.json({ error: "Premium feature", upgrade: true }, { status: 403 });
+  if (user?.tier !== "premium" && user?.tier !== "gold") {
+    return NextResponse.json({ error: "Premium feature", upgrade: true }, { status: 403 });
+  }
 
   const views = await prisma.profileView.findMany({
     where: { viewedId: id },
     orderBy: { createdAt: "desc" },
-    take: 50
+    take: 50,
+    include: { viewer: { select: { id:true, name:true, profilePhoto:true, age:true, country:true, tier:true, verified:true } } }
   });
 
-  const viewerIds = [...new Set(views.map(v => v.viewerId))];
-  const viewers = viewerIds.length > 0 ? await prisma.user.findMany({
-    where: { id: { in: viewerIds } },
-    select: { id:true, name:true, profilePhoto:true, age:true, country:true, tier:true }
-  }) : [];
-
-  return NextResponse.json({
-    views: views.map(v => ({ ...v, viewer: viewers.find(u => u.id === v.viewerId) })),
-    totalViews: views.length
-  });
+  return NextResponse.json({ views });
 }
 
 export async function POST(req: NextRequest) {
@@ -32,8 +26,15 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   const { id } = JSON.parse(session.value);
   const { viewedId } = await req.json();
-
   if (!viewedId || viewedId === id) return NextResponse.json({ ok: true });
-  await prisma.profileView.create({ data: { viewerId: id, viewedId } }).catch(() => {});
+
+  // Only count unique views per day
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const existing = await prisma.profileView.findFirst({ where: { viewerId: id, viewedId, createdAt: { gte: today } } });
+  if (!existing) {
+    await prisma.profileView.create({ data: { viewerId: id, viewedId } }).catch(() => {});
+  }
+
   return NextResponse.json({ ok: true });
 }

@@ -8,8 +8,10 @@ export async function POST(req: NextRequest) {
   const { reportedId, reason, details } = await req.json();
 
   if (!reportedId || !reason) return NextResponse.json({ error: "Reason required" }, { status: 400 });
-  if (reportedId === id) return NextResponse.json({ error: "Cannot report yourself" }, { status: 400 });
 
-  await prisma.report.create({ data: { reporterId: id, reportedId, reason, details: details || null } });
-  return NextResponse.json({ success: true, message: "Report submitted. Our team will review it." });
+  await prisma.report.create({
+    data: { reporterId: id, reportedId, reason, details: details || null, status: "pending" }
+  });
+
+  return NextResponse.json({ success: true });
 }

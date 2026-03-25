@@ -6,6 +6,8 @@ import Link from "next/link";
 
 type FriendUser = { id:string; name:string; profilePhoto:string|null; tier:string; country:string|null; online:boolean; };
 
+const isOnline = (d: string|null) => d ? Date.now() - new Date(d).getTime() < 5*60*1000 : false;
+
 export default function FriendsPage() {
   const { user } = useUser();
   const [friends, setFriends] = useState<FriendUser[]>([]);
