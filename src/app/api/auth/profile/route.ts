@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
-import { sanitize, isSuspicious, validateImageSize } from "@/lib/sanitize";
+import { sanitize, isSuspicious } from "@/lib/sanitize";
 
 export async function PUT(req: NextRequest) {
   const sessionCookie = req.cookies.get("session");
@@ -27,7 +27,7 @@ export async function PUT(req: NextRequest) {
 
   // Handle profile photo with size validation
   if (body.profilePhoto !== undefined) {
-    if (!validateImageSize(body.profilePhoto, 5)) {
+    if (body.profilePhoto && body.profilePhoto.length > 7 * 1024 * 1024) {
       return NextResponse.json({ error: "Photo too large. Maximum 5MB." }, { status: 400 });
     }
     updateData.profilePhoto = body.profilePhoto;
