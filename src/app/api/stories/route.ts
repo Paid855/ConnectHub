@@ -1,3 +1,4 @@
+import { rateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
@@ -6,6 +7,8 @@ export async function GET(req: NextRequest) {
   const session = req.cookies.get("session");
   if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   const { id } = JSON.parse(session.value);
+  const _rl = rateLimit("story:" + id, 10, 60000);
+  if (!_rl.success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   // Delete expired stories
   await prisma.story.deleteMany({ where: { expiresAt: { lt: new Date() } } }).catch(() => {});

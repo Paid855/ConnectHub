@@ -1,3 +1,4 @@
+import { rateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -5,6 +6,8 @@ export async function GET(req: NextRequest) {
   const session = req.cookies.get("session");
   if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   const { id } = JSON.parse(session.value);
+  const _rl = rateLimit("feed_post:" + id, 10, 60000);
+  if (!_rl.success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const blocks = await prisma.block.findMany({ where: { OR: [{ blockerId: id }, { blockedId: id }] } });
   const blockedIds = blocks.map(b => b.blockerId === id ? b.blockedId : b.blockerId);

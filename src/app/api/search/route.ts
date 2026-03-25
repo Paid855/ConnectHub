@@ -1,3 +1,4 @@
+import { rateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 

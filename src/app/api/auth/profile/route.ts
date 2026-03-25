@@ -1,33 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getSessionUser } from "@/lib/session";
+import { sanitize, isSuspicious, validateImageSize } from "@/lib/sanitize";
 
 export async function PUT(req: NextRequest) {
-  try {
-    const session = req.cookies.get("session");
-    if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-    const { id } = JSON.parse(session.value);
-    const body = await req.json();
+  const sessionCookie = req.cookies.get("session");
+  if (!sessionCookie) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+  const session = getSessionUser(sessionCookie.value);
+  if (!session) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+  const id = session.id;
 
-    const updateData: any = {};
-    if (body.name) updateData.name = body.name;
-    if (body.bio !== undefined) updateData.bio = body.bio;
-    if (body.age) updateData.age = parseInt(body.age);
-    if (body.gender) updateData.gender = body.gender;
-    if (body.lookingFor) updateData.lookingFor = body.lookingFor;
-    if (body.country) updateData.country = body.country;
-    if (body.phone) updateData.phone = body.phone;
-    if (body.profilePhoto) updateData.profilePhoto = body.profilePhoto;
-    if (body.interests) updateData.interests = body.interests;
-    if (body.isPrivate !== undefined) updateData.isPrivate = body.isPrivate;
+  const body = await req.json();
+  const updateData: any = {};
 
-    const user = await prisma.user.update({
-      where: { id },
-      data: updateData,
-      select: { id:true, name:true, email:true, phone:true, age:true, gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, verificationStatus:true, interests:true, isPrivate:true }
-    });
-    return NextResponse.json({ success: true, user });
-  } catch (error) {
-    console.error("Profile update error:", error);
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+  // Sanitize text fields
+  if (body.name !== undefined) updateData.name = sanitize(body.name.trim().substring(0, 50));
+  if (body.bio !== undefined) updateData.bio = sanitize(body.bio.trim().substring(0, 500));
+  if (body.age !== undefined) { const age = parseInt(body.age); if (age >= 18 && age <= 99) updateData.age = age; }
+  if (body.gender !== undefined) updateData.gender = sanitize(body.gender);
+  if (body.lookingFor !== undefined) updateData.lookingFor = sanitize(body.lookingFor);
+  if (body.country !== undefined) updateData.country = sanitize(body.country);
+  if (body.phone !== undefined) updateData.phone = body.phone;
+  if (body.interests !== undefined && Array.isArray(body.interests)) {
+    updateData.interests = body.interests.slice(0, 10).map((i: string) => sanitize(i));
   }
+
+  // Handle profile photo with size validation
+  if (body.profilePhoto !== undefined) {
+    if (!validateImageSize(body.profilePhoto, 5)) {
+      return NextResponse.json({ error: "Photo too large. Maximum 5MB." }, { status: 400 });
+    }
+    updateData.profilePhoto = body.profilePhoto;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json({ error: "No changes" }, { status: 400 });
+  }
+
+  await prisma.user.update({ where: { id }, data: updateData });
+  return NextResponse.json({ success: true });
 }

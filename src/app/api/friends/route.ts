@@ -1,3 +1,4 @@
+import { rateLimit } from "@/lib/rate-limit";
 import { emailFriendRequest } from "@/lib/email-notifications";
 import { createNotification } from "@/lib/notify";
 import { NextRequest, NextResponse } from "next/server";
@@ -7,6 +8,8 @@ export async function GET(req: NextRequest) {
   const session = req.cookies.get("session");
   if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   const { id } = JSON.parse(session.value);
+  const _rl = rateLimit("friend:" + id, 20, 60000);
+  if (!_rl.success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   // Update lastSeen
   await prisma.user.update({ where: { id }, data: { lastSeen: new Date() } }).catch(() => {});
