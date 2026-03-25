@@ -1,3 +1,4 @@
+import { uploadImage, uploadVideo } from "@/lib/cloudinary";
 import { rateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
@@ -50,8 +51,20 @@ export async function POST(req: NextRequest) {
 
   if (action === "create") {
     if (!image) return NextResponse.json({ error: "Image or video required" }, { status: 400 });
+    let storeUrl = image;
+    if (image.startsWith("[VID]")) {
+      const vidData = image.replace("[VID]", "");
+      if (vidData.startsWith("data:")) {
+        const cloudUrl = await uploadVideo(vidData, "stories");
+        storeUrl = cloudUrl ? "[VID]" + cloudUrl : image;
+      }
+    } else if (image.startsWith("data:")) {
+      const cloudUrl = await uploadImage(image, "stories");
+      storeUrl = cloudUrl || image;
+    }
+
     const story = await prisma.story.create({
-      data: { userId: id, image, caption: caption || null, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) }
+      data: { userId: id, image: storeUrl, caption: caption || null, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) }
     });
     return NextResponse.json({ story });
   }

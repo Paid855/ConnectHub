@@ -2,18 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { sanitize, isSuspicious } from "@/lib/sanitize";
+import { uploadImage } from "@/lib/cloudinary";
 
 export async function PUT(req: NextRequest) {
   const sessionCookie = req.cookies.get("session");
   if (!sessionCookie) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+
+  // Support both signed and legacy sessions
+  let id: string;
   const session = getSessionUser(sessionCookie.value);
-  if (!session) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
-  const id = session.id;
+  if (session) {
+    id = session.id;
+  } else {
+    try { id = JSON.parse(sessionCookie.value).id; } catch { return NextResponse.json({ error: "Invalid session" }, { status: 401 }); }
+  }
 
   const body = await req.json();
   const updateData: any = {};
 
-  // Sanitize text fields
   if (body.name !== undefined) updateData.name = sanitize(body.name.trim().substring(0, 50));
   if (body.bio !== undefined) updateData.bio = sanitize(body.bio.trim().substring(0, 500));
   if (body.age !== undefined) { const age = parseInt(body.age); if (age >= 18 && age <= 99) updateData.age = age; }
@@ -25,12 +31,22 @@ export async function PUT(req: NextRequest) {
     updateData.interests = body.interests.slice(0, 10).map((i: string) => sanitize(i));
   }
 
-  // Handle profile photo with size validation
+  // Upload profile photo to Cloudinary instead of storing base64
   if (body.profilePhoto !== undefined) {
-    if (body.profilePhoto && body.profilePhoto.length > 7 * 1024 * 1024) {
+    if (body.profilePhoto && body.profilePhoto.length > 7000000) {
       return NextResponse.json({ error: "Photo too large. Maximum 5MB." }, { status: 400 });
     }
-    updateData.profilePhoto = body.profilePhoto;
+    if (body.profilePhoto && body.profilePhoto.startsWith("data:")) {
+      const cloudUrl = await uploadImage(body.profilePhoto, "profiles");
+      if (cloudUrl) {
+        updateData.profilePhoto = cloudUrl;
+      } else {
+        // Fallback: store base64 if Cloudinary fails
+        updateData.profilePhoto = body.profilePhoto;
+      }
+    } else {
+      updateData.profilePhoto = body.profilePhoto;
+    }
   }
 
   if (Object.keys(updateData).length === 0) {
