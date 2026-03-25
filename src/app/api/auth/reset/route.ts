@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, dbRetry } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { sendResetCode } from "@/lib/email";
 
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (step === "verify") {
     if (!email?.trim()) return NextResponse.json({ error: "Enter your email" }, { status: 400 });
     try {
-      const user = await dbRetry(() => prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } }));
+      const user = await (prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } }));
       if (!user) return NextResponse.json({ error: "No account found with this email" }, { status: 404 });
       if (!user.securityQuestion || !user.securityAnswer) return NextResponse.json({ error: "No security question set. Contact support." }, { status: 400 });
       return NextResponse.json({ question: user.securityQuestion, maskedEmail: maskEmail(user.email), maskedPhone: maskPhone(user.phone || "") });
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   if (step === "answer") {
     if (!email || !securityAnswer) return NextResponse.json({ error: "Please enter your answer" }, { status: 400 });
     try {
-      const user = await dbRetry(() => prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } }));
+      const user = await (prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } }));
       if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
       if (!user.securityAnswer || user.securityAnswer.toLowerCase().trim() !== securityAnswer.toLowerCase().trim()) {
         return NextResponse.json({ error: "Incorrect answer. Please try again." }, { status: 401 });
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     if (!stored) return NextResponse.json({ error: "Session expired. Start over." }, { status: 400 });
     try {
       const hashed = await bcrypt.hash(newPassword, 12);
-      await dbRetry(() => prisma.user.update({ where: { email: email.toLowerCase().trim() }, data: { password: hashed } }));
+      await (prisma.user.update({ where: { email: email.toLowerCase().trim() }, data: { password: hashed } }));
       delete resetCodes[email.toLowerCase().trim()];
       return NextResponse.json({ success: true });
     } catch (e) {
