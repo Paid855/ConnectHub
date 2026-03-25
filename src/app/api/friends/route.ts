@@ -1,107 +1,63 @@
-import { rateLimit } from "@/lib/rate-limit";
-import { emailFriendRequest } from "@/lib/email-notifications";
-import { createNotification } from "@/lib/notify";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { createNotification } from "@/lib/notify";
 
 export async function GET(req: NextRequest) {
   const session = req.cookies.get("session");
   if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { id } = JSON.parse(session.value);
-  const _rl = rateLimit("friend:" + id, 20, 60000);
-  if (!_rl.success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  let id: string;
+  try { const s = JSON.parse(session.value); id = s.id; if (!id && session.value.includes(".")) { const p = JSON.parse(Buffer.from(session.value.split(".")[0], "base64").toString()); id = p.id; } } catch { return NextResponse.json({ error: "Invalid session" }, { status: 401 }); }
 
-  // Update lastSeen
-  await prisma.user.update({ where: { id }, data: { lastSeen: new Date() } }).catch(() => {});
-
-  // Get explicit friends
-  const friendRecords = await prisma.friend.findMany({
-    where: { OR: [{ userId: id, status: "accepted" }, { friendId: id, status: "accepted" }] }
-  });
-  const explicitFriendIds = friendRecords.map(f => f.userId === id ? f.friendId : f.userId);
-
-  // Get pending requests TO me
-  const pending = await prisma.friend.findMany({ where: { friendId: id, status: "pending" } });
-  const pendingIds = pending.map(p => p.userId);
-
-  // Auto-friends: anyone I've exchanged messages with
-  const sentMsgs = await prisma.message.findMany({ where: { senderId: id }, select: { receiverId: true } });
-  const recvMsgs = await prisma.message.findMany({ where: { receiverId: id }, select: { senderId: true } });
-  const messagedIds = [...new Set([...sentMsgs.map(m => m.receiverId), ...recvMsgs.map(m => m.senderId)])];
-
-  // Combine: explicit friends + message contacts (no duplicates)
-  const allFriendIds = [...new Set([...explicitFriendIds, ...messagedIds])];
-
-  // Get blocked users to exclude
-  const blocks = await prisma.block.findMany({ where: { OR: [{ blockerId: id }, { blockedId: id }] } });
-  const blockedIds = blocks.map(b => b.blockerId === id ? b.blockedId : b.blockerId);
-
-  const filteredFriendIds = allFriendIds.filter(fid => fid !== id && !blockedIds.includes(fid));
-
-  // Get all user data
-  const allUserIds = [...new Set([...filteredFriendIds, ...pendingIds])];
-  const users = await prisma.user.findMany({
-    where: { id: { in: allUserIds }, tier: { not: "banned" }, email: { not: "admin@connecthub.com" } },
-    select: { id: true, name: true, profilePhoto: true, tier: true, lastSeen: true, country: true }
+  // Accepted friends
+  const friendships = await prisma.friend.findMany({
+    where: { OR: [{ userId: id }, { friendId: id }], status: "accepted" },
+    include: {
+      user: { select: { id:true, name:true, profilePhoto:true, tier:true, verified:true, lastSeen:true } },
+      friend: { select: { id:true, name:true, profilePhoto:true, tier:true, verified:true, lastSeen:true } }
+    }
   });
 
-  const now = Date.now();
-
-  const friendList = filteredFriendIds.map(fid => {
-    const u = users.find(u => u.id === fid);
-    if (!u) return null;
-    const online = u.lastSeen ? (now - new Date(u.lastSeen).getTime()) < 300000 : false;
-    return { ...u, online, isFriend: true };
-  }).filter(Boolean);
-
-  const pendingList = pendingIds.map(pid => {
-    const u = users.find(u => u.id === pid);
-    if (!u) return null;
-    return { ...u, online: false, isPending: true };
-  }).filter(Boolean);
-
-  // Sort: online first, then by name
-  friendList.sort((a: any, b: any) => {
-    if (a.online && !b.online) return -1;
-    if (!a.online && b.online) return 1;
-    return a.name.localeCompare(b.name);
+  // Pending requests TO me
+  const requests = await prisma.friend.findMany({
+    where: { friendId: id, status: "pending" },
+    include: { user: { select: { id:true, name:true, profilePhoto:true, tier:true, verified:true } } }
   });
 
-  return NextResponse.json({ friends: friendList, pending: pendingList, totalFriends: filteredFriendIds.length });
+  // Requests I sent
+  const sent = await prisma.friend.findMany({
+    where: { userId: id, status: "pending" },
+    include: { friend: { select: { id:true, name:true, profilePhoto:true, tier:true, verified:true } } }
+  });
+
+  return NextResponse.json({ friends: friendships, requests, sent });
 }
 
 export async function POST(req: NextRequest) {
   const session = req.cookies.get("session");
   if (!session) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { id } = JSON.parse(session.value);
-  const { friendId, action } = await req.json();
+  let id: string;
+  try { const s = JSON.parse(session.value); id = s.id; if (!id && session.value.includes(".")) { const p = JSON.parse(Buffer.from(session.value.split(".")[0], "base64").toString()); id = p.id; } } catch { return NextResponse.json({ error: "Invalid session" }, { status: 401 }); }
 
-  if (action === "add") {
-    const existing = await prisma.friend.findFirst({
-      where: { OR: [{ userId: id, friendId }, { userId: friendId, friendId: id }] }
-    });
-    if (existing) return NextResponse.json({ error: "Already connected" }, { status: 400 });
-    await prisma.friend.create({ data: { userId: id, friendId, status: "pending" } });
-    prisma.user.findUnique({ where: { id: friendId }, select: { email:true, name:true } }).then(u => { if(u) { const sender = "Someone"; emailFriendRequest(u.email, u.name, sender).catch(()=>{}); } }).catch(()=>{});
-    createNotification(friendId, "friend_request", "Friend Request", "wants to be your friend", id);
-    return NextResponse.json({ sent: true });
-  }
+  const { friendId, action } = await req.json();
+  if (!friendId) return NextResponse.json({ error: "No user specified" }, { status: 400 });
 
   if (action === "accept") {
     await prisma.friend.updateMany({ where: { userId: friendId, friendId: id, status: "pending" }, data: { status: "accepted" } });
-    createNotification(friendId, "friend_accepted", "Friend Accepted", "accepted your friend request", id);
-    return NextResponse.json({ accepted: true });
+    createNotification(friendId, "friend_accepted", "Friend Accepted!", "accepted your friend request", id);
+    return NextResponse.json({ success: true });
   }
 
   if (action === "reject") {
     await prisma.friend.deleteMany({ where: { userId: friendId, friendId: id, status: "pending" } });
-    return NextResponse.json({ rejected: true });
+    return NextResponse.json({ success: true });
   }
 
-  if (action === "unfriend") {
-    await prisma.friend.deleteMany({ where: { OR: [{ userId: id, friendId }, { userId: friendId, friendId: id }] } });
-    return NextResponse.json({ unfriended: true });
-  }
+  // Send friend request
+  const existing = await prisma.friend.findFirst({ where: { OR: [{ userId: id, friendId }, { userId: friendId, friendId: id }] } });
+  if (existing) return NextResponse.json({ exists: true, status: existing.status });
 
-  return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  await prisma.friend.create({ data: { userId: id, friendId, status: "pending" } });
+  createNotification(friendId, "friend_request", "Friend Request", "sent you a friend request", id);
+
+  return NextResponse.json({ success: true });
 }

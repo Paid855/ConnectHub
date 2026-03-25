@@ -80,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href:"/dashboard/views", label:"Who Viewed", icon:Eye },
     { href:"/dashboard/leaderboard", label:"Leaderboard", icon:Trophy },
     { href:"/dashboard/stories", label:"Stories", icon:Camera },
-    { href:"/dashboard/quiz", label:"Quiz", icon:Heart },
+    { href:"/dashboard/quiz", label:"Explore", icon:Heart },
     { href:"/dashboard/referral", label:"Invite", icon:Gift },
     { href:"/dashboard/search", label:"Search", icon:Search },
     { href:"/dashboard/blocked", label:"Blocked", icon:Ban },

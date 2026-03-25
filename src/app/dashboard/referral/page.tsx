@@ -21,7 +21,7 @@ export default function ReferralPage() {
   };
 
   const shareCode = () => {
-    const text = "Join me on ConnectHub! Use my referral code " + data.referralCode + " to get 25 free coins. Download now at https://connecthub.com";
+    const text = "Join me on ConnectHub! Use my referral code " + data.referralCode + " to get 25 free coins. Sign up now: https://connect-hub-azure.vercel.app/signup?ref=" + data.referralCode;
     if (navigator.share) navigator.share({ text }).catch(() => {});
     else { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }
   };
