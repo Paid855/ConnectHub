@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const [interests, setInterests] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("about");
   const [postCount, setPostCount] = useState(0);
+  const [myPosts, setMyPosts] = useState<any[]>([]);
   const [showDelete, setShowDelete] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -41,7 +42,7 @@ export default function ProfilePage() {
       if (match) { setPhoneCode(match.code); setPhoneNum(ph.replace(match.code, "")); }
       else { setPhoneNum(ph); }
     }
-    fetch("/api/feed").then(r=>r.json()).then(d=>{ if(d.feed) setPostCount(d.feed.filter((p:any)=>p.userId===user?.id).length); }).catch(()=>{});
+    fetch("/api/feed").then(r=>r.json()).then(d=>{ const mine = (d.feed||[]).filter((p:any)=>p.userId===user?.id); setPostCount(mine.length); setMyPosts(mine.slice(0,10)); }).catch(()=>{});
   }, [user]);
 
   const set = (k:string,v:string) => setForm(f=>({...f,[k]:v}));
@@ -130,7 +131,7 @@ export default function ProfilePage() {
 
       {/* Tabs */}
       <div className={"flex gap-1 mb-6 rounded-xl p-1 " + (dc?"bg-gray-800":"bg-gray-100")}>
-        {[{k:"about",l:"About",icon:User},{k:"interests",l:"Interests",icon:Tag},{k:"settings",l:"Settings",icon:Settings}].map(t => (
+        {[{k:"about",l:"About",icon:User},{k:"posts",l:"Posts",icon:Rss},{k:"interests",l:"Interests",icon:Tag},{k:"settings",l:"Settings",icon:Settings}].map(t => (
           <button key={t.k} onClick={()=>setActiveTab(t.k)} className={"flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all " + (activeTab===t.k?(dc?"bg-gray-700 text-white shadow":"bg-white text-gray-900 shadow-sm"):(dc?"text-gray-500":"text-gray-500"))}><t.icon className="w-4 h-4" />{t.l}</button>
         ))}
       </div>
@@ -213,6 +214,31 @@ export default function ProfilePage() {
             {/* PHOTOS */}
       {activeTab === "about" && user && (
         <div className="mb-5"><PhotoGallery userId={user.id} editable={true} dark={dc} /></div>
+      )}
+
+      {/* POSTS */}
+      {activeTab === "posts" && (
+        <div className={(dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100") + " rounded-2xl border shadow-sm p-5"}>
+          <h3 className={"font-bold mb-3 " + (dc?"text-white":"text-gray-900")}>My Posts ({myPosts.length})</h3>
+          {myPosts.length === 0 ? (
+            <p className={"text-sm text-center py-8 " + (dc?"text-gray-500":"text-gray-400")}>No posts yet. Go to Feed to share something!</p>
+          ) : (
+            <div className="space-y-3">
+              {myPosts.map((p:any) => (
+                <div key={p.id} className={"rounded-xl p-3 " + (dc?"bg-gray-700/50":"bg-gray-50")}>
+                  {p.content && <p className={"text-sm mb-2 " + (dc?"text-gray-300":"text-gray-700")}>{p.content}</p>}
+                  {p.image && !p.image.startsWith("[VID]") && !p.image.startsWith("[VOICE]") && <img src={p.image.replace("[IMG]","")} className="w-full rounded-lg max-h-48 object-cover"/>}
+                  {p.image && p.image.startsWith("[VID]") && <video src={p.image.replace("[VID]","")} controls className="w-full rounded-lg max-h-48"/>}
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>{new Date(p.createdAt).toLocaleDateString()}</span>
+                    <span className={"text-xs " + (dc?"text-rose-400":"text-rose-500")}>{p.likeCount||0} likes</span>
+                    <span className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>{p.commentCount||0} comments</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* INTERESTS */}

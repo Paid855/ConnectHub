@@ -20,6 +20,9 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [peerTyping, setPeerTyping] = useState(false);
+  const typingTimerRef = useRef<any>(null);
   const [selectedMsg, setSelectedMsg] = useState<string|null>(null);
   const [showConvoMenu, setShowConvoMenu] = useState<string|null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -431,6 +434,9 @@ export default function MessagesPage() {
             </div>
           )}
 
+          <div>
+            {peerTyping && <div className="px-4 py-1.5"><span className="text-xs text-rose-500 italic flex items-center gap-1"><span className="flex gap-0.5"><span className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-bounce" style={{animationDelay:"0ms"}}/><span className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-bounce" style={{animationDelay:"150ms"}}/><span className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-bounce" style={{animationDelay:"300ms"}}/></span> typing...</span></div>}
+          </div>
           <div className="relative border-t border-gray-100 bg-white">
             {showEmoji&&<div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-100 p-3 shadow-lg"><div className="flex flex-wrap gap-1.5">{EMOJIS.map(e=><button key={e} onClick={()=>addEmoji(e)} className="w-9 h-9 flex items-center justify-center text-xl hover:bg-gray-100 rounded-lg">{e}</button>)}</div></div>}
             <div className="flex items-center gap-2 p-3">
@@ -458,7 +464,7 @@ export default function MessagesPage() {
                   <button onClick={()=>setShowEmoji(!showEmoji)} className={"w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 "+(showEmoji?"bg-rose-100 text-rose-500":"bg-gray-100 text-gray-400")}><Smile className="w-5 h-5"/></button>
                   <input ref={imageRef} type="file" accept="image/*" onChange={handleImageSend} className="hidden"/>
                   <button onClick={()=>imageRef.current?.click()} className="w-9 h-9 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center flex-shrink-0 hover:bg-emerald-100 hover:text-emerald-500"><ImageIcon className="w-5 h-5"/></button>
-                  <input ref={inputRef} className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl outline-none text-sm focus:ring-2 focus:ring-rose-300" placeholder={limitHit?"Upgrade to send more...":"Type a message..."} value={newMsg} onChange={e=>setNewMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMessage()} onFocus={()=>setShowEmoji(false)} disabled={limitHit}/>
+                  <input ref={inputRef} className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl outline-none text-sm focus:ring-2 focus:ring-rose-300" placeholder={limitHit?"Upgrade to send more...":"Type a message..."} value={newMsg} onChange={e=>{setNewMsg(e.target.value);if(!isTyping){setIsTyping(true);setTimeout(()=>setIsTyping(false),3000);}}} onKeyDown={e=>e.key==="Enter"&&sendMessage()} onFocus={()=>setShowEmoji(false)} disabled={limitHit}/>
                   {newMsg.trim() ? (
                     <button onClick={()=>sendMessage()} disabled={sending||limitHit} className="w-9 h-9 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0"><Send className="w-4 h-4"/></button>
                   ) : (

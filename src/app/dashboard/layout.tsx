@@ -2,6 +2,7 @@
 import { useState, useEffect, createContext, useContext , useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { LANGUAGES, t } from "@/lib/translations";
 import LocationDetector from "@/components/LocationDetector";
 import PushNotifications from "@/components/PushNotifications";
 import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins, Eye, Trophy, Ban, Camera, Gift } from "lucide-react";
@@ -25,6 +26,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sideOpen, setSideOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [dark, setDark] = useState(false);
+  const [lang, setLang] = useState("en");
+  const [showLangPicker, setShowLangPicker] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
   const [showReward, setShowReward] = useState(false);
@@ -43,7 +46,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const loadNotifications = async () => { try { const res = await fetch("/api/notifications"); if (res.ok) { const d = await res.json(); setNotifCount(d.unreadCount||0); setNotifications(d.notifications||[]); } } catch {} };
   const markAllRead = async () => { await fetch("/api/notifications", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"readAll" }) }); setNotifCount(0); setNotifications(p => p.map(n => ({...n, read:true}))); };
 
-  useEffect(() => { loadUser(); if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{}); }, []);
+  useEffect(() => { const savedLang = typeof window !== "undefined" ? localStorage.getItem("ch_lang") || "en" : "en"; setLang(savedLang); loadUser(); if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{}); }, []);
   const checkDailyReward = async () => {
     const today = new Date().toDateString();
     const last = typeof window !== "undefined" ? localStorage.getItem("lastRewardCheck") : null;
