@@ -16,7 +16,7 @@ export default function ReferralPage() {
 
   useEffect(() => { fetch("/api/referral").then(r=>r.json()).then(setData).catch(()=>{}); }, [msg]);
 
-  const siteUrl = typeof window !== "undefined" ? window.location.origin : "https://connect-hub-azure.vercel.app";
+  const siteUrl = typeof window !== "undefined" ? window.location.origin : "https://connecthub.love";
   const shareLink = siteUrl + "/signup?ref=" + data.referralCode;
   const shareText = "Join me on ConnectHub — the best dating app! Use my code " + data.referralCode + " and get 25 FREE coins! Sign up here: " + shareLink;
 

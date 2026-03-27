@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const reference = "CH_" + id.slice(0, 8) + "_" + Date.now();
-  const callbackUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:5173") + "/dashboard/coins?verify=" + reference + "&coins=" + pkg.coins;
+  const callbackUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://connecthub.love") + "/dashboard/coins?verify=" + reference + "&coins=" + pkg.coins;
 
   try {
     const res = await fetch("https://api.paystack.co/transaction/initialize", {
