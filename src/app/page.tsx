@@ -1,147 +1,230 @@
 "use client";
-import { useState, useEffect } from "react";
-import { LANGUAGES, t } from "@/lib/translations";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Heart, Shield, Video, MessageCircle, Sparkles, Star, ChevronDown, ChevronRight, Users, Zap, Crown, Gem, Check, X as XIcon, ArrowRight, Globe, Lock, Camera } from "lucide-react";
 
-const STATS = [
-  { num: "10K+", label: "Active Members" },
-  { num: "50K+", label: "Matches Made" },
-  { num: "4.9★", label: "App Rating" },
-  { num: "150+", label: "Countries" },
+const LANGUAGES = [
+  {code:"en",name:"English (US)",flag:"🇺🇸"},{code:"es",name:"Español",flag:"🇪🇸"},{code:"fr",name:"Français",flag:"🇫🇷"},
+  {code:"pt",name:"Português",flag:"🇧🇷"},{code:"de",name:"Deutsch",flag:"🇩🇪"},{code:"it",name:"Italiano",flag:"🇮🇹"},
+  {code:"nl",name:"Nederlands",flag:"🇳🇱"},{code:"ru",name:"Русский",flag:"🇷🇺"},{code:"ar",name:"العربية",flag:"🇸🇦"},
+  {code:"hi",name:"हिन्दी",flag:"🇮🇳"},{code:"zh",name:"中文",flag:"🇨🇳"},{code:"ja",name:"日本語",flag:"🇯🇵"},
+  {code:"ko",name:"한국어",flag:"🇰🇷"},{code:"tr",name:"Türkçe",flag:"🇹🇷"},{code:"th",name:"ไทย",flag:"🇹🇭"},
+  {code:"vi",name:"Tiếng Việt",flag:"🇻🇳"},{code:"sw",name:"Kiswahili",flag:"🇰🇪"},{code:"id",name:"Bahasa Indonesia",flag:"🇮🇩"},
+  {code:"pl",name:"Polski",flag:"🇵🇱"},{code:"uk",name:"Українська",flag:"🇺🇦"},{code:"ro",name:"Română",flag:"🇷🇴"},
+  {code:"el",name:"Ελληνικά",flag:"🇬🇷"},{code:"sv",name:"Svenska",flag:"🇸🇪"},{code:"da",name:"Dansk",flag:"🇩🇰"},
+  {code:"ms",name:"Bahasa Melayu",flag:"🇲🇾"},{code:"tl",name:"Filipino",flag:"🇵🇭"},{code:"he",name:"עברית",flag:"🇮🇱"},
+  {code:"no",name:"Norsk",flag:"🇳🇴"},{code:"fi",name:"Suomi",flag:"🇫🇮"},{code:"hu",name:"Magyar",flag:"🇭🇺"},
 ];
 
-const FEATURES = [
-  { icon: Sparkles, title: "AI-Powered Matching", desc: "Our algorithm learns what you love and finds your perfect match.", color: "from-violet-500 to-purple-500", bg: "bg-violet-100" },
-  { icon: Shield, title: "Verified Profiles", desc: "Face scan + ID check ensures every profile is a real person.", color: "from-blue-500 to-cyan-500", bg: "bg-blue-100" },
-  { icon: Video, title: "Video Dating", desc: "See and hear your match before meeting. No catfishing.", color: "from-rose-500 to-pink-500", bg: "bg-rose-100" },
-  { icon: MessageCircle, title: "Voice Messages", desc: "Send voice notes to add that personal touch to conversations.", color: "from-emerald-500 to-teal-500", bg: "bg-emerald-100" },
-  { icon: Camera, title: "Stories", desc: "Share moments that disappear in 24h. Reactions and replies built in.", color: "from-amber-500 to-orange-500", bg: "bg-amber-100" },
-  { icon: Globe, title: "Global Community", desc: "Connect with singles from 150+ countries worldwide.", color: "from-indigo-500 to-blue-500", bg: "bg-indigo-100" },
-];
-
-const STEPS = [
-  { step: "01", title: "Create Profile", desc: "Sign up in 60 seconds. Add photos, bio, and your interests." },
-  { step: "02", title: "Get Verified", desc: "Quick face scan + ID upload. Earn the trusted blue badge." },
-  { step: "03", title: "Discover Matches", desc: "Swipe through AI-curated profiles tailored to your preferences." },
-  { step: "04", title: "Connect & Date", desc: "Chat, voice call, or video date. Then meet in person!" },
-];
-
-const TESTIMONIALS = [
-  { name: "Sarah & James", loc: "London, UK", text: "We matched on ConnectHub and knew instantly. The video call feature made us so comfortable before our first date!", status: "Married 2025", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=face" },
-  { name: "Maria & Alex", loc: "New York, USA", text: "After years on other apps, ConnectHub's verification system gave me confidence. Alex was my 3rd match!", status: "Together 1 year", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face" },
-  { name: "Priya & David", loc: "Toronto, Canada", text: "The compatibility quiz matched us at 94%. We bonded over shared values and haven't looked back since.", status: "Engaged 2026", img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=face" },
-];
-
-const FAQS = [
-  { q: "Is ConnectHub free?", a: "Yes! Basic accounts are free forever with daily matches, messaging, and community access. Premium and Gold unlock extra features like unlimited messages, video calls, and ad-free browsing." },
-  { q: "How does verification work?", a: "Our verification uses a 4-pose face scan plus government ID upload. An admin reviews and approves your verification, giving you the trusted blue badge that gets up to 5x more matches." },
-  { q: "Is my data safe?", a: "Absolutely. All passwords are encrypted with bcrypt, data is transmitted over SSL, and we never sell personal information to third parties. You can delete your account and all data at any time." },
-  { q: "What's the difference between Premium and Gold?", a: "Premium ($3.99 worth of coins, one-time) gives unlimited messages, video calls, and ad-free browsing. Gold ($6.99 worth, one-time) adds VIP badge, live streaming, profile boosts, and priority support." },
-  { q: "Can I use ConnectHub internationally?", a: "Yes! ConnectHub works in 150+ countries. Our matching algorithm considers location preferences, and you can search for singles in any country." },
-];
-
-export default function LandingPage() {
-  const [activeFAQ, setActiveFAQ] = useState<number|null>(null);
+export default function HomePage() {
+  const [langOpen, setLangOpen] = useState(false);
   const [lang, setLang] = useState("en");
-  const [showLang, setShowLang] = useState(false);
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [activeFaq, setActiveFaq] = useState<number|null>(null);
+  const [isMonthly, setIsMonthly] = useState(true);
+  const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const i = setInterval(() => setCurrentTestimonial(p => (p + 1) % TESTIMONIALS.length), 5000);
-    return () => clearInterval(i);
+    const saved = localStorage.getItem("ch_lang");
+    if (saved) setLang(saved);
   }, []);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Click outside to close language picker (#20)
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+      if (mobileMenu) setMobileMenu(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [langOpen, mobileMenu]);
+
+  const selectLang = (code: string) => {
+    setLang(code);
+    localStorage.setItem("ch_lang", code);
+    setLangOpen(false);
+  };
+
+  const curLang = LANGUAGES.find(l => l.code === lang);
 
   return (
     <div className="min-h-screen bg-white">
       {/* NAVBAR */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="ConnectHub" className="w-8 h-8 rounded-lg" />
-            <span className="text-xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">ConnectHub</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">{t(lang, "features")}</a>
-            <a href="#how" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">{t(lang, "how")}</a>
-            <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">{t(lang, "pricing")}</a>
-            <a href="#faq" className="text-sm font-medium text-gray-600 hover:text-rose-500 transition-colors">FAQ</a>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <button onClick={() => setShowLang(!showLang)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50">
-                <span>{LANGUAGES.find(l => l.code === lang)?.flag}</span>
-                <span className="hidden sm:inline text-xs">{LANGUAGES.find(l => l.code === lang)?.name}</span>
-              </button>
-              {showLang && (
-                <><div className="fixed inset-0 z-40" onClick={() => setShowLang(false)} />
-                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-50 w-48 max-h-60 overflow-y-auto">
-                  {LANGUAGES.map(l => (
-                    <button key={l.code} onClick={() => { setLang(l.code); setShowLang(false); }} className={"w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left " + (lang === l.code ? "bg-rose-50 text-rose-600" : "hover:bg-gray-50 text-gray-700")}>
-                      <span>{l.flag}</span><span>{l.name}</span>
-                    </button>
-                  ))}
-                </div></>
-              )}
+      <nav className={"fixed top-0 w-full z-50 transition-all duration-300 " + (scrolled ? "bg-white/95 backdrop-blur-lg shadow-sm" : "bg-transparent")}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl flex items-center justify-center"><span className="text-white text-lg sm:text-xl">💕</span></div>
+              <span className={"text-xl sm:text-2xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent"}>ConnectHub</span>
+            </Link>
+
+            {/* Desktop nav */}
+            <div className="hidden md:flex items-center gap-6">
+              <a href="#features" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">Features</a>
+              <a href="#how-it-works" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">How It Works</a>
+              <a href="#pricing" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">Pricing</a>
+              <a href="#testimonials" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">Stories</a>
             </div>
-            <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-rose-500 hidden sm:block">{t(lang, "login")}</Link>
-            <Link href="/signup" className="px-5 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-semibold hover:shadow-lg transition-all">{t(lang, "signup")}</Link>
+
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Language picker (#20) */}
+              <div ref={langRef} className="relative">
+                <button onClick={() => setLangOpen(!langOpen)} className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 border border-gray-200">
+                  <span>{curLang?.flag}</span>
+                  <span className="hidden sm:inline">{curLang?.name}</span>
+                </button>
+                {langOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50">
+                    {LANGUAGES.map(l => (
+                      <button key={l.code} onClick={() => selectLang(l.code)} className={"w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-rose-50 transition-colors " + (lang === l.code ? "bg-rose-50 text-rose-600 font-medium" : "text-gray-700")}>
+                        <span>{l.flag}</span><span>{l.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Link href="/login" className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-gray-700 hover:text-rose-600 transition-colors">Sign In</Link>
+              <Link href="/signup" className="px-4 py-2 sm:px-6 sm:py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-bold hover:shadow-lg hover:shadow-rose-200 transition-all">Get Started</Link>
+
+              {/* Mobile hamburger */}
+              <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2 rounded-lg hover:bg-gray-50">
+                <div className="w-5 flex flex-col gap-1">
+                  <span className={"h-0.5 bg-gray-700 rounded transition-all " + (mobileMenu ? "rotate-45 translate-y-1.5" : "")} />
+                  <span className={"h-0.5 bg-gray-700 rounded transition-all " + (mobileMenu ? "opacity-0" : "")} />
+                  <span className={"h-0.5 bg-gray-700 rounded transition-all " + (mobileMenu ? "-rotate-45 -translate-y-1.5" : "")} />
+                </div>
+              </button>
+            </div>
           </div>
+
+          {/* Mobile menu (#8) */}
+          {mobileMenu && (
+            <div className="md:hidden pb-4 border-t border-gray-100">
+              <div className="pt-4 space-y-2">
+                <a href="#features" className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">Features</a>
+                <a href="#how-it-works" className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">How It Works</a>
+                <a href="#pricing" className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">Pricing</a>
+                <a href="#testimonials" className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">Stories</a>
+                <div className="flex gap-3 pt-2">
+                  <Link href="/login" className="flex-1 py-3 text-center border-2 border-rose-500 text-rose-600 rounded-full font-bold">Sign In</Link>
+                  <Link href="/signup" className="flex-1 py-3 text-center bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold">Sign Up</Link>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
       {/* HERO */}
-      <section className="pt-28 pb-20 px-6 bg-gradient-to-br from-rose-50 via-pink-50 to-white overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
-          <div className="flex-1 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-rose-100 text-rose-600 rounded-full text-sm font-semibold mb-6">
-              <Sparkles className="w-4 h-4" /> #1 AI-Powered Dating App
-            </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              {t(lang, "hero_title")}<br /><span className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">{t(lang, "hero_highlight")}</span>
-            </h1>
-            <p className="text-lg text-gray-600 mb-8 max-w-lg mx-auto lg:mx-0">
-              {t(lang, "hero_desc")}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
-              <Link href="/signup" className="px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-base hover:shadow-xl transition-all flex items-center justify-center gap-2">{t(lang, "cta")} <ArrowRight className="w-5 h-5" /></Link>
-              <a href="#how" className="px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-base hover:border-rose-300 hover:text-rose-500 transition-all text-center">See How It Works</a>
-            </div>
-            <div className="grid grid-cols-4 gap-4 max-w-md mx-auto lg:mx-0">
-              {STATS.map(s => <div key={s.label} className="text-center"><p className="text-xl font-bold text-gray-900">{s.num}</p><p className="text-xs text-gray-500">{s.label}</p></div>)}
-            </div>
-          </div>
-          <div className="flex-1 relative max-w-md">
-            <div className="relative z-10">
-              <img src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=500&h=600&fit=crop" alt="Happy couple" className="rounded-3xl shadow-2xl w-full object-cover" style={{height:"400px"}} />
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3 border border-gray-100">
-                <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center"><Heart className="w-5 h-5 text-rose-500 fill-rose-500" /></div>
-                <div><p className="font-bold text-sm text-gray-900">New Match!</p><p className="text-xs text-gray-500">94% compatible</p></div>
+      <section className="relative min-h-screen flex items-center overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50" />
+        <div className="absolute top-20 right-0 w-96 h-96 bg-rose-200/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-0 w-80 h-80 bg-pink-200/30 rounded-full blur-3xl" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-100 text-rose-700 rounded-full text-sm font-medium mb-6">
+                <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                Trusted by thousands worldwide
               </div>
-              <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl p-3 flex items-center gap-2 border border-gray-100">
-                <Shield className="w-5 h-5 text-blue-500" /><span className="text-xs font-bold text-gray-900">Verified ✓</span>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+                Find Your<br/><span className="bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">Perfect Match</span>
+              </h1>
+              <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-lg leading-relaxed">
+                ConnectHub helps you discover meaningful connections with people who share your values, interests, and dreams. Your love story starts here.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/signup" className="px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-base font-bold hover:shadow-xl hover:shadow-rose-200 transition-all text-center">Start Free Today</Link>
+                <a href="#how-it-works" className="px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full text-base font-bold hover:border-rose-300 hover:text-rose-600 transition-all text-center">See How It Works</a>
+              </div>
+              <div className="flex items-center gap-6 mt-10">
+                <div className="flex -space-x-2">
+                  {["A","B","C","D"].map((l,i) => (
+                    <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white text-xs font-bold">{l}</div>
+                  ))}
+                </div>
+                <div>
+                  <div className="flex gap-0.5">{[1,2,3,4,5].map(i => <span key={i} className="text-amber-400 text-sm">★</span>)}</div>
+                  <p className="text-gray-500 text-xs">Join thousands finding love</p>
+                </div>
               </div>
             </div>
-            <div className="absolute top-10 -right-10 w-40 h-40 bg-rose-200 rounded-full blur-3xl opacity-50" />
-            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-purple-200 rounded-full blur-3xl opacity-50" />
+
+            <div className="relative hidden lg:block">
+              <div className="relative w-full h-[550px]">
+                <div className="absolute inset-4 bg-gradient-to-br from-rose-400 via-pink-400 to-purple-400 rounded-3xl shadow-2xl shadow-rose-200/50 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                  <div className="absolute bottom-8 left-8 right-8">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-2xl">💕</div>
+                      <div><p className="text-white font-bold text-lg">New Match!</p><p className="text-white/70 text-sm">You and Sarah have 8 things in common</p></div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+                      <div className="flex gap-2 flex-wrap">
+                        {["Travel","Music","Coffee","Fitness","Photography"].map(t => (
+                          <span key={t} className="px-3 py-1 bg-white/20 text-white text-xs rounded-full">{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-amber-400 rounded-2xl flex items-center justify-center shadow-lg">
+                  <div className="text-center"><p className="text-3xl">💎</p><p className="text-xs font-bold text-amber-900">Premium</p></div>
+                </div>
+                <div className="absolute -bottom-2 -left-2 bg-white rounded-2xl p-4 shadow-xl border border-gray-100 w-52">
+                  <p className="text-gray-900 font-bold text-sm">Video Date</p>
+                  <p className="text-gray-500 text-xs">Face-to-face before you meet</p>
+                  <div className="flex gap-1 mt-2">{[1,2,3].map(i => <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-300 to-pink-300" />)}</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section id="features" className="py-20 px-6 relative bg-gradient-to-b from-white via-rose-50/30 to-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <p className="text-rose-500 font-semibold text-sm mb-2">WHY CONNECTHUB</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Features Built for <span className="bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">Real Love</span></h2>
-            <p className="text-gray-500 max-w-xl mx-auto">Every feature is designed to help you build genuine, lasting connections.</p>
+      {/* STATS */}
+      <section className="py-12 sm:py-16 bg-white border-y border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+            {[{n:"10M+",l:"Active Users"},{n:"50K+",l:"Matches Made"},{n:"190+",l:"Countries"},{n:"4.9★",l:"App Rating"}].map((s,i) => (
+              <div key={i} className="text-center">
+                <p className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">{s.n}</p>
+                <p className="text-gray-500 text-xs sm:text-sm mt-1">{s.l}</p>
+              </div>
+            ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((f, i) => (
-              <div key={i} className="group p-6 rounded-2xl border border-gray-100 hover:border-rose-200 hover:shadow-lg transition-all bg-white">
-                <div className={"w-12 h-12 rounded-xl " + f.bg + " flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"}><f.icon className={"w-6 h-6 text-" + f.color.split(" ")[0].replace("from-", "")} /></div>
+        </div>
+      </section>
+
+      {/* FEATURES (#7 removed AI references) */}
+      <section id="features" className="py-16 sm:py-24 bg-gradient-to-b from-white to-rose-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">Why ConnectHub</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Everything You Need to Find Love</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto text-sm sm:text-base">Modern dating meets meaningful connections. Our platform is designed to help you find real relationships.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {[
+              {icon:"🔒",title:"Verified Profiles",desc:"Every profile goes through verification. Feel safe knowing you are talking to real people."},
+              {icon:"🎥",title:"Video Dating",desc:"See and hear your match before meeting. Build chemistry through face-to-face video calls."},
+              {icon:"🌍",title:"Global Community",desc:"Connect with singles from over 190 countries. Love knows no borders on ConnectHub."},
+              {icon:"🛡️",title:"Privacy First",desc:"Control who sees your information. Hide your phone, email, and personal details with one tap."},
+              {icon:"💬",title:"Smart Messaging",desc:"Rich messaging with voice notes, photos, videos, typing indicators, and read receipts."},
+              {icon:"📡",title:"Live Streaming",desc:"Go live, connect with viewers, receive gifts, and earn real coins from your audience."},
+            ].map((f,i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+                <div className="w-14 h-14 bg-rose-50 rounded-xl flex items-center justify-center text-2xl mb-4">{f.icon}</div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+                <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -149,112 +232,118 @@ export default function LandingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how" className="py-20 px-6 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <p className="text-rose-500 font-semibold text-sm mb-2">SIMPLE STEPS</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">How ConnectHub <span className="bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">Works</span></h2>
+      <section id="how-it-works" className="py-16 sm:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">Simple Steps</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">How ConnectHub Works</h2>
+            <p className="text-gray-500 max-w-xl mx-auto text-sm sm:text-base">Find your perfect match in just a few simple steps</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {STEPS.map((s, i) => (
-              <div key={i} className="relative bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                <span className="text-4xl font-black bg-gradient-to-br from-rose-500 to-pink-500 bg-clip-text text-transparent">{s.step}</span>
-                <h3 className="text-lg font-bold text-gray-900 mt-3 mb-2">{s.title}</h3>
-                <p className="text-sm text-gray-500">{s.desc}</p>
-                {i < 3 && <ChevronRight className="hidden lg:block absolute top-1/2 -right-4 w-6 h-6 text-gray-300" />}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+            {[
+              {step:"1",icon:"📝",title:"Create Profile",desc:"Sign up free, add photos, write your bio, and tell us what you are looking for."},
+              {step:"2",icon:"💕",title:"Get Matched",desc:"Our smart matching system finds people compatible with your values and interests."},
+              {step:"3",icon:"💬",title:"Connect",desc:"Chat, voice call, or video call your matches. Break the ice with conversation starters."},
+              {step:"4",icon:"☕",title:"Meet Up",desc:"When you are ready, plan the perfect first date. Your love story begins!"},
+            ].map((s,i) => (
+              <div key={i} className="relative text-center">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-lg shadow-rose-200">{s.icon}</div>
+                <div className="absolute top-8 left-1/2 w-6 h-6 -ml-3 bg-white border-2 border-rose-500 rounded-full flex items-center justify-center text-rose-600 text-xs font-bold z-10">{s.step}</div>
+                <h3 className="text-base font-bold text-gray-900 mb-2 mt-2">{s.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <section className="py-20 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-rose-500 font-semibold text-sm mb-2">SUCCESS STORIES</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-12">Real Couples, <span className="bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">Real Love</span></h2>
-          <div className="relative">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className={"transition-all duration-500 " + (i === currentTestimonial ? "opacity-100" : "opacity-0 absolute inset-0")}>
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-                  <div className="flex items-center gap-4 mb-4 justify-center">
-                    <img src={t.img} className="w-14 h-14 rounded-full object-cover" alt={t.name} />
-                    <div className="text-left"><p className="font-bold text-gray-900">{t.name}</p><p className="text-xs text-gray-500">{t.loc} · {t.status}</p></div>
+      {/* PRICING (#13) */}
+      <section id="pricing" className="py-16 sm:py-24 bg-gradient-to-b from-rose-50/30 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">Simple Pricing</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Choose Your Plan</h2>
+            <p className="text-gray-500 max-w-xl mx-auto text-sm sm:text-base">Start free and upgrade when you are ready for more</p>
+            <div className="inline-flex mt-6 p-1 bg-gray-100 rounded-full">
+              <button onClick={() => setIsMonthly(true)} className={"px-5 py-2 rounded-full text-sm font-medium transition-all " + (isMonthly ? "bg-white shadow text-gray-900" : "text-gray-500")}>Monthly</button>
+              <button onClick={() => setIsMonthly(false)} className={"px-5 py-2 rounded-full text-sm font-medium transition-all " + (!isMonthly ? "bg-white shadow text-gray-900" : "text-gray-500")}>Yearly (Save 20%)</button>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
+            {[
+              {name:"Free",price:"$0",period:"/forever",desc:"Perfect for getting started",features:["Browse profiles","Limited daily matches","5 messages per day","Basic search filters","Voice and video calls"],excluded:["Ads shown","Limited photos","No rewinds","No live streaming","No profile boost"],cta:"Get Started",popular:false},
+              {name:"Plus",price:isMonthly?"$12":"$10",period:"/month",desc:"Best for active daters",features:["Everything in Free","No ads anywhere","16 photo uploads","Unlimited likes","Rewind last swipe","Extended profile views","Live streaming access","Priority matching"],excluded:[],cta:"Upgrade to Plus",popular:true},
+              {name:"Premium",price:isMonthly?"$25":"$20",period:"/month",desc:"The ultimate dating experience",features:["Everything in Plus","See who likes you","5 Super Likes per week","Daily Top Picks","Read receipts","Higher profile visibility","Monthly profile boost","Priority support"],excluded:[],cta:"Go Premium",popular:false},
+            ].map((plan,i) => (
+              <div key={i} className={"rounded-2xl border overflow-hidden transition-all hover:shadow-lg " + (plan.popular ? "border-rose-500 border-2 relative shadow-lg shadow-rose-100" : "border-gray-200")}>
+                {plan.popular && <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white text-center py-2 text-xs font-bold tracking-wide">MOST POPULAR</div>}
+                <div className="p-6 sm:p-8">
+                  <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
+                  <p className="text-gray-500 text-sm mb-4">{plan.desc}</p>
+                  <div className="mb-6"><span className="text-4xl font-bold text-gray-900">{plan.price}</span><span className="text-gray-400">{plan.period}</span></div>
+                  <Link href="/signup" className={"block w-full py-3 rounded-full text-center font-bold text-sm transition-all " + (plan.popular ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:shadow-lg" : "border-2 border-gray-200 text-gray-700 hover:border-rose-300 hover:text-rose-600")}>{plan.cta}</Link>
+                  <div className="mt-6 space-y-3">
+                    {plan.features.map((f,j) => <div key={j} className="flex items-center gap-3 text-sm"><span className="text-emerald-500 font-bold">✓</span><span className="text-gray-700">{f}</span></div>)}
+                    {plan.excluded.map((f,j) => <div key={j} className="flex items-center gap-3 text-sm"><span className="text-gray-300 font-bold">✗</span><span className="text-gray-400">{f}</span></div>)}
                   </div>
-                  <p className="text-gray-600 italic leading-relaxed">"{t.text}"</p>
-                  <div className="flex justify-center gap-1 mt-4">{[1,2,3,4,5].map(s => <Star key={s} className="w-4 h-4 text-amber-400 fill-amber-400" />)}</div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="flex justify-center gap-2 mt-6">{TESTIMONIALS.map((_, i) => <button key={i} onClick={() => setCurrentTestimonial(i)} className={"w-2.5 h-2.5 rounded-full transition-all " + (i === currentTestimonial ? "bg-rose-500 w-6" : "bg-gray-300")} />)}</div>
+          <p className="text-center text-gray-400 text-xs mt-8">Prices and features are subject to change. All prices in USD.</p>
         </div>
       </section>
 
-      {/* PRICING */}
-      <section id="pricing" className="py-20 px-6 bg-gray-50">
-        <div className="max-w-5xl mx-auto">
+      {/* TESTIMONIALS */}
+      <section id="testimonials" className="py-16 sm:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <p className="text-rose-500 font-semibold text-sm mb-2">SIMPLE PRICING</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">One-Time Payment, <span className="bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">Forever Yours</span></h2>
-            <p className="text-gray-500">No subscriptions. No hidden fees. Pay once, keep forever.</p>
+            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">Success Stories</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Real Love Stories</h2>
+            <p className="text-gray-500 max-w-xl mx-auto text-sm sm:text-base">Hear from couples who found love on ConnectHub</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            {/* Basic */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-8">
-              <h3 className="text-xl font-bold text-gray-900">Basic</h3>
-              <p className="text-sm text-gray-500 mb-4">Start your journey</p>
-              <p className="text-4xl font-bold text-gray-900 mb-1">Free</p>
-              <p className="text-xs text-gray-400 mb-6">Forever · No credit card</p>
-              <ul className="space-y-3 mb-8">
-                {["10 daily matches","5 messages per day","Basic profile","Community feed","Browse members"].map(f => <li key={f} className="flex items-center gap-2 text-sm text-gray-600"><Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />{f}</li>)}
-                {["Video calls","Live streaming","Ad-free experience","See who viewed you","Priority support"].map(f => <li key={f} className="flex items-center gap-2 text-sm text-gray-300"><XIcon className="w-4 h-4 flex-shrink-0" />{f}</li>)}
-              </ul>
-              <Link href="/signup" className="block w-full py-3 border-2 border-gray-200 rounded-full font-semibold text-center text-gray-700 hover:border-rose-300 hover:text-rose-500 transition-all">Get Started</Link>
-            </div>
-            {/* Premium */}
-            <div className="bg-white rounded-2xl border-2 border-rose-500 p-8 relative shadow-lg scale-[1.02]">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold px-4 py-1 rounded-full">MOST POPULAR</div>
-              <div className="flex items-center gap-2 mb-1"><Gem className="w-5 h-5 text-rose-500" /><h3 className="text-xl font-bold text-gray-900">Premium</h3></div>
-              <p className="text-sm text-gray-500 mb-4">For serious daters</p>
-              <p className="text-4xl font-bold text-gray-900 mb-1">2,000 <span className="text-base font-normal text-gray-400">coins</span></p>
-              <p className="text-xs text-gray-400 mb-6">≈ $3.99 · One-time forever</p>
-              <ul className="space-y-3 mb-8">
-                {["Unlimited daily matches","Unlimited messages","Video & voice calls","Advanced search filters","Ad-free experience","See who likes you","Compatibility quiz access"].map(f => <li key={f} className="flex items-center gap-2 text-sm text-gray-600"><Check className="w-4 h-4 text-rose-500 flex-shrink-0" />{f}</li>)}
-                {["VIP gold badge","Live streaming","Priority support"].map(f => <li key={f} className="flex items-center gap-2 text-sm text-gray-300"><XIcon className="w-4 h-4 flex-shrink-0" />{f}</li>)}
-              </ul>
-              <Link href="/signup" className="block w-full py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-semibold text-center hover:shadow-lg transition-all">Go Premium</Link>
-            </div>
-            {/* Gold */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 relative">
-              <div className="flex items-center gap-2 mb-1"><Crown className="w-5 h-5 text-amber-500" /><h3 className="text-xl font-bold text-gray-900">Gold</h3></div>
-              <p className="text-sm text-gray-500 mb-4">The ultimate experience</p>
-              <p className="text-4xl font-bold text-gray-900 mb-1">5,000 <span className="text-base font-normal text-gray-400">coins</span></p>
-              <p className="text-xs text-gray-400 mb-6">≈ $6.99 · One-time forever</p>
-              <ul className="space-y-3 mb-8">
-                {["Everything in Premium","VIP gold badge on profile","Go live & stream video","Monthly free profile boost","Priority customer support","Exclusive Gold events","Early access to features"].map(f => <li key={f} className="flex items-center gap-2 text-sm text-gray-600"><Check className="w-4 h-4 text-amber-500 flex-shrink-0" />{f}</li>)}
-              </ul>
-              <Link href="/signup" className="block w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full font-semibold text-center hover:shadow-lg transition-all">Go Gold</Link>
-            </div>
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
+            {[
+              {name:"Sarah & Michael",loc:"New York, USA",quote:"We matched on ConnectHub and immediately connected over our love for hiking. Six months later, we are inseparable!",status:"Married 2025"},
+              {name:"David & Priya",loc:"London, UK",quote:"The video dating feature let us build real chemistry before meeting. Best decision I ever made was joining ConnectHub.",status:"Together 2 years"},
+              {name:"Emma & Carlos",loc:"Barcelona, Spain",quote:"ConnectHub matched us based on shared values. We connected from different countries and love brought us together.",status:"Engaged 2026"},
+            ].map((t,i) => (
+              <div key={i} className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl p-6 sm:p-8 border border-rose-100">
+                <div className="flex gap-0.5 mb-4">{[1,2,3,4,5].map(s => <span key={s} className="text-amber-400">★</span>)}</div>
+                <p className="text-gray-700 text-sm leading-relaxed mb-6">{t.quote}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white text-sm font-bold">{t.name[0]}</div>
+                  <div><p className="text-sm font-bold text-gray-900">{t.name}</p><p className="text-xs text-gray-500">{t.loc} · {t.status}</p></div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section id="faq" className="py-20 px-6 relative bg-gradient-to-b from-white via-pink-50/20 to-white">
-        <div className="max-w-2xl mx-auto">
+      {/* FAQ (#24) */}
+      <section className="py-16 sm:py-24 bg-gradient-to-b from-white to-rose-50/30">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <p className="text-rose-500 font-semibold text-sm mb-2">FAQ</p>
-            <h2 className="text-3xl font-bold text-gray-900">Common Questions</h2>
+            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">FAQ</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Common Questions</h2>
           </div>
           <div className="space-y-3">
-            {FAQS.map((f, i) => (
-              <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
-                <button onClick={() => setActiveFAQ(activeFAQ === i ? null : i)} className="w-full flex items-center justify-between p-5 text-left">
-                  <span className="font-semibold text-gray-900 text-sm">{f.q}</span>
-                  <ChevronDown className={"w-5 h-5 text-gray-400 transition-transform " + (activeFAQ === i ? "rotate-180" : "")} />
+            {[
+              {q:"Is ConnectHub free to use?",a:"Yes! Basic features are completely free. Browse profiles, match, and send messages at no cost. Upgrade to Plus ($12/month) or Premium ($25/month) for enhanced features."},
+              {q:"Is ConnectHub safe and secure?",a:"Absolutely. We use bank-level encryption, verified profiles, and advanced security. Your personal information is hidden by default. We never sell your data to anyone."},
+              {q:"How does matching work?",a:"Our smart matching system analyzes your preferences, interests, values, and location to find the most compatible people for you. The more you use ConnectHub, the better your matches become."},
+              {q:"Can I use ConnectHub worldwide?",a:"Yes! ConnectHub is available in over 190 countries with support for 30+ languages. Find love anywhere in the world."},
+              {q:"How do video dates work?",a:"Add someone as a friend, then start a video call directly in the app. Both users need to grant camera permission. Calls are private and encrypted."},
+              {q:"What is the difference between Plus and Premium?",a:"Plus removes ads, gives unlimited likes, rewinds, and live streaming. Premium includes everything in Plus, plus see who likes you, Super Likes, Top Picks, read receipts, and higher visibility."},
+            ].map((faq,i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <button onClick={() => setActiveFaq(activeFaq===i?null:i)} className="w-full flex items-center justify-between p-5 text-left">
+                  <span className="font-semibold text-gray-900 text-sm pr-4">{faq.q}</span>
+                  <span className={"text-rose-500 text-xl font-light transition-transform " + (activeFaq===i?"rotate-45":"")}>+</span>
                 </button>
-                {activeFAQ === i && <div className="px-5 pb-5"><p className="text-sm text-gray-500 leading-relaxed">{f.a}</p></div>}
+                {activeFaq===i && <div className="px-5 pb-5"><p className="text-gray-600 text-sm leading-relaxed">{faq.a}</p></div>}
               </div>
             ))}
           </div>
@@ -262,60 +351,61 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-6 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4">Your Perfect Match is Waiting</h2>
-          <p className="text-rose-100 text-lg mb-8">Join thousands of verified singles finding real love on ConnectHub.</p>
-          <Link href="/signup" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-rose-500 rounded-full font-bold text-lg hover:shadow-xl transition-all">Create Free Account <ArrowRight className="w-5 h-5" /></Link>
+      <section className="py-16 sm:py-24 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">Your Love Story Starts Here</h2>
+          <p className="text-lg text-rose-100 mb-8 max-w-2xl mx-auto">Join millions of people finding meaningful connections on ConnectHub. Your perfect match is waiting.</p>
+          <Link href="/signup" className="inline-block px-10 py-4 bg-white text-rose-600 rounded-full font-bold text-lg hover:shadow-xl transition-all">Start Free Today</Link>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="py-12 px-6 bg-gray-900 text-gray-400">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-8 mb-10">
-            <div><Link href="/" className="flex items-center gap-2 mb-4"><img src="/logo.png" alt="ConnectHub" className="w-7 h-7 rounded-lg" /><span className="text-lg font-bold text-white">ConnectHub</span></Link><p className="text-sm">Connecting hearts together since 2022.</p></div>
-            <div><h4 className="text-white font-semibold mb-3 text-sm">Product</h4><div className="space-y-2 text-sm"><a href="#features" className="block hover:text-white">{t(lang, "features")}</a><a href="#pricing" className="block hover:text-white">{t(lang, "pricing")}</a><Link href="/login" className="block hover:text-white">Log In</Link><Link href="/signup" className="block hover:text-white">Sign Up</Link></div></div>
-            <div><h4 className="text-white font-semibold mb-3 text-sm">Company</h4><div className="space-y-2 text-sm"><Link href="/terms" className="block hover:text-white">Terms of Service</Link><Link href="/privacy" className="block hover:text-white">Privacy Policy</Link><Link href="/advertise" className="block hover:text-white">Advertise</Link></div></div>
-            <div><h4 className="text-white font-semibold mb-3 text-sm">Support</h4><div className="space-y-2 text-sm"><a href="mailto:support@connecthub.com" className="block hover:text-white">support@connecthub.com</a><Link href="/dashboard/support" className="block hover:text-white">Help Center</Link></div></div>
+      <footer className="bg-gray-900 text-white pt-16 pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-xl">💕</span>
+                <span className="text-xl font-bold">ConnectHub</span>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed">Where meaningful connections begin. Find love, friendship, and everything in between.</p>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4 text-sm">Company</h4>
+              <div className="space-y-2">
+                <Link href="/about" className="block text-gray-400 text-sm hover:text-white transition-colors">About Us</Link>
+                <Link href="/contact" className="block text-gray-400 text-sm hover:text-white transition-colors">Contact</Link>
+                <Link href="/advertise" className="block text-gray-400 text-sm hover:text-white transition-colors">Advertise</Link>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4 text-sm">Support</h4>
+              <div className="space-y-2">
+                <Link href="/help" className="block text-gray-400 text-sm hover:text-white transition-colors">Help Center</Link>
+                <Link href="/terms" className="block text-gray-400 text-sm hover:text-white transition-colors">Terms of Service</Link>
+                <Link href="/privacy" className="block text-gray-400 text-sm hover:text-white transition-colors">Privacy Policy</Link>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4 text-sm">Contact</h4>
+              <div className="space-y-2">
+                <a href="mailto:support@connecthub.love" className="block text-gray-400 text-sm hover:text-white transition-colors">support@connecthub.love</a>
+                <a href="mailto:info@connecthub.love" className="block text-gray-400 text-sm hover:text-white transition-colors">info@connecthub.love</a>
+                <a href="mailto:privacy@connecthub.love" className="block text-gray-400 text-sm hover:text-white transition-colors">privacy@connecthub.love</a>
+                <a href="mailto:ads@connecthub.love" className="block text-gray-400 text-sm hover:text-white transition-colors">ads@connecthub.love</a>
+              </div>
+            </div>
           </div>
-          <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm">© 2022 ConnectHub. All rights reserved.</p>
-            <p className="text-sm flex items-center gap-1">Made with <Heart className="w-3 h-3 text-rose-500 fill-rose-500" /> for lovers everywhere</p>
+          <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-gray-500 text-sm">&copy; 2026 ConnectHub. All rights reserved.</p>
+            <div className="flex gap-4">
+              <Link href="/terms" className="text-gray-500 text-sm hover:text-white">Terms</Link>
+              <Link href="/privacy" className="text-gray-500 text-sm hover:text-white">Privacy</Link>
+              <Link href="/help" className="text-gray-500 text-sm hover:text-white">Help</Link>
+            </div>
           </div>
         </div>
       </footer>
-
-      {/* Floating hearts background */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {[
-          {l:"5%",d:"8s",s:"1.2",o:"0.06"},
-          {l:"15%",d:"12s",s:"0.8",o:"0.04"},
-          {l:"25%",d:"10s",s:"1.0",o:"0.05"},
-          {l:"38%",d:"14s",s:"0.6",o:"0.03"},
-          {l:"50%",d:"9s",s:"1.1",o:"0.05"},
-          {l:"62%",d:"11s",s:"0.9",o:"0.04"},
-          {l:"75%",d:"13s",s:"0.7",o:"0.03"},
-          {l:"85%",d:"10s",s:"1.0",o:"0.05"},
-          {l:"92%",d:"15s",s:"0.5",o:"0.03"},
-        ].map((h,i) => (
-          <div key={i} className="absolute animate-float-heart" style={{left:h.l, animationDuration:h.d, transform:`scale(${h.s})`, opacity:h.o}}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-rose-400"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-          </div>
-        ))}
-      </div>
-
-      <style jsx global>{`
-        @keyframes float-heart {
-          0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-          10% { opacity: 0.06; }
-          90% { opacity: 0.06; }
-          100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
-        }
-        .animate-float-heart {
-          animation: float-heart linear infinite;
-        }
-      `}</style>
     </div>
   );
 }
