@@ -97,6 +97,7 @@ model Friend {
   @@unique([userId, friendId])
 }
 
+
 model Call {
   id         String   @id @default(cuid())
   callerId   String

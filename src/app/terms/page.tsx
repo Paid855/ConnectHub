@@ -1,35 +1,20 @@
 "use client";
-import Link from "next/link";
-import { Shield, ArrowLeft } from "lucide-react";
-
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
-      <div className="max-w-3xl mx-auto px-6 py-12">
-        <Link href="/" className="flex items-center gap-2 text-sm text-rose-500 font-medium mb-8 hover:underline"><ArrowLeft className="w-4 h-4" /> Back to ConnectHub</Link>
-        <div className="flex items-center gap-3 mb-8"><Shield className="w-8 h-8 text-rose-500" /><h1 className="text-3xl font-bold text-gray-900">Terms of Service</h1></div>
-        <div className="prose prose-gray max-w-none">
-          <p className="text-gray-500 text-sm mb-8">Last updated: March 2026</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">1. Acceptance of Terms</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">By accessing or using ConnectHub, you agree to be bound by these Terms of Service. If you do not agree, do not use our service. You must be at least 18 years old to use ConnectHub.</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">2. Account Registration</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">You must provide accurate, complete information when creating your account. You are responsible for maintaining the security of your password. You may not create multiple accounts or use another person's identity.</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">3. User Conduct</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">You agree not to: post false or misleading information, harass or threaten other users, upload inappropriate or illegal content, use automated systems to access the service, impersonate another person, or violate any applicable laws.</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">4. Identity Verification</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">ConnectHub uses face verification and government ID checks to ensure user authenticity. By completing verification, you consent to our processing of your biometric data and ID documents solely for identity confirmation purposes.</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">5. Virtual Currency (Coins)</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">ConnectHub coins are virtual currency purchased with real money. Coins are non-refundable and have no cash value outside the platform. Coins are used for gifts, upgrades, and boosts. ConnectHub retains a 20% platform fee on all gift transactions.</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">6. Premium & Gold Plans</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">Premium and Gold plans are one-time purchases with lifetime access. These plans unlock additional features including unlimited messaging, video calls, and advanced filters. Plans are non-transferable.</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">7. Content Ownership</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">You retain ownership of content you post. By posting content, you grant ConnectHub a license to display and distribute that content within the service. Stories automatically expire after 24 hours.</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">8. Account Termination</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">We may suspend or terminate accounts that violate these terms. Users may delete their account at any time through Settings. After deletion, the same email, phone, or username cannot be used to create a new account for 30 days.</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">9. Limitation of Liability</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">ConnectHub is provided "as is." We are not liable for any damages resulting from your use of the service, interactions with other users, or loss of data. Use ConnectHub at your own risk and always exercise caution when meeting someone in person.</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">10. Contact</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">For questions about these terms, contact us at <a href="mailto:support@connecthub.com" className="text-rose-500 hover:underline">support@connecthub.com</a></p>
+      <div className="max-w-3xl mx-auto px-4 py-16">
+        <h1 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">Terms of Service</h1>
+        <p className="text-center text-gray-500 mb-12">Last updated: March 2026</p>
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 space-y-6 text-gray-600 leading-relaxed">
+          <section><h2 className="text-xl font-bold text-gray-900 mb-3">1. Acceptance of Terms</h2><p>By using ConnectHub (connecthub.love), you agree to these Terms of Service. If you don't agree, please don't use our platform. You must be at least 18 years old to create an account.</p></section>
+          <section><h2 className="text-xl font-bold text-gray-900 mb-3">2. Account Registration</h2><p>You must provide accurate information when creating your account. You're responsible for maintaining the security of your account and all activities under it. ConnectHub reserves the right to suspend or terminate accounts that violate these terms.</p></section>
+          <section><h2 className="text-xl font-bold text-gray-900 mb-3">3. User Conduct</h2><p>You agree not to: harass, threaten, or abuse other users; post inappropriate, illegal, or offensive content; create fake profiles or impersonate others; use the platform for commercial solicitation; attempt to hack or compromise our systems.</p></section>
+          <section><h2 className="text-xl font-bold text-gray-900 mb-3">4. Subscriptions & Payments</h2><p>ConnectHub offers free and paid subscription plans (Plus at $12/month, Premium at $25/month). Subscriptions auto-renew unless cancelled. Refunds are handled on a case-by-case basis. All prices are in USD.</p></section>
+          <section><h2 className="text-xl font-bold text-gray-900 mb-3">5. Virtual Currency (Coins)</h2><p>ConnectHub coins are virtual currency used within the platform for gifts, boosts, and features. Coins have no real-world monetary value and cannot be exchanged for cash. Purchases of coins are final and non-refundable.</p></section>
+          <section><h2 className="text-xl font-bold text-gray-900 mb-3">6. Content Ownership</h2><p>You retain ownership of content you post. By posting, you grant ConnectHub a license to display and distribute your content within the platform. We may remove content that violates our guidelines.</p></section>
+          <section><h2 className="text-xl font-bold text-gray-900 mb-3">7. Privacy</h2><p>Your privacy is important. Please review our <a href="/privacy" className="text-rose-600 hover:underline">Privacy Policy</a> for details on how we collect, use, and protect your data.</p></section>
+          <section><h2 className="text-xl font-bold text-gray-900 mb-3">8. Limitation of Liability</h2><p>ConnectHub is provided "as is." We're not liable for any damages arising from your use of the platform, interactions with other users, or any content posted by users.</p></section>
+          <section><h2 className="text-xl font-bold text-gray-900 mb-3">9. Contact</h2><p>Questions about these terms? Email us at <a href="mailto:support@connecthub.love" className="text-rose-600 hover:underline">support@connecthub.love</a></p></section>
         </div>
       </div>
     </div>
