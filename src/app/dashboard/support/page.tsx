@@ -23,7 +23,7 @@ const CATEGORIES = [
     { q: "What can I do with coins?", a: "Send gifts to other users, upgrade to Premium or Gold, boost your profile for more visibility, and more." },
   ]},
   { icon: Heart, title: "Matching & Messaging", color: "text-rose-500", bg: "bg-rose-500/10", items: [
-    { q: "How does matching work?", a: "Our AI considers your interests, preferences, location, and compatibility quiz answers to suggest the best matches." },
+    { q: "How does matching work?", a: "Our system considers your interests, preferences, location, and compatibility quiz answers to suggest the best matches." },
     { q: "Why am I not getting matches?", a: "Complete your profile (photo, bio, interests), get verified, and use the compatibility quiz. Active profiles get more matches." },
     { q: "How many messages can I send?", a: "Basic: 5 messages/day. Premium & Gold: Unlimited. Upgrade in the Coins section." },
     { q: "Can I delete messages?", a: "Yes. Tap any message → Delete for me (only you) or Delete for everyone (both users)." },

@@ -1,8 +1,6 @@
 export default function robots() {
   return {
-    rules: [
-      { userAgent: "*", allow: "/", disallow: ["/dashboard", "/api", "/admin"] },
-    ],
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/dashboard", "/api", "/admin"] }],
     sitemap: "https://connecthub.love/sitemap.xml",
   };
 }

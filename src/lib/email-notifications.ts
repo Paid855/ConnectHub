@@ -70,7 +70,7 @@ export async function emailWelcome(toEmail: string, toName: string) {
       <p>Here's how to get started:</p>
       <p>1. <strong>Upload a profile photo</strong> — profiles with photos get 10x more matches</p>
       <p>2. <strong>Get verified</strong> — face scan + ID for the trusted badge</p>
-      <p>3. <strong>Add your interests</strong> — helps our AI find better matches</p>
+      <p>3. <strong>Add your interests</strong> — helps our system find better matches</p>
       <p>4. <strong>Start swiping!</strong> — your perfect match is waiting</p>
     `, "Complete Your Profile", "https://connecthub.love/dashboard/profile")
   );
