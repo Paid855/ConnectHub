@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useUser } from "../layout";
 import { Send, ArrowLeft, Shield, MessageCircle, Search, Heart, Smile, Phone, Video, Image as ImageIcon, X, PhoneOff, Mic, Square, Play, Pause, MicOff, VideoOff, PhoneCall, Trash2, Archive, Ban, MoreVertical } from "lucide-react";
 import Link from "next/link";
@@ -49,7 +50,7 @@ export default function MessagesPage() {
   const audioRef = useRef<HTMLAudioElement|null>(null);
 
   const loadConversations = async () => { const res = await fetch("/api/messages"); if (res.ok) { const d = await res.json(); setConvos(d.conversations||[]); } setLoading(false); };
-  useEffect(() => { loadConversations(); }, []);
+  useEffect(() => { if (autoOpenUser && !chatWith) { setChatWith(autoOpenUser); } loadConversations(); }, []);
 
   const openChat = async (partner: Partner) => {
     setActivePartner(partner); setShowEmoji(false); setLimitHit(false); endCall();
