@@ -14,10 +14,7 @@ export default function FriendsPage() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    try {
-      const res = await fetch("/api/friends");
-      if (res.ok) { const d = await res.json(); setFriends(d.friends||[]); setRequests(d.requests||[]); setSent(d.sent||[]); }
-    } catch {} finally { setLoading(false); }
+    try { const res = await fetch("/api/friends"); if (res.ok) { const d = await res.json(); setFriends(d.friends||[]); setRequests(d.requests||[]); setSent(d.sent||[]); } } catch {} finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, []);
@@ -48,19 +45,28 @@ export default function FriendsPage() {
 
       {tab === "friends" && (
         friends.length === 0 ? (
-          <div className={"text-center py-16 rounded-2xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}><Users className={"w-12 h-12 mx-auto mb-3 " + (dc?"text-gray-600":"text-gray-300")} /><p className={"font-bold mb-1 " + (dc?"text-white":"text-gray-900")}>No friends yet</p><p className={"text-sm mb-4 " + (dc?"text-gray-500":"text-gray-400")}>Browse profiles and send friend requests!</p><Link href="/dashboard/browse" className="px-5 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-semibold hover:shadow-lg">Browse Profiles</Link></div>
+          <div className={"text-center py-16 rounded-2xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
+            <Users className={"w-12 h-12 mx-auto mb-3 " + (dc?"text-gray-600":"text-gray-300")} />
+            <p className={"font-bold mb-1 " + (dc?"text-white":"text-gray-900")}>No friends yet</p>
+            <p className={"text-sm mb-4 " + (dc?"text-gray-500":"text-gray-400")}>Browse profiles and send friend requests!</p>
+            <Link href="/dashboard" className="px-5 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-semibold hover:shadow-lg">Discover People</Link>
+          </div>
         ) : (
           <div className="space-y-2">{friends.map((f:any) => (
             <div key={f.id} className={"flex items-center gap-3 p-4 rounded-xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
-              <div className="relative">
-                <Link href={"/dashboard/user?id=" + f.user?.id}>{f.user?.profilePhoto ? <img src={f.user.profilePhoto} className="w-12 h-12 rounded-full object-cover"/> : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{f.user?.name?.[0]}</div>}
+              <Link href={"/dashboard/user?id=" + f.user?.id} className="relative flex-shrink-0">
+                {f.user?.profilePhoto ? <img src={f.user.profilePhoto} className="w-12 h-12 rounded-full object-cover"/> : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{f.user?.name?.[0]}</div>}
                 {isOnline(f.user?.lastSeen) && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white"/>}
-              </div>
+              </Link>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2"><Link href={"/dashboard/user?id=" + f.user?.id} className={"font-bold text-sm hover:text-rose-500 " + (dc?"text-white":"text-gray-900")}>{f.user?.name}</Link>{f.user?.verified && <Shield className="w-3.5 h-3.5 text-blue-500"/>}<TierBadge tier={f.user?.tier}/></div>
+                <div className="flex items-center gap-2">
+                  <Link href={"/dashboard/user?id=" + f.user?.id} className={"font-bold text-sm hover:text-rose-500 transition-colors " + (dc?"text-white":"text-gray-900")}>{f.user?.name}</Link>
+                  {f.user?.verified && <Shield className="w-3.5 h-3.5 text-blue-500"/>}
+                  <TierBadge tier={f.user?.tier}/>
+                </div>
                 <p className={"text-xs " + (isOnline(f.user?.lastSeen)?"text-emerald-500":"text-gray-400")}>{isOnline(f.user?.lastSeen)?"Online":"Offline"}</p>
               </div>
-              <Link href="/dashboard/messages" className={"p-2.5 rounded-xl border " + (dc?"bg-gray-700 border-gray-600 text-white":"bg-rose-50 border-rose-200 text-rose-500")}><MessageCircle className="w-4 h-4"/></Link>
+              <Link href={"/dashboard/messages?user=" + f.user?.id} className={"p-2.5 rounded-xl border " + (dc?"bg-gray-700 border-gray-600 text-white":"bg-rose-50 border-rose-200 text-rose-500")}><MessageCircle className="w-4 h-4"/></Link>
             </div>
           ))}</div>
         )
@@ -72,8 +78,13 @@ export default function FriendsPage() {
         ) : (
           <div className="space-y-2">{requests.map((r:any) => (
             <div key={r.id} className={"flex items-center gap-3 p-4 rounded-xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
-              {r.user?.profilePhoto ? <img src={r.user.profilePhoto} className="w-12 h-12 rounded-full object-cover"/> : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{r.user?.name?.[0]}</div>}
-              <div className="flex-1"><p className={"font-bold text-sm " + (dc?"text-white":"text-gray-900")}>{r.user?.name}</p><p className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>Wants to be friends</p></div>
+              <Link href={"/dashboard/user?id=" + r.user?.id} className="flex-shrink-0">
+                {r.user?.profilePhoto ? <img src={r.user.profilePhoto} className="w-12 h-12 rounded-full object-cover"/> : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{r.user?.name?.[0]}</div>}
+              </Link>
+              <div className="flex-1">
+                <Link href={"/dashboard/user?id=" + r.user?.id} className={"font-bold text-sm hover:text-rose-500 " + (dc?"text-white":"text-gray-900")}>{r.user?.name}</Link>
+                <p className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>Wants to be friends</p>
+              </div>
               <div className="flex gap-2">
                 <button onClick={()=>handleRequest(r.user?.id,"accept")} className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600"><Check className="w-5 h-5"/></button>
                 <button onClick={()=>handleRequest(r.user?.id,"reject")} className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center hover:bg-red-100 hover:text-red-500"><X className="w-5 h-5"/></button>
@@ -89,8 +100,12 @@ export default function FriendsPage() {
         ) : (
           <div className="space-y-2">{sent.map((s:any) => (
             <div key={s.id} className={"flex items-center gap-3 p-4 rounded-xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
-              {s.friend?.profilePhoto ? <img src={s.friend.profilePhoto} className="w-12 h-12 rounded-full object-cover"/> : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{s.friend?.name?.[0]}</div>}
-              <div className="flex-1"><p className={"font-bold text-sm " + (dc?"text-white":"text-gray-900")}>{s.friend?.name}</p></div>
+              <Link href={"/dashboard/user?id=" + s.friend?.id} className="flex-shrink-0">
+                {s.friend?.profilePhoto ? <img src={s.friend.profilePhoto} className="w-12 h-12 rounded-full object-cover"/> : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{s.friend?.name?.[0]}</div>}
+              </Link>
+              <div className="flex-1">
+                <Link href={"/dashboard/user?id=" + s.friend?.id} className={"font-bold text-sm hover:text-rose-500 " + (dc?"text-white":"text-gray-900")}>{s.friend?.name}</Link>
+              </div>
               <span className={"text-xs font-medium px-3 py-1 rounded-full " + (dc?"bg-amber-500/20 text-amber-400":"bg-amber-50 text-amber-600")}>Pending</span>
             </div>
           ))}</div>
