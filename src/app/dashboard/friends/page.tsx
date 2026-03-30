@@ -53,11 +53,11 @@ export default function FriendsPage() {
           <div className="space-y-2">{friends.map((f:any) => (
             <div key={f.id} className={"flex items-center gap-3 p-4 rounded-xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
               <div className="relative">
-                {f.user?.profilePhoto ? <img src={f.user.profilePhoto} className="w-12 h-12 rounded-full object-cover"/> : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{f.user?.name?.[0]}</div>}
+                <Link href={"/dashboard/user?id=" + f.user?.id}>{f.user?.profilePhoto ? <img src={f.user.profilePhoto} className="w-12 h-12 rounded-full object-cover"/> : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{f.user?.name?.[0]}</div>}
                 {isOnline(f.user?.lastSeen) && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white"/>}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2"><p className={"font-bold text-sm " + (dc?"text-white":"text-gray-900")}>{f.user?.name}</p>{f.user?.verified && <Shield className="w-3.5 h-3.5 text-blue-500"/>}<TierBadge tier={f.user?.tier}/></div>
+                <div className="flex items-center gap-2"><Link href={"/dashboard/user?id=" + f.user?.id} className={"font-bold text-sm hover:text-rose-500 " + (dc?"text-white":"text-gray-900")}>{f.user?.name}</Link>{f.user?.verified && <Shield className="w-3.5 h-3.5 text-blue-500"/>}<TierBadge tier={f.user?.tier}/></div>
                 <p className={"text-xs " + (isOnline(f.user?.lastSeen)?"text-emerald-500":"text-gray-400")}>{isOnline(f.user?.lastSeen)?"Online":"Offline"}</p>
               </div>
               <Link href="/dashboard/messages" className={"p-2.5 rounded-xl border " + (dc?"bg-gray-700 border-gray-600 text-white":"bg-rose-50 border-rose-200 text-rose-500")}><MessageCircle className="w-4 h-4"/></Link>
