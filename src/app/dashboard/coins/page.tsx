@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useUser } from "../layout";
 import { Crown, Coins, Zap, Star, Check, Shield, Heart, Eye, MessageCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -13,7 +14,20 @@ const COIN_PACKAGES = [
 
 export default function CoinsPage() {
   const { user, reload, dark } = useUser();
+  const searchParams = useSearchParams();
+  const success = searchParams.get("success");
+  const cancelled = searchParams.get("cancelled");
+  const upgradedTier = searchParams.get("tier");
+  const addedCoins = searchParams.get("coins");
   const dc = dark;
+  useEffect(() => {
+    if (success === "true") {
+      if (upgradedTier) { setMsg("Successfully upgraded to " + upgradedTier.charAt(0).toUpperCase() + upgradedTier.slice(1) + "! Enjoy your new features."); reload(); }
+      else if (addedCoins) { setMsg("Successfully added " + addedCoins + " coins to your account!"); reload(); }
+    }
+    if (cancelled === "true") setErr("Payment was cancelled. No charges were made.");
+  }, [success, cancelled]);
+
   const [tab, setTab] = useState<"plans"|"coins">("plans");
   const [upgrading, setUpgrading] = useState("");
   const [buying, setBuying] = useState("");

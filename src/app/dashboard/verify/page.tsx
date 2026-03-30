@@ -1,331 +1,265 @@
 "use client";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useUser } from "../layout";
-import { Shield, Camera, Check, X, AlertCircle, Upload, RefreshCw, ScanFace, CreditCard, Clock } from "lucide-react";
+import { Camera, CheckCircle, XCircle, RotateCcw, Shield, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-type Step = "intro"|"selfie"|"pose_left"|"pose_right"|"smile"|"id_front"|"done";
-
-const POSE_ORDER: Step[] = ["selfie","pose_left","pose_right","smile"];
-const STEPS_INFO: Record<string,{title:string;instruction:string;icon:string}> = {
-  selfie:{title:"Look Straight",instruction:"Position your face in the oval and look at the camera",icon:"😐"},
-  pose_left:{title:"Turn Left",instruction:"Slowly turn your head to the LEFT",icon:"👈"},
-  pose_right:{title:"Turn Right",instruction:"Slowly turn your head to the RIGHT",icon:"👉"},
-  smile:{title:"Smile",instruction:"Give us your best smile!",icon:"😊"},
-};
+const STEPS = [
+  { id: 1, instruction: "Look straight at the camera", icon: "👀", duration: 3000 },
+  { id: 2, instruction: "Slowly turn your head to the left", icon: "👈", duration: 3000 },
+  { id: 3, instruction: "Slowly turn your head to the right", icon: "👉", duration: 3000 },
+  { id: 4, instruction: "Blink your eyes twice", icon: "😑", duration: 3000 },
+];
 
 export default function VerifyPage() {
   const { user, reload, dark } = useUser();
   const dc = dark;
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const detectCanvasRef = useRef<HTMLCanvasElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const streamRef = useRef<MediaStream|null>(null);
-  const detectRef = useRef<any>(null);
-  const countdownRef = useRef<any>(null);
-  const lockedRef = useRef(false);
-
-  const [step, setStep] = useState<Step>("intro");
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [idPhoto, setIdPhoto] = useState("");
-  const [flash, setFlash] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [phase, setPhase] = useState<"intro"|"camera"|"verifying"|"success"|"failed">("intro");
+  const [currentStep, setCurrentStep] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [capturedFrames, setCapturedFrames] = useState<string[]>([]);
   const [error, setError] = useState("");
-  const [cameraReady, setCameraReady] = useState(false);
-  const [faceDetected, setFaceDetected] = useState(false);
-  const [detectStatus, setDetectStatus] = useState("Initializing camera...");
-  const [autoCountdown, setAutoCountdown] = useState(0);
 
-  const clearTimers = () => {
-    if (detectRef.current) { clearInterval(detectRef.current); detectRef.current = null; }
-    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
-  };
-
-  const startCamera = useCallback(async () => {
+  const startCamera = async () => {
+    setError("");
     try {
-      setCameraReady(false); setFaceDetected(false); setDetectStatus("Starting camera...");
-      lockedRef.current = false;
-      const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user", width:{ideal:640}, height:{ideal:480} } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } },
+        audio: false
+      });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute("playsinline","true");
-        videoRef.current.muted = true;
-        setTimeout(() => { videoRef.current?.play().catch(()=>{}); setCameraReady(true); setDetectStatus("Searching for face..."); }, 800);
+        videoRef.current.play().catch(() => {});
       }
-    } catch { setError("Camera access denied. Please allow camera access."); }
-  },[]);
-
-  const stopCamera = useCallback(() => {
-    clearTimers();
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t=>t.stop()); streamRef.current = null; }
-    setCameraReady(false); setFaceDetected(false);
-  },[]);
-
-  useEffect(() => { return () => stopCamera(); },[stopCamera]);
-
-  const capturePhoto = (): string => {
-    if (!videoRef.current || !canvasRef.current) return "";
-    const v = videoRef.current; const c = canvasRef.current;
-    c.width = v.videoWidth || 640; c.height = v.videoHeight || 480;
-    const ctx = c.getContext("2d"); if (!ctx) return "";
-    ctx.drawImage(v, 0, 0, c.width, c.height);
-    return c.toDataURL("image/jpeg", 0.85);
-  };
-
-  const hasFace = useCallback((): boolean => {
-    if (!videoRef.current || !detectCanvasRef.current) return false;
-    const v = videoRef.current; if (!v.videoWidth) return false;
-    const c = detectCanvasRef.current; c.width = 160; c.height = 120;
-    const ctx = c.getContext("2d"); if (!ctx) return false;
-    ctx.drawImage(v, 0, 0, 160, 120);
-    const cx = 80, cy = 55, rx = 30, ry = 40;
-    const img = ctx.getImageData(cx-rx, cy-ry, rx*2, ry*2);
-    const px = img.data; let skin = 0, total = 0;
-    for (let i = 0; i < px.length; i += 16) {
-      const r=px[i], g=px[i+1], b=px[i+2]; total++;
-      if (r>50&&g>30&&b>15&&r>b&&(Math.abs(r-g)<80||r>g)&&Math.max(r,g,b)-Math.min(r,g,b)>15&&r<250&&g<250) skin++;
+      setPhase("camera");
+      setCurrentStep(0);
+      setProgress(0);
+      setCapturedFrames([]);
+      startVerification();
+    } catch (e) {
+      setError("Camera access denied. Please allow camera permission and try again.");
     }
-    return total > 0 && skin/total > 0.25;
-  },[]);
+  };
 
-  // This runs the detection for the current step
-  useEffect(() => {
-    if (!cameraReady || !POSE_ORDER.includes(step as any)) return;
+  const captureFrame = () => {
+    if (!videoRef.current || !canvasRef.current) return "";
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    canvas.width = 320;
+    canvas.height = 320;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    const size = Math.min(video.videoWidth, video.videoHeight);
+    const sx = (video.videoWidth - size) / 2;
+    const sy = (video.videoHeight - size) / 2;
+    ctx.drawImage(video, sx, sy, size, size, 0, 0, 320, 320);
+    return canvas.toDataURL("image/jpeg", 0.8);
+  };
 
-    // Reset state for new step
-    lockedRef.current = false;
-    setFaceDetected(false);
-    setAutoCountdown(0);
-    clearTimers();
-
-    let faceFrames = 0;
-
-    const getStatusText = () => {
-      if (step === "selfie") return "Position your face in the oval...";
-      if (step === "pose_left") return "Turn your head to the LEFT...";
-      if (step === "pose_right") return "Turn your head to the RIGHT...";
-      if (step === "smile") return "Smile at the camera...";
-      return "";
-    };
-    setDetectStatus(getStatusText());
-
-    detectRef.current = setInterval(() => {
-      // Already captured for this step — stop detecting
-      if (lockedRef.current) return;
-
-      const detected = hasFace();
-      if (detected) {
-        faceFrames++;
-        if (faceFrames >= 4 && !lockedRef.current) {
-          // Lock immediately so nothing else fires
-          lockedRef.current = true;
-          clearInterval(detectRef.current);
-          detectRef.current = null;
-
-          setFaceDetected(true);
-          setDetectStatus("Face detected! Hold still...");
-
-          // Start countdown
-          let count = 3;
-          setAutoCountdown(3);
-          countdownRef.current = setInterval(() => {
-            count--;
-            setAutoCountdown(count);
-            if (count <= 0) {
-              clearInterval(countdownRef.current);
-              countdownRef.current = null;
-
-              // Flash + capture
-              setFlash(true);
-              setTimeout(() => setFlash(false), 300);
-              const photo = capturePhoto();
-              if (photo) {
-                setPhotos(prev => [...prev, photo]);
-              }
-
-              // Move to next step after delay
-              const idx = POSE_ORDER.indexOf(step as any);
-              if (idx < POSE_ORDER.length - 1) {
-                setTimeout(() => setStep(POSE_ORDER[idx + 1]), 1200);
-              } else {
-                setTimeout(() => { stopCamera(); setStep("id_front"); }, 1200);
-              }
-            }
-          }, 1000);
-        }
-      } else {
-        faceFrames = Math.max(0, faceFrames - 1);
-        if (!lockedRef.current) {
-          setFaceDetected(false);
-          setDetectStatus(getStatusText());
-        }
+  const startVerification = () => {
+    let step = 0;
+    const frames: string[] = [];
+    const runStep = () => {
+      if (step >= STEPS.length) {
+        setPhase("verifying");
+        submitVerification(frames);
+        return;
       }
-    }, 400);
-
-    return () => clearTimers();
-  },[cameraReady, step]);
-
-  const beginVerification = async () => { setPhotos([]); setStep("selfie"); await startCamera(); };
-
-  const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    if (file.size > 10*1024*1024) { setError("Max 10MB"); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => setIdPhoto(ev.target?.result as string);
-    reader.readAsDataURL(file);
+      setCurrentStep(step);
+      let elapsed = 0;
+      const interval = setInterval(() => {
+        elapsed += 100;
+        const stepProgress = ((step * STEPS[step].duration) + elapsed) / (STEPS.length * 3000) * 100;
+        setProgress(Math.min(stepProgress, 100));
+        if (elapsed >= STEPS[step].duration) {
+          clearInterval(interval);
+          const frame = captureFrame();
+          if (frame) frames.push(frame);
+          step++;
+          runStep();
+        }
+      }, 100);
+    };
+    setTimeout(runStep, 1000);
   };
 
-  const submitVerification = async () => {
-    if (photos.length < 4) { setError("All face photos required"); return; }
-    if (!idPhoto) { setError("ID document required"); return; }
-    setSubmitting(true); setError("");
+  const submitVerification = async (frames: string[]) => {
+    setCapturedFrames(frames);
     try {
-      const res = await fetch("/api/auth/verify", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ photos:JSON.stringify(photos), idDocument:idPhoto }) });
+      const res = await fetch("/api/auth/verify", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ verificationPhoto: frames[0] || "", frames: frames.length })
+      });
       const data = await res.json();
-      if (res.ok) { setStep("done"); reload(); } else { setError(data.error || "Failed"); }
-    } catch { setError("Network error"); } finally { setSubmitting(false); }
+      if (res.ok) {
+        setPhase("success");
+        reload();
+      } else {
+        setPhase("failed");
+        setError(data.error || "Verification failed");
+      }
+    } catch {
+      setPhase("failed");
+      setError("Network error. Please try again.");
+    }
+    stopCamera();
   };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const retry = () => {
+    setPhase("intro");
+    setCurrentStep(0);
+    setProgress(0);
+    setError("");
+  };
+
+  useEffect(() => { return () => stopCamera(); }, []);
 
   if (!user) return null;
-  if (user.verificationStatus === "approved") return (
-    <div className="max-w-md mx-auto text-center py-16">
-      <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4"><Check className="w-10 h-10 text-emerald-500" /></div>
-      <h2 className={"text-2xl font-bold mb-2 " + (dc?"text-white":"text-gray-900")}>Verified!</h2>
-      <p className={"mb-6 " + (dc?"text-gray-400":"text-gray-500")}>Your identity is verified.</p>
-      <Link href="/dashboard/profile" className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-semibold inline-flex items-center gap-2">View Profile</Link>
-    </div>
-  );
-  if (user.verificationStatus === "pending") return (
-    <div className="max-w-md mx-auto text-center py-16">
-      <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4"><Clock className="w-10 h-10 text-amber-500" /></div>
-      <h2 className={"text-2xl font-bold mb-2 " + (dc?"text-white":"text-gray-900")}>Under Review</h2>
-      <p className={"mb-6 " + (dc?"text-gray-400":"text-gray-500")}>Usually within 24 hours.</p>
-    </div>
-  );
+
+  if (user.verified || user.verificationStatus === "approved") {
+    return (
+      <div className="max-w-md mx-auto text-center py-16">
+        <div className={"rounded-3xl border p-8 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
+          <div className="w-20 h-20 mx-auto bg-emerald-100 rounded-full flex items-center justify-center mb-4"><CheckCircle className="w-10 h-10 text-emerald-500" /></div>
+          <h2 className={"text-2xl font-bold mb-2 " + (dc?"text-white":"text-gray-900")}>Already Verified!</h2>
+          <p className={"text-sm mb-6 " + (dc?"text-gray-400":"text-gray-500")}>Your identity has been verified. You have a verified badge on your profile.</p>
+          <Link href="/dashboard/profile" className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm">View Profile</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.verificationStatus === "pending") {
+    return (
+      <div className="max-w-md mx-auto text-center py-16">
+        <div className={"rounded-3xl border p-8 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
+          <div className="w-20 h-20 mx-auto bg-amber-100 rounded-full flex items-center justify-center mb-4"><Shield className="w-10 h-10 text-amber-500" /></div>
+          <h2 className={"text-2xl font-bold mb-2 " + (dc?"text-white":"text-gray-900")}>Verification Pending</h2>
+          <p className={"text-sm mb-6 " + (dc?"text-gray-400":"text-gray-500")}>Your verification is being reviewed by our team. You will be notified once approved.</p>
+          <Link href="/dashboard" className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm">Back to Home</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-md mx-auto">
       <canvas ref={canvasRef} className="hidden" />
-      <canvas ref={detectCanvasRef} className="hidden" />
-      <input ref={fileRef} type="file" accept="image/*" onChange={handleIdUpload} className="hidden" />
 
-      {step === "intro" && (
-        <div className={"rounded-3xl border overflow-hidden " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-4 border border-white/30"><ScanFace className="w-8 h-8 text-white" /></div>
-            <h1 className="text-2xl font-bold text-white mb-2">Identity Verification</h1>
-            <p className="text-blue-100 text-sm">Powered by ConnectHub Verify</p>
-          </div>
-          <div className="p-8">
-            <p className={"text-sm mb-6 " + (dc?"text-gray-300":"text-gray-600")}>Verify your identity to get a verified badge and 5x more matches. Takes about 1 minute.</p>
-            <div className="space-y-4 mb-8">
-              {[
-                { s:"1",t:"Auto Face Capture",d:"Camera detects your face and captures automatically",icon:Camera,color:"text-blue-500",bg:dc?"bg-blue-500/10":"bg-blue-50" },
-                { s:"2",t:"Liveness Detection",d:"Turn left, right, and smile — auto captured when detected",icon:ScanFace,color:"text-violet-500",bg:dc?"bg-violet-500/10":"bg-violet-50" },
-                { s:"3",t:"ID Document",d:"Upload a photo of your government-issued ID",icon:CreditCard,color:"text-emerald-500",bg:dc?"bg-emerald-500/10":"bg-emerald-50" },
-                { s:"4",t:"Instant Review",d:"Our team reviews within 24 hours",icon:Shield,color:"text-amber-500",bg:dc?"bg-amber-500/10":"bg-amber-50" },
-              ].map((item,i) => (
-                <div key={i} className={"flex items-center gap-4 p-4 rounded-xl " + item.bg}>
-                  <div className={"w-10 h-10 rounded-xl flex items-center justify-center " + (dc?"bg-gray-700":"bg-white shadow-sm")}><item.icon className={"w-5 h-5 " + item.color} /></div>
-                  <div className="flex-1"><p className={"text-sm font-bold " + (dc?"text-white":"text-gray-900")}>{item.t}</p><p className={"text-xs " + (dc?"text-gray-400":"text-gray-500")}>{item.d}</p></div>
-                </div>
-              ))}
+      {/* INTRO */}
+      {phase === "intro" && (
+        <div className="text-center py-8">
+          <div className={"rounded-3xl border overflow-hidden " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
+            <div className="bg-gradient-to-br from-blue-500 to-purple-500 p-8">
+              <Shield className="w-14 h-14 text-white mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-white mb-2">Verify Your Identity</h1>
+              <p className="text-blue-100 text-sm">Quick selfie verification to prove you are real</p>
             </div>
-            <div className={"rounded-xl p-4 mb-6 flex items-start gap-3 " + (dc?"bg-amber-500/10 border border-amber-500/20":"bg-amber-50 border border-amber-100")}>
-              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <ul className={"text-xs space-y-1 " + (dc?"text-amber-300/80":"text-amber-600")}>
-                <li>Be in a well-lit area</li>
-                <li>Remove hats, sunglasses, or face coverings</li>
-                <li>Have your government ID ready</li>
-              </ul>
-            </div>
-            <button onClick={beginVerification} className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:shadow-xl transition-all flex items-center justify-center gap-2"><ScanFace className="w-5 h-5" /> Begin Verification</button>
-          </div>
-        </div>
-      )}
-
-      {POSE_ORDER.includes(step as any) && (
-        <div className={"rounded-3xl border overflow-hidden " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2"><ScanFace className="w-5 h-5 text-white" /><span className="text-sm font-bold text-white">ConnectHub Verify</span></div>
-            <span className="text-xs text-blue-100">Step {POSE_ORDER.indexOf(step as any)+1} of 4</span>
-          </div>
-          <div className="flex gap-1 px-6 pt-4">{POSE_ORDER.map((s,i) => <div key={s} className={"flex-1 h-1.5 rounded-full transition-all duration-500 " + (POSE_ORDER.indexOf(step as any)>=i?"bg-blue-500":(dc?"bg-gray-700":"bg-gray-200"))} />)}</div>
-          <div className="text-center px-6 pt-4 pb-2">
-            <span className="text-4xl mb-2 block">{STEPS_INFO[step]?.icon}</span>
-            <h2 className={"text-xl font-bold " + (dc?"text-white":"text-gray-900")}>{STEPS_INFO[step]?.title}</h2>
-            <p className={"text-sm mt-1 " + (dc?"text-gray-400":"text-gray-500")}>{STEPS_INFO[step]?.instruction}</p>
-          </div>
-          <div className="mx-6 mt-2">
-            <div className={"flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium " + (faceDetected?(dc?"bg-emerald-500/20 text-emerald-400":"bg-emerald-50 text-emerald-600"):(dc?"bg-blue-500/10 text-blue-400":"bg-blue-50 text-blue-600"))}>
-              {faceDetected?<Check className="w-4 h-4"/>:<RefreshCw className="w-4 h-4 animate-spin"/>}
-              {autoCountdown > 0 ? "Capturing in "+autoCountdown+"..." : detectStatus}
-            </div>
-          </div>
-          <div className="relative mx-6 my-4 rounded-2xl overflow-hidden bg-black aspect-[4/3]">
-            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{transform:"scaleX(-1)"}} />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className={"w-52 h-64 border-[3px] rounded-[50%] transition-all duration-500 " + (faceDetected?"border-emerald-400 shadow-[0_0_30px_rgba(52,211,153,0.3)]":"border-dashed border-white/40")} />
-            </div>
-            {autoCountdown > 0 && <div className="absolute inset-0 flex items-center justify-center"><div className="w-24 h-24 rounded-full bg-emerald-500/30 backdrop-blur-md flex items-center justify-center border-4 border-emerald-400 animate-pulse"><span className="text-5xl font-bold text-white">{autoCountdown}</span></div></div>}
-            {flash && <div className="absolute inset-0 bg-white animate-pulse" />}
-            {step === "pose_left" && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white text-6xl animate-bounce">←</div>}
-            {step === "pose_right" && <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-6xl animate-bounce">→</div>}
-            <div className="absolute top-3 left-3 w-8 h-8 border-t-2 border-l-2 border-white/50 rounded-tl-lg" />
-            <div className="absolute top-3 right-3 w-8 h-8 border-t-2 border-r-2 border-white/50 rounded-tr-lg" />
-            <div className="absolute bottom-3 left-3 w-8 h-8 border-b-2 border-l-2 border-white/50 rounded-bl-lg" />
-            <div className="absolute bottom-3 right-3 w-8 h-8 border-b-2 border-r-2 border-white/50 rounded-br-lg" />
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1"><div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /><span className="text-xs text-white font-medium">LIVE</span></div>
-          </div>
-          {photos.length > 0 && (
-            <div className={"px-6 pb-4 flex gap-2 " + (dc?"border-t border-gray-700 pt-4":"border-t border-gray-100 pt-4")}>
-              {photos.map((p,i) => (
-                <div key={i} className="relative"><img src={p} className="w-14 h-14 rounded-lg object-cover" /><div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center"><Check className="w-3 h-3 text-white" /></div><p className={"text-[9px] text-center mt-0.5 " + (dc?"text-gray-500":"text-gray-400")}>{["Front","Left","Right","Smile"][i]}</p></div>
-              ))}
-              {POSE_ORDER.slice(photos.length).map(s => (
-                <div key={s} className={"w-14 h-14 rounded-lg border-2 border-dashed flex items-center justify-center " + (dc?"border-gray-600":"border-gray-200")}><span className="text-xl">{STEPS_INFO[s]?.icon}</span></div>
-              ))}
-            </div>
-          )}
-          <div className={"mx-6 mb-4 rounded-xl p-3 text-center " + (dc?"bg-gray-700":"bg-gray-50")}><p className={"text-xs " + (dc?"text-gray-400":"text-gray-500")}>Camera captures automatically — no buttons needed!</p></div>
-        </div>
-      )}
-
-      {step === "id_front" && (
-        <div className={"rounded-3xl border overflow-hidden " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2"><ScanFace className="w-5 h-5 text-white" /><span className="text-sm font-bold text-white">ConnectHub Verify</span></div>
-            <span className="text-xs text-blue-100">ID Document</span>
-          </div>
-          <div className="p-8">
-            <div className="text-center mb-6"><CreditCard className={"w-12 h-12 mx-auto mb-3 " + (dc?"text-blue-400":"text-blue-500")} /><h2 className={"text-xl font-bold " + (dc?"text-white":"text-gray-900")}>Upload ID Document</h2></div>
-            <div className={"rounded-xl p-4 mb-6 " + (dc?"bg-emerald-500/10":"bg-emerald-50")}><p className="text-sm font-semibold text-emerald-600 flex items-center gap-2 mb-2"><Check className="w-4 h-4" /> All 4 face photos captured!</p><div className="flex gap-2">{photos.map((p,i) => <img key={i} src={p} className="w-12 h-12 rounded-lg object-cover" />)}</div></div>
-            {idPhoto ? (
-              <div className="mb-6"><img src={idPhoto} className={"w-full max-h-64 object-contain rounded-xl border " + (dc?"border-gray-600":"border-gray-200")} /><button onClick={() => setIdPhoto("")} className={"mt-2 text-sm font-medium flex items-center gap-1 " + (dc?"text-red-400":"text-red-500")}><X className="w-4 h-4" /> Remove</button></div>
-            ) : (
-              <button onClick={() => fileRef.current?.click()} className={"w-full flex items-center gap-4 p-6 rounded-xl border-2 border-dashed transition-all mb-6 " + (dc?"border-gray-600 hover:border-blue-500 bg-gray-700/50":"border-gray-200 hover:border-blue-400 bg-gray-50")}><Upload className={"w-10 h-10 " + (dc?"text-gray-500":"text-gray-400")} /><div className="text-left"><p className={"font-semibold " + (dc?"text-white":"text-gray-900")}>Tap to Upload ID</p><p className={"text-xs " + (dc?"text-gray-400":"text-gray-500")}>Passport, Driver License, or National ID</p></div></button>
-            )}
-            {error && <p className="text-sm text-red-400 bg-red-500/10 rounded-xl p-3 mb-4">{error}</p>}
-            <div className="flex gap-3">
-              <button onClick={() => { setStep("intro"); setPhotos([]); setIdPhoto(""); }} className={"flex-1 py-3.5 rounded-full font-semibold border text-sm " + (dc?"border-gray-600 text-gray-400":"border-gray-200 text-gray-600")}>Start Over</button>
-              <button onClick={submitVerification} disabled={!idPhoto||submitting} className="flex-[2] py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full font-bold flex items-center justify-center gap-2 hover:shadow-lg disabled:opacity-60 text-sm">{submitting?<><RefreshCw className="w-4 h-4 animate-spin"/>Submitting...</>:<><Shield className="w-4 h-4"/>Submit Verification</>}</button>
+            <div className="p-6">
+              <div className="space-y-4 mb-6">
+                {STEPS.map((step, i) => (
+                  <div key={step.id} className={"flex items-center gap-4 p-3 rounded-xl " + (dc?"bg-gray-700":"bg-gray-50")}>
+                    <span className="text-2xl">{step.icon}</span>
+                    <div className="flex-1 text-left">
+                      <p className={"text-sm font-medium " + (dc?"text-white":"text-gray-900")}>Step {step.id}</p>
+                      <p className={"text-xs " + (dc?"text-gray-400":"text-gray-500")}>{step.instruction}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className={"text-xs mb-4 " + (dc?"text-gray-500":"text-gray-400")}>Make sure you are in a well-lit area. Remove sunglasses or hats.</p>
+              {error && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}
+              <button onClick={startCamera} className="w-full py-3.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold text-sm hover:shadow-lg flex items-center justify-center gap-2"><Camera className="w-5 h-5" /> Start Verification</button>
             </div>
           </div>
         </div>
       )}
 
-      {step === "done" && (
-        <div className={"rounded-3xl border overflow-hidden " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
-          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-8 text-center">
-            <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-4 border border-white/30"><Check className="w-10 h-10 text-white" /></div>
-            <h2 className="text-2xl font-bold text-white mb-2">Submitted!</h2>
-            <p className="text-emerald-100">Under review — usually within 24 hours</p>
+      {/* CAMERA - Live verification */}
+      {phase === "camera" && (
+        <div className="text-center">
+          <div className="relative mx-auto" style={{ width: 300, height: 300 }}>
+            {/* Circular video frame */}
+            <div className="w-full h-full rounded-full overflow-hidden border-4 border-blue-500 relative">
+              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted style={{ transform: "scaleX(-1)" }} />
+            </div>
+
+            {/* Progress ring */}
+            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 300 300">
+              <circle cx="150" cy="150" r="146" fill="none" stroke={dc?"#374151":"#e5e7eb"} strokeWidth="4" />
+              <circle cx="150" cy="150" r="146" fill="none" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 146}
+                strokeDashoffset={2 * Math.PI * 146 * (1 - progress / 100)}
+                className="transition-all duration-300" />
+            </svg>
+
+            {/* Step indicator */}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
+              Step {currentStep + 1} of {STEPS.length}
+            </div>
           </div>
-          <div className="p-8 text-center">
-            <div className="flex gap-2 justify-center mb-6">{photos.map((p,i) => <img key={i} src={p} className="w-16 h-16 rounded-xl object-cover" />)}</div>
-            <Link href="/dashboard/profile" className="px-8 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-semibold inline-flex items-center gap-2">Back to Profile</Link>
+
+          {/* Current instruction */}
+          <div className={"mt-8 p-4 rounded-xl " + (dc?"bg-gray-800":"bg-blue-50")}>
+            <span className="text-3xl block mb-2">{STEPS[currentStep]?.icon}</span>
+            <p className={"text-lg font-bold " + (dc?"text-white":"text-gray-900")}>{STEPS[currentStep]?.instruction}</p>
+            <p className={"text-xs mt-1 " + (dc?"text-gray-400":"text-gray-500")}>Hold still...</p>
+          </div>
+
+          {/* Progress bar */}
+          <div className={"w-full h-2 rounded-full mt-4 overflow-hidden " + (dc?"bg-gray-700":"bg-gray-200")}>
+            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-300" style={{ width: progress + "%" }} />
+          </div>
+        </div>
+      )}
+
+      {/* VERIFYING */}
+      {phase === "verifying" && (
+        <div className="text-center py-16">
+          <div className="w-16 h-16 mx-auto border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mb-6" />
+          <h2 className={"text-xl font-bold mb-2 " + (dc?"text-white":"text-gray-900")}>Verifying...</h2>
+          <p className={"text-sm " + (dc?"text-gray-400":"text-gray-500")}>Analyzing your selfie for liveness detection</p>
+        </div>
+      )}
+
+      {/* SUCCESS */}
+      {phase === "success" && (
+        <div className="text-center py-8">
+          <div className={"rounded-3xl border p-8 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
+            <div className="w-24 h-24 mx-auto bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+              <CheckCircle className="w-12 h-12 text-emerald-500" />
+            </div>
+            <h2 className={"text-2xl font-bold mb-2 " + (dc?"text-white":"text-gray-900")}>Verification Submitted!</h2>
+            <p className={"text-sm mb-6 " + (dc?"text-gray-400":"text-gray-500")}>Your selfie has been captured. Our team will review and verify your identity shortly. You will receive a notification when approved.</p>
+            <Link href="/dashboard" className="inline-block px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full font-bold text-sm hover:shadow-lg">Back to Dashboard</Link>
+          </div>
+        </div>
+      )}
+
+      {/* FAILED */}
+      {phase === "failed" && (
+        <div className="text-center py-8">
+          <div className={"rounded-3xl border p-8 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
+            <div className="w-24 h-24 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-6">
+              <XCircle className="w-12 h-12 text-red-500" />
+            </div>
+            <h2 className={"text-2xl font-bold mb-2 " + (dc?"text-white":"text-gray-900")}>Verification Failed</h2>
+            <p className={"text-sm mb-2 " + (dc?"text-gray-400":"text-gray-500")}>{error || "We could not verify your identity. Please try again."}</p>
+            <p className={"text-xs mb-6 " + (dc?"text-gray-500":"text-gray-400")}>Tips: Use good lighting, remove glasses, and look directly at the camera.</p>
+            <button onClick={retry} className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm hover:shadow-lg">
+              <RotateCcw className="w-4 h-4" /> Try Again
+            </button>
           </div>
         </div>
       )}
