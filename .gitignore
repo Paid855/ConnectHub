@@ -7,3 +7,6 @@ node_modules
 .env.save
 .env
 .env.local
+.env.save
+.env
+.env.local
