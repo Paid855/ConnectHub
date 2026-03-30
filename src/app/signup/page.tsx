@@ -14,6 +14,19 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [form, setForm] = useState({ name:"", email:"", password:"", username:"", phone:"", dateOfBirth:"", gender:"", lookingFor:"", country:"", bio:"" });
   const [photo, setPhoto] = useState<string|null>(null);
+  const [usernameStatus, setUsernameStatus] = useState<""|"checking"|"available"|"taken">("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [confirmPwd, setConfirmPwd] = useState("");
+
+  const checkUsername = async (u: string) => {
+    if (!u || u.length < 3) { setUsernameStatus(""); return; }
+    setUsernameStatus("checking");
+    try {
+      const res = await fetch("/api/auth/check-username?username=" + u);
+      const d = await res.json();
+      setUsernameStatus(d.available ? "available" : "taken");
+    } catch { setUsernameStatus(""); }
+  };
 
   const age = form.dateOfBirth ? (() => {
     const b = new Date(form.dateOfBirth);
@@ -137,11 +150,20 @@ export default function SignupPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                  <input value={form.username} onChange={e => setForm({...form, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "")})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="choose_a_username" />
+                  <input value={form.username} onChange={e => { const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""); setForm({...form, username: v}); checkUsername(v); }} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="choose_a_username" />
+                {usernameStatus === "checking" && <p className="text-xs text-gray-400 mt-1">Checking...</p>}
+                  {usernameStatus === "available" && <p className="text-xs text-emerald-500 mt-1">Username available ✓</p>}
+                  {usernameStatus === "taken" && <p className="text-xs text-red-500 mt-1">Username already taken</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                  <input type="password" required minLength={6} value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="Minimum 6 characters" />
+                  <div className="relative"><input type={showPwd?"text":"password"} required minLength={6} value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm pr-14" placeholder="Minimum 6 characters" /><button type="button" onClick={()=>setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">{showPwd?"Hide":"Show"}</button></div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
+                  <input type={showPwd?"text":"password"} required value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="Re-enter password" />
+                  {confirmPwd && confirmPwd !== form.password && <p className="text-xs text-red-500 mt-1">Passwords do not match</p>}
+                  {confirmPwd && confirmPwd === form.password && <p className="text-xs text-emerald-500 mt-1">Passwords match ✓</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
@@ -152,6 +174,7 @@ export default function SignupPage() {
                 <button onClick={() => {
                   if (!form.name || !form.email || !form.password || !form.dateOfBirth) { setError("Please fill all required fields"); return; }
                   if (form.password.length < 6) { setError("Password must be at least 6 characters"); return; }
+                  if (confirmPwd !== form.password) { setError("Passwords do not match"); return; }
                   if (age !== null && age < 18) { setStep(-1); return; }
                   setError(""); setStep(2);
                 }} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all">Continue</button>

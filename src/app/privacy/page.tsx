@@ -1,7 +1,8 @@
 "use client";
+import PageHeader from "@/components/PageHeader";
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
+    <div className="min-h-screen"><PageHeader /><div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
       <div className="max-w-3xl mx-auto px-4 py-16">
         <h1 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">Privacy Policy</h1>
         <p className="text-center text-gray-500 mb-12">Last updated: March 2026</p>
@@ -16,4 +17,5 @@ export default function PrivacyPage() {
       </div>
     </div>
   );
+</div>
 }

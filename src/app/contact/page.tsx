@@ -1,10 +1,11 @@
 "use client";
+import PageHeader from "@/components/PageHeader";
 import { useState } from "react";
 export default function ContactPage() {
   const [form, setForm] = useState({name:"",email:"",subject:"",message:""});
   const [sent, setSent] = useState(false);
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
+    <div className="min-h-screen"><PageHeader /><div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
       <div className="max-w-2xl mx-auto px-4 py-16">
         <h1 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">Contact Us</h1>
         <p className="text-center text-gray-500 mb-8">We would love to hear from you</p>
@@ -32,4 +33,5 @@ export default function ContactPage() {
       </div>
     </div>
   );
+</div>
 }

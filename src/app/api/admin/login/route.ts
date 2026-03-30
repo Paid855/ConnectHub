@@ -1,39 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import bcrypt from "bcryptjs";
 
-const ADMIN_EMAIL = "admin@connecthub.com";
-const ADMIN_PASSWORD = "ConnectHub@2026";
-const ADMIN_SECRET = "ConnectHub_Admin_2026_Secret";
+const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY || "ConnectHub_Admin_2026_Secret";
 
 export async function POST(req: NextRequest) {
   try {
     const { email, password, secretKey } = await req.json();
+    if (!email || !password || !secretKey) return NextResponse.json({ error: "All fields required" }, { status: 400 });
+    if (secretKey !== ADMIN_SECRET) return NextResponse.json({ error: "Invalid secret key" }, { status: 401 });
 
-    if (!email || !password || !secretKey) {
-      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
-    }
+    const admin = await prisma.user.findFirst({ where: { email: email.toLowerCase() } });
+    if (!admin) return NextResponse.json({ error: "Admin not found" }, { status: 401 });
 
-    if (email !== ADMIN_EMAIL) {
-      return NextResponse.json({ error: "Invalid admin email" }, { status: 401 });
-    }
+    const valid = await bcrypt.compare(password, admin.password);
+    if (!valid) return NextResponse.json({ error: "Wrong password" }, { status: 401 });
 
-    if (password !== ADMIN_PASSWORD) {
-      return NextResponse.json({ error: "Invalid password" }, { status: 401 });
-    }
-
-    if (secretKey !== ADMIN_SECRET) {
-      return NextResponse.json({ error: "Invalid secret key" }, { status: 401 });
-    }
-
-    const sessionData = JSON.stringify({ email: ADMIN_EMAIL, role: "admin", loggedAt: Date.now() });
+    const session = JSON.stringify({ id: admin.id, email: admin.email, name: admin.name, isAdmin: true });
     const res = NextResponse.json({ success: true });
-    res.cookies.set("admin_session", sessionData, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 8, // 8 hours
-    });
-
+    res.cookies.set("admin_session", session, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60*60*24 });
     return res;
   } catch (e) {
     console.error("Admin login error:", e);

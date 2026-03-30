@@ -25,6 +25,7 @@ export default function HomePage() {
   const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    fetch("/api/auth/me").then(r => { if (r.ok) window.location.href = "/dashboard"; }).catch(() => {});
     const saved = localStorage.getItem("ch_lang");
     if (saved) setLang(saved);
   }, []);
@@ -108,10 +109,10 @@ export default function HomePage() {
           {mobileMenu && (
             <div className="md:hidden pb-4 border-t border-gray-100">
               <div className="pt-4 space-y-2">
-                <a href="#features" className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">Features</a>
-                <a href="#how-it-works" className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">How It Works</a>
-                <a href="#pricing" className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">Pricing</a>
-                <a href="#testimonials" className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">Stories</a>
+                <a href="#features" onClick={()=>setMobileMenu(false)} className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">Features</a>
+                <a href="#how-it-works" onClick={()=>setMobileMenu(false)} className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">How It Works</a>
+                <a href="#pricing" onClick={()=>setMobileMenu(false)} className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">Pricing</a>
+                <a href="#testimonials" onClick={()=>setMobileMenu(false)} className="block px-4 py-3 rounded-lg text-gray-700 hover:bg-rose-50 font-medium">Stories</a>
                 <div className="flex gap-3 pt-2">
                   <Link href="/login" className="flex-1 py-3 text-center border-2 border-rose-500 text-rose-600 rounded-full font-bold">Sign In</Link>
                   <Link href="/signup" className="flex-1 py-3 text-center bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold">Sign Up</Link>
