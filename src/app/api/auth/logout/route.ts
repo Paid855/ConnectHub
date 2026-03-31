@@ -1,8 +1,6 @@
-import { getUserId } from "@/lib/auth";
-import { NextResponse } from "next/server";
-
-export async function POST() {
-  const response = NextResponse.json({ success: true });
-  response.cookies.set("session", "", { maxAge: 0, path: "/" });
-  return response;
+import { NextRequest, NextResponse } from "next/server";
+export async function POST(req: NextRequest) {
+  const res = NextResponse.json({ success: true });
+  res.cookies.set("session", "", { path: "/", maxAge: 0 });
+  return res;
 }

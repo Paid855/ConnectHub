@@ -27,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#e11d48" />
+        <meta name="google-site-verification" content="PASTE_YOUR_GOOGLE_CODE_HERE" />
       </head>
       <body className="bg-white text-gray-900 font-sans antialiased min-h-screen">
         {children}

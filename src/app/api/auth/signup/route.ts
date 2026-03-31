@@ -47,11 +47,11 @@ export async function POST(req: NextRequest) {
         lookingFor: lookingFor || null,
         country: country || null,
         referralCode,
-        coins: 50,
+        coins: 20,
       }
     });
 
-    await prisma.coinTransaction.create({ data: { userId: user.id, amount: 50, type: "welcome_bonus", description: "Welcome to ConnectHub!" } }).catch(() => {});
+    await prisma.coinTransaction.create({ data: { userId: user.id, amount: 20, type: "welcome_bonus", description: "Welcome to ConnectHub!" } }).catch(() => {});
 
     const session = JSON.stringify({ id: user.id, email: cleanEmail, name: name.trim() });
     const res = NextResponse.json({ success: true, userId: user.id, step: "upload_photo" });
