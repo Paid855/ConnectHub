@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { t } from "@/lib/translations";
 
 const LANGUAGES = [
   {code:"en",name:"English (US)",flag:"🇺🇸"},{code:"es",name:"Español",flag:"🇪🇸"},{code:"fr",name:"Français",flag:"🇫🇷"},
@@ -67,10 +68,10 @@ export default function HomePage() {
 
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-6">
-              <a href="#features" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">Features</a>
-              <a href="#how-it-works" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">How It Works</a>
-              <a href="#pricing" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">Pricing</a>
-              <a href="#testimonials" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">Stories</a>
+              <a href="#features" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">{t(lang,"features")}</a>
+              <a href="#how-it-works" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">{t(lang,"how_works")}</a>
+              <a href="#pricing" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">{t(lang,"pricing")}</a>
+              <a href="#testimonials" className="text-gray-600 hover:text-rose-600 text-sm font-medium transition-colors">{t(lang,"stories")}</a>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
@@ -91,7 +92,7 @@ export default function HomePage() {
                 )}
               </div>
 
-              <Link href="/login" className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-gray-700 hover:text-rose-600 transition-colors">Sign In</Link>
+              <Link href="/login" className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-gray-700 hover:text-rose-600 transition-colors">{t(lang,"sign_in")}</Link>
               <Link href="/signup" className="px-4 py-2 sm:px-6 sm:py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-bold hover:shadow-lg hover:shadow-rose-200 transition-all">Get Started</Link>
 
               {/* Mobile hamburger */}
@@ -134,17 +135,17 @@ export default function HomePage() {
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-100 text-rose-700 rounded-full text-sm font-medium mb-6">
                 <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
-                Trusted by thousands worldwide
+                {t(lang,"trusted")}
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                Find Your<br/><span className="bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">Perfect Match</span>
+                Find Your<br/><span className="bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">{t(lang,"hero_highlight")}</span>
               </h1>
               <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-lg leading-relaxed">
-                ConnectHub helps you discover meaningful connections with people who share your values, interests, and dreams. Your love story starts here.
+                {t(lang,"hero_desc")}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/signup" className="px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-base font-bold hover:shadow-xl hover:shadow-rose-200 transition-all text-center">Start Free Today</Link>
-                <a href="#how-it-works" className="px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full text-base font-bold hover:border-rose-300 hover:text-rose-600 transition-all text-center">See How It Works</a>
+                <Link href="/signup" className="px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-base font-bold hover:shadow-xl hover:shadow-rose-200 transition-all text-center">{t(lang,"cta_start")}</Link>
+                <a href="#how-it-works" className="px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full text-base font-bold hover:border-rose-300 hover:text-rose-600 transition-all text-center">{t(lang,"cta_how")}</a>
               </div>
               <div className="flex items-center gap-6 mt-10">
                 <div className="flex -space-x-2">
@@ -154,7 +155,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <div className="flex gap-0.5">{[1,2,3,4,5].map(i => <span key={i} className="text-amber-400 text-sm">★</span>)}</div>
-                  <p className="text-gray-500 text-xs">Join thousands finding love</p>
+                  <p className="text-gray-500 text-xs">{t(lang,"join")}</p>
                 </div>
               </div>
             </div>
@@ -209,9 +210,9 @@ export default function HomePage() {
       <section id="features" className="py-16 sm:py-24 bg-gradient-to-b from-white to-rose-50/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12 sm:mb-16">
-            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">Why ConnectHub</span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Everything You Need to Find Love</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto text-sm sm:text-base">Modern dating meets meaningful connections. Our platform is designed to help you find real relationships.</p>
+            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">{t(lang,"features_tag")}</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">{t(lang,"features_title")}</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto text-sm sm:text-base">{t(lang,"features_desc")}</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
@@ -236,9 +237,9 @@ export default function HomePage() {
       <section id="how-it-works" className="py-16 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12 sm:mb-16">
-            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">Simple Steps</span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">How ConnectHub Works</h2>
-            <p className="text-gray-500 max-w-xl mx-auto text-sm sm:text-base">Find your perfect match in just a few simple steps</p>
+            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">{t(lang,"how_tag")}</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">{t(lang,"how_title")}</h2>
+            <p className="text-gray-500 max-w-xl mx-auto text-sm sm:text-base">{t(lang,"how_desc")}</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {[
@@ -262,12 +263,12 @@ export default function HomePage() {
       <section id="pricing" className="py-16 sm:py-24 bg-gradient-to-b from-rose-50/30 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">Simple Pricing</span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Choose Your Plan</h2>
-            <p className="text-gray-500 max-w-xl mx-auto text-sm sm:text-base">Start free and upgrade when you are ready for more</p>
+            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">{t(lang,"price_tag")}</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">{t(lang,"price_title")}</h2>
+            <p className="text-gray-500 max-w-xl mx-auto text-sm sm:text-base">{t(lang,"price_desc")}</p>
             <div className="inline-flex mt-6 p-1 bg-gray-100 rounded-full">
-              <button onClick={() => setIsMonthly(true)} className={"px-5 py-2 rounded-full text-sm font-medium transition-all " + (isMonthly ? "bg-white shadow text-gray-900" : "text-gray-500")}>Monthly</button>
-              <button onClick={() => setIsMonthly(false)} className={"px-5 py-2 rounded-full text-sm font-medium transition-all " + (!isMonthly ? "bg-white shadow text-gray-900" : "text-gray-500")}>Yearly (Save 20%)</button>
+              <button onClick={() => setIsMonthly(true)} className={"px-5 py-2 rounded-full text-sm font-medium transition-all " + (isMonthly ? "bg-white shadow text-gray-900" : "text-gray-500")}>{t(lang,"monthly")}</button>
+              <button onClick={() => setIsMonthly(false)} className={"px-5 py-2 rounded-full text-sm font-medium transition-all " + (!isMonthly ? "bg-white shadow text-gray-900" : "text-gray-500")}>{t(lang,"yearly")}</button>
             </div>
           </div>
 
@@ -278,7 +279,7 @@ export default function HomePage() {
               {name:"Premium",price:isMonthly?"$25":"$20",period:"/month",desc:"The ultimate dating experience",features:["Everything in Plus","See who likes you","5 Super Likes per week","Daily Top Picks","Read receipts","Higher profile visibility","Monthly profile boost","Priority support"],excluded:[],cta:"Go Premium",popular:false},
             ].map((plan,i) => (
               <div key={i} className={"rounded-2xl border overflow-hidden transition-all hover:shadow-lg " + (plan.popular ? "border-rose-500 border-2 relative shadow-lg shadow-rose-100" : "border-gray-200")}>
-                {plan.popular && <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white text-center py-2 text-xs font-bold tracking-wide">MOST POPULAR</div>}
+                {plan.popular && <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white text-center py-2 text-xs font-bold tracking-wide">{t(lang,"most_popular")}</div>}
                 <div className="p-6 sm:p-8">
                   <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
                   <p className="text-gray-500 text-sm mb-4">{plan.desc}</p>
@@ -300,9 +301,9 @@ export default function HomePage() {
       <section id="testimonials" className="py-16 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">Success Stories</span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Real Love Stories</h2>
-            <p className="text-gray-500 max-w-xl mx-auto text-sm sm:text-base">Hear from couples who found love on ConnectHub</p>
+            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">{t(lang,"stories_tag")}</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">{t(lang,"stories_title")}</h2>
+            <p className="text-gray-500 max-w-xl mx-auto text-sm sm:text-base">{t(lang,"stories_desc")}</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
             {[
@@ -327,8 +328,8 @@ export default function HomePage() {
       <section className="py-16 sm:py-24 bg-gradient-to-b from-white to-rose-50/30">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">FAQ</span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Common Questions</h2>
+            <span className="inline-block px-4 py-2 bg-rose-100 text-rose-600 rounded-full text-xs sm:text-sm font-medium mb-4">{t(lang,"faq_tag")}</span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">{t(lang,"faq_title")}</h2>
           </div>
           <div className="space-y-3">
             {[
@@ -354,8 +355,8 @@ export default function HomePage() {
       {/* CTA */}
       <section className="py-16 sm:py-24 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">Your Love Story Starts Here</h2>
-          <p className="text-lg text-rose-100 mb-8 max-w-2xl mx-auto">Join millions of people finding meaningful connections on ConnectHub. Your perfect match is waiting.</p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">{t(lang,"cta_final")}</h2>
+          <p className="text-lg text-rose-100 mb-8 max-w-2xl mx-auto">{t(lang,"cta_final_desc")}</p>
           <Link href="/signup" className="inline-block px-10 py-4 bg-white text-rose-600 rounded-full font-bold text-lg hover:shadow-xl transition-all">Start Free Today</Link>
         </div>
       </section>
@@ -374,17 +375,17 @@ export default function HomePage() {
             <div>
               <h4 className="font-bold mb-4 text-sm">Company</h4>
               <div className="space-y-2">
-                <Link href="/about" className="block text-gray-400 text-sm hover:text-white transition-colors">About Us</Link>
-                <Link href="/contact" className="block text-gray-400 text-sm hover:text-white transition-colors">Contact</Link>
-                <Link href="/advertise" className="block text-gray-400 text-sm hover:text-white transition-colors">Advertise</Link>
+                <Link href="/about" className="block text-gray-400 text-sm hover:text-white transition-colors">{t(lang,"about")}</Link>
+                <Link href="/contact" className="block text-gray-400 text-sm hover:text-white transition-colors">{t(lang,"contact")}</Link>
+                <Link href="/advertise" className="block text-gray-400 text-sm hover:text-white transition-colors">{t(lang,"advertise")}</Link>
               </div>
             </div>
             <div>
               <h4 className="font-bold mb-4 text-sm">Support</h4>
               <div className="space-y-2">
-                <Link href="/help" className="block text-gray-400 text-sm hover:text-white transition-colors">Help Center</Link>
-                <Link href="/terms" className="block text-gray-400 text-sm hover:text-white transition-colors">Terms of Service</Link>
-                <Link href="/privacy" className="block text-gray-400 text-sm hover:text-white transition-colors">Privacy Policy</Link>
+                <Link href="/help" className="block text-gray-400 text-sm hover:text-white transition-colors">{t(lang,"help")}</Link>
+                <Link href="/terms" className="block text-gray-400 text-sm hover:text-white transition-colors">{t(lang,"terms")}</Link>
+                <Link href="/privacy" className="block text-gray-400 text-sm hover:text-white transition-colors">{t(lang,"privacy")}</Link>
               </div>
             </div>
             <div>
@@ -398,7 +399,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-gray-500 text-sm">&copy; 2026 ConnectHub. All rights reserved.</p>
+            <p className="text-gray-500 text-sm">&copy; 2026 ConnectHub. {t(lang,"rights")}.</p>
             <div className="flex gap-4">
               <Link href="/terms" className="text-gray-500 text-sm hover:text-white">Terms</Link>
               <Link href="/privacy" className="text-gray-500 text-sm hover:text-white">Privacy</Link>
