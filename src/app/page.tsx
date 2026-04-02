@@ -216,12 +216,12 @@ export default function HomePage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
-              {icon:"🔒",title:t(lang,"feat_verified"),desc:t(lang,"feat_verified_d")}},
-              {icon:"🎥",title:t(lang,"feat_video"),desc:t(lang,"feat_video_d")}},
-              {icon:"🌍",title:t(lang,"feat_global"),desc:t(lang,"feat_global_d")}},
-              {icon:"🛡️",title:t(lang,"feat_privacy"),desc:t(lang,"feat_privacy_d")}},
-              {icon:"💬",title:t(lang,"feat_message"),desc:t(lang,"feat_message_d")}},
-              {icon:"📡",title:t(lang,"feat_live"),desc:t(lang,"feat_live_d")}},
+              {icon:"🔒",title:t(lang,"feat_verified"),desc:t(lang,"feat_verified_d")},
+              {icon:"🎥",title:t(lang,"feat_video"),desc:t(lang,"feat_video_d")},
+              {icon:"🌍",title:t(lang,"feat_global"),desc:t(lang,"feat_global_d")},
+              {icon:"🛡️",title:t(lang,"feat_privacy"),desc:t(lang,"feat_privacy_d")},
+              {icon:"💬",title:t(lang,"feat_message"),desc:t(lang,"feat_message_d")},
+              {icon:"📡",title:t(lang,"feat_live"),desc:t(lang,"feat_live_d")},
             ].map((f,i) => (
               <div key={i} className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
                 <div className="w-14 h-14 bg-rose-50 rounded-xl flex items-center justify-center text-2xl mb-4">{f.icon}</div>
@@ -243,10 +243,10 @@ export default function HomePage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {[
-              {step:"1",icon:"📝",title:t(lang,"step1"),desc:t(lang,"step1_d")}},
-              {step:"2",icon:"💕",title:t(lang,"step2"),desc:t(lang,"step2_d")}},
-              {step:"3",icon:"💬",title:t(lang,"step3"),desc:t(lang,"step3_d")}},
-              {step:"4",icon:"☕",title:t(lang,"step4"),desc:t(lang,"step4_d")}},
+              {step:"1",icon:"📝",title:t(lang,"step1"),desc:t(lang,"step1_d")},
+              {step:"2",icon:"💕",title:t(lang,"step2"),desc:t(lang,"step2_d")},
+              {step:"3",icon:"💬",title:t(lang,"step3"),desc:t(lang,"step3_d")},
+              {step:"4",icon:"☕",title:t(lang,"step4"),desc:t(lang,"step4_d")},
             ].map((s,i) => (
               <div key={i} className="relative text-center">
                 <div className="w-16 h-16 mx-auto bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-lg shadow-rose-200">{s.icon}</div>
