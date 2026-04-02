@@ -216,12 +216,12 @@ export default function HomePage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
-              {icon:"🔒",title:{t(lang,"feat_verified")},desc:{t(lang,"feat_verified_d")}},
-              {icon:"🎥",title:{t(lang,"feat_video")},desc:{t(lang,"feat_video_d")}},
-              {icon:"🌍",title:{t(lang,"feat_global")},desc:{t(lang,"feat_global_d")}},
-              {icon:"🛡️",title:{t(lang,"feat_privacy")},desc:{t(lang,"feat_privacy_d")}},
-              {icon:"💬",title:{t(lang,"feat_message")},desc:{t(lang,"feat_message_d")}},
-              {icon:"📡",title:{t(lang,"feat_live")},desc:{t(lang,"feat_live_d")}},
+              {icon:"🔒",title:t(lang,"feat_verified"),desc:t(lang,"feat_verified_d")}},
+              {icon:"🎥",title:t(lang,"feat_video"),desc:t(lang,"feat_video_d")}},
+              {icon:"🌍",title:t(lang,"feat_global"),desc:t(lang,"feat_global_d")}},
+              {icon:"🛡️",title:t(lang,"feat_privacy"),desc:t(lang,"feat_privacy_d")}},
+              {icon:"💬",title:t(lang,"feat_message"),desc:t(lang,"feat_message_d")}},
+              {icon:"📡",title:t(lang,"feat_live"),desc:t(lang,"feat_live_d")}},
             ].map((f,i) => (
               <div key={i} className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
                 <div className="w-14 h-14 bg-rose-50 rounded-xl flex items-center justify-center text-2xl mb-4">{f.icon}</div>
@@ -243,10 +243,10 @@ export default function HomePage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {[
-              {step:"1",icon:"📝",title:{t(lang,"step1")},desc:{t(lang,"step1_d")}},
-              {step:"2",icon:"💕",title:{t(lang,"step2")},desc:{t(lang,"step2_d")}},
-              {step:"3",icon:"💬",title:{t(lang,"step3")},desc:{t(lang,"step3_d")}},
-              {step:"4",icon:"☕",title:{t(lang,"step4")},desc:{t(lang,"step4_d")}},
+              {step:"1",icon:"📝",title:t(lang,"step1"),desc:t(lang,"step1_d")}},
+              {step:"2",icon:"💕",title:t(lang,"step2"),desc:t(lang,"step2_d")}},
+              {step:"3",icon:"💬",title:t(lang,"step3"),desc:t(lang,"step3_d")}},
+              {step:"4",icon:"☕",title:t(lang,"step4"),desc:t(lang,"step4_d")}},
             ].map((s,i) => (
               <div key={i} className="relative text-center">
                 <div className="w-16 h-16 mx-auto bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-lg shadow-rose-200">{s.icon}</div>
@@ -274,9 +274,9 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {[
-              {name:"Free",price:"$0",period:"/forever",desc:{t(lang,"free_desc")},features:["Browse profiles","Limited daily matches","5 messages per day","Basic search filters","Voice and video calls"],excluded:["Ads shown","Limited photos","No rewinds","No live streaming","No profile boost"],cta:"Get Started",popular:false},
-              {name:"Plus",price:isMonthly?"$12":"$10",period:"/month",desc:{t(lang,"plus_desc")},features:["Everything in Free","No ads anywhere","16 photo uploads","Unlimited likes","Rewind last swipe","Extended profile views","Live streaming access","Priority matching"],excluded:[],cta:"{t(lang,"upgrade_plus")}",popular:true},
-              {name:"Premium",price:isMonthly?"$25":"$20",period:"/month",desc:{t(lang,"premium_desc")},features:["Everything in Plus","See who likes you","5 Super Likes per week","Daily Top Picks","Read receipts","Higher profile visibility","Monthly profile boost","Priority support"],excluded:[],cta:"{t(lang,"go_premium")}",popular:false},
+              {name:"Free",price:"$0",period:"/forever",desc:t(lang,"free_desc"),features:["Browse profiles","Limited daily matches","5 messages per day","Basic search filters","Voice and video calls"],excluded:["Ads shown","Limited photos","No rewinds","No live streaming","No profile boost"],cta:"Get Started",popular:false},
+              {name:"Plus",price:isMonthly?"$12":"$10",period:"/month",desc:t(lang,"plus_desc"),features:["Everything in Free","No ads anywhere","16 photo uploads","Unlimited likes","Rewind last swipe","Extended profile views","Live streaming access","Priority matching"],excluded:[],cta:"{t(lang,"upgrade_plus")}",popular:true},
+              {name:"Premium",price:isMonthly?"$25":"$20",period:"/month",desc:t(lang,"premium_desc"),features:["Everything in Plus","See who likes you","5 Super Likes per week","Daily Top Picks","Read receipts","Higher profile visibility","Monthly profile boost","Priority support"],excluded:[],cta:"{t(lang,"go_premium")}",popular:false},
             ].map((plan,i) => (
               <div key={i} className={"rounded-2xl border overflow-hidden transition-all hover:shadow-lg " + (plan.popular ? "border-rose-500 border-2 relative shadow-lg shadow-rose-100" : "border-gray-200")}>
                 {plan.popular && <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white text-center py-2 text-xs font-bold tracking-wide">{t(lang,"most_popular")}</div>}
@@ -399,7 +399,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-gray-500 text-sm">&copy; 2026 ConnectHub. {t(lang,"rights")}.</p>
+            <p className="text-gray-500 text-sm">&copy; 2026 ConnectHub. {t(lang,"rights").</p>
             <div className="flex gap-4">
               <Link href="/terms" className="text-gray-500 text-sm hover:text-white">Terms</Link>
               <Link href="/privacy" className="text-gray-500 text-sm hover:text-white">Privacy</Link>
