@@ -118,6 +118,8 @@ export default function AdminPage() {
                     ))}
                   </div>
 
+                  {selected.verificationPhoto&&<div className="mb-4"><p className="text-xs text-gray-500 mb-1">Verification Selfie</p><img src={selected.verificationPhoto} className="w-full max-h-48 rounded-xl object-cover border"/></div>}
+                  {selected.idDocument&&<div className="mb-4"><p className="text-xs text-gray-500 mb-1">ID Document ({selected.idType||"ID"})</p><img src={selected.idDocument} className="w-full max-h-48 rounded-xl object-cover border"/></div>}
                   {selected.bio&&<div className="bg-gray-50 rounded-lg p-3 mb-4"><p className="text-[10px] text-gray-500">Bio</p><p className="text-sm">{selected.bio}</p></div>}
                   {selected.verificationPhoto&&<div className="mb-4"><p className="text-xs text-gray-500 mb-1">Verification Selfie</p><img src={selected.verificationPhoto} className="w-full max-h-48 rounded-xl object-cover border"/></div>}
 

@@ -93,7 +93,7 @@ export default function HomePage() {
               </div>
 
               <Link href="/login" className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-gray-700 hover:text-rose-600 transition-colors">{t(lang,"sign_in")}</Link>
-              <Link href="/signup" className="px-4 py-2 sm:px-6 sm:py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-bold hover:shadow-lg hover:shadow-rose-200 transition-all">Get Started</Link>
+              <Link href="/signup" className="px-4 py-2 sm:px-6 sm:py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-bold hover:shadow-lg hover:shadow-rose-200 transition-all">{t(lang,"get_started")}</Link>
 
               {/* Mobile hamburger */}
               <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2 rounded-lg hover:bg-gray-50">
@@ -138,7 +138,7 @@ export default function HomePage() {
                 {t(lang,"trusted")}
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                Find Your<br/><span className="bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">{t(lang,"hero_highlight")}</span>
+                {t(lang,"hero_title")}<br/><span className="bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">{t(lang,"hero_highlight")}</span>
               </h1>
               <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-lg leading-relaxed">
                 {t(lang,"hero_desc")}
@@ -216,12 +216,12 @@ export default function HomePage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
-              {icon:"🔒",title:"Verified Profiles",desc:"Every profile goes through verification. Feel safe knowing you are talking to real people."},
-              {icon:"🎥",title:"Video Dating",desc:"See and hear your match before meeting. Build chemistry through face-to-face video calls."},
-              {icon:"🌍",title:"Global Community",desc:"Connect with singles from over 190 countries. Love knows no borders on ConnectHub."},
-              {icon:"🛡️",title:"Privacy First",desc:"Control who sees your information. Hide your phone, email, and personal details with one tap."},
-              {icon:"💬",title:"Smart Messaging",desc:"Rich messaging with voice notes, photos, videos, typing indicators, and read receipts."},
-              {icon:"📡",title:"Live Streaming",desc:"Go live, connect with viewers, receive gifts, and earn real coins from your audience."},
+              {icon:"🔒",title:{t(lang,"feat_verified")},desc:{t(lang,"feat_verified_d")}},
+              {icon:"🎥",title:{t(lang,"feat_video")},desc:{t(lang,"feat_video_d")}},
+              {icon:"🌍",title:{t(lang,"feat_global")},desc:{t(lang,"feat_global_d")}},
+              {icon:"🛡️",title:{t(lang,"feat_privacy")},desc:{t(lang,"feat_privacy_d")}},
+              {icon:"💬",title:{t(lang,"feat_message")},desc:{t(lang,"feat_message_d")}},
+              {icon:"📡",title:{t(lang,"feat_live")},desc:{t(lang,"feat_live_d")}},
             ].map((f,i) => (
               <div key={i} className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
                 <div className="w-14 h-14 bg-rose-50 rounded-xl flex items-center justify-center text-2xl mb-4">{f.icon}</div>
@@ -243,10 +243,10 @@ export default function HomePage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {[
-              {step:"1",icon:"📝",title:"Create Profile",desc:"Sign up free, add photos, write your bio, and tell us what you are looking for."},
-              {step:"2",icon:"💕",title:"Get Matched",desc:"Our smart matching system finds people compatible with your values and interests."},
-              {step:"3",icon:"💬",title:"Connect",desc:"Chat, voice call, or video call your matches. Break the ice with conversation starters."},
-              {step:"4",icon:"☕",title:"Meet Up",desc:"When you are ready, plan the perfect first date. Your love story begins!"},
+              {step:"1",icon:"📝",title:{t(lang,"step1")},desc:{t(lang,"step1_d")}},
+              {step:"2",icon:"💕",title:{t(lang,"step2")},desc:{t(lang,"step2_d")}},
+              {step:"3",icon:"💬",title:{t(lang,"step3")},desc:{t(lang,"step3_d")}},
+              {step:"4",icon:"☕",title:{t(lang,"step4")},desc:{t(lang,"step4_d")}},
             ].map((s,i) => (
               <div key={i} className="relative text-center">
                 <div className="w-16 h-16 mx-auto bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-lg shadow-rose-200">{s.icon}</div>
@@ -274,9 +274,9 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {[
-              {name:"Free",price:"$0",period:"/forever",desc:"Perfect for getting started",features:["Browse profiles","Limited daily matches","5 messages per day","Basic search filters","Voice and video calls"],excluded:["Ads shown","Limited photos","No rewinds","No live streaming","No profile boost"],cta:"Get Started",popular:false},
-              {name:"Plus",price:isMonthly?"$12":"$10",period:"/month",desc:"Best for active daters",features:["Everything in Free","No ads anywhere","16 photo uploads","Unlimited likes","Rewind last swipe","Extended profile views","Live streaming access","Priority matching"],excluded:[],cta:"Upgrade to Plus",popular:true},
-              {name:"Premium",price:isMonthly?"$25":"$20",period:"/month",desc:"The ultimate dating experience",features:["Everything in Plus","See who likes you","5 Super Likes per week","Daily Top Picks","Read receipts","Higher profile visibility","Monthly profile boost","Priority support"],excluded:[],cta:"Go Premium",popular:false},
+              {name:"Free",price:"$0",period:"/forever",desc:{t(lang,"free_desc")},features:["Browse profiles","Limited daily matches","5 messages per day","Basic search filters","Voice and video calls"],excluded:["Ads shown","Limited photos","No rewinds","No live streaming","No profile boost"],cta:"Get Started",popular:false},
+              {name:"Plus",price:isMonthly?"$12":"$10",period:"/month",desc:{t(lang,"plus_desc")},features:["Everything in Free","No ads anywhere","16 photo uploads","Unlimited likes","Rewind last swipe","Extended profile views","Live streaming access","Priority matching"],excluded:[],cta:"{t(lang,"upgrade_plus")}",popular:true},
+              {name:"Premium",price:isMonthly?"$25":"$20",period:"/month",desc:{t(lang,"premium_desc")},features:["Everything in Plus","See who likes you","5 Super Likes per week","Daily Top Picks","Read receipts","Higher profile visibility","Monthly profile boost","Priority support"],excluded:[],cta:"{t(lang,"go_premium")}",popular:false},
             ].map((plan,i) => (
               <div key={i} className={"rounded-2xl border overflow-hidden transition-all hover:shadow-lg " + (plan.popular ? "border-rose-500 border-2 relative shadow-lg shadow-rose-100" : "border-gray-200")}>
                 {plan.popular && <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white text-center py-2 text-xs font-bold tracking-wide">{t(lang,"most_popular")}</div>}
@@ -373,7 +373,7 @@ export default function HomePage() {
               <p className="text-gray-400 text-sm leading-relaxed">Where meaningful connections begin. Find love, friendship, and everything in between.</p>
             </div>
             <div>
-              <h4 className="font-bold mb-4 text-sm">Company</h4>
+              <h4 className="font-bold mb-4 text-sm">{t(lang,"company")}</h4>
               <div className="space-y-2">
                 <Link href="/about" className="block text-gray-400 text-sm hover:text-white transition-colors">{t(lang,"about")}</Link>
                 <Link href="/contact" className="block text-gray-400 text-sm hover:text-white transition-colors">{t(lang,"contact")}</Link>
