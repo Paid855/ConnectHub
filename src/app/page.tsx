@@ -274,9 +274,9 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {[
-              {name:"Free",price:"$0",period:"/forever",desc:t(lang,"free_desc"),features:["Browse profiles","Limited daily matches","5 messages per day","Basic search filters","Voice and video calls"],excluded:["Ads shown","Limited photos","No rewinds","No live streaming","No profile boost"],cta:"Get Started",popular:false},
-              {name:"Plus",price:isMonthly?"$12":"$10",period:"/month",desc:t(lang,"plus_desc"),features:["Everything in Free","No ads anywhere","16 photo uploads","Unlimited likes","Rewind last swipe","Extended profile views","Live streaming access","Priority matching"],excluded:[],cta:"{t(lang,"upgrade_plus")}",popular:true},
-              {name:"Premium",price:isMonthly?"$25":"$20",period:"/month",desc:t(lang,"premium_desc"),features:["Everything in Plus","See who likes you","5 Super Likes per week","Daily Top Picks","Read receipts","Higher profile visibility","Monthly profile boost","Priority support"],excluded:[],cta:"{t(lang,"go_premium")}",popular:false},
+              {name:"Free",price:"$0",period:"/forever",desc:t(lang,"free_desc"),features:["Browse profiles","Limited daily matches","5 messages per day","Basic search filters","Voice and video calls"],excluded:["Ads shown","Limited photos","No rewinds","No live streaming","No profile boost"],cta:t(lang,"get_started"),popular:false},
+              {name:"Plus",price:isMonthly?"$12":"$10",period:"/month",desc:t(lang,"plus_desc"),features:["Everything in Free","No ads anywhere","16 photo uploads","Unlimited likes","Rewind last swipe","Extended profile views","Live streaming access","Priority matching"],excluded:[],cta:t(lang,"upgrade_plus"),popular:true},
+              {name:"Premium",price:isMonthly?"$25":"$20",period:"/month",desc:t(lang,"premium_desc"),features:["Everything in Plus","See who likes you","5 Super Likes per week","Daily Top Picks","Read receipts","Higher profile visibility","Monthly profile boost","Priority support"],excluded:[],cta:t(lang,"go_premium"),popular:false},
             ].map((plan,i) => (
               <div key={i} className={"rounded-2xl border overflow-hidden transition-all hover:shadow-lg " + (plan.popular ? "border-rose-500 border-2 relative shadow-lg shadow-rose-100" : "border-gray-200")}>
                 {plan.popular && <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white text-center py-2 text-xs font-bold tracking-wide">{t(lang,"most_popular")}</div>}
