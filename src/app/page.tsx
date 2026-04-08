@@ -399,7 +399,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-gray-500 text-sm">&copy; 2026 ConnectHub. {t(lang,"rights").</p>
+            <p className="text-gray-500 text-sm">&copy; 2026 ConnectHub. {t(lang,"rights")}.</p>
             <div className="flex gap-4">
               <Link href="/terms" className="text-gray-500 text-sm hover:text-white">Terms</Link>
               <Link href="/privacy" className="text-gray-500 text-sm hover:text-white">Privacy</Link>
