@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import Script from "next/script";
+import ClientWrapper from "@/components/ClientWrapper";
 
 export const metadata: Metadata = {
   title: "ConnectHub — Find Your Perfect Match",
@@ -31,10 +32,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="google-site-verification" content="C4a3Fnhsqxc4fYxSdg2urqEkOHYwYrrF7-L1nmdLdzI" />
       </head>
       <body className="bg-white text-gray-900 font-sans antialiased min-h-screen">
-        {children}
-        <div id="google_translate_element" className="notranslate"
-          style={{position:"fixed",bottom:"80px",left:"12px",zIndex:99999,background:"white",borderRadius:"14px",padding:"6px 10px",boxShadow:"0 4px 24px rgba(0,0,0,0.12)",border:"1px solid #e5e7eb"}}
-        />
+        <ClientWrapper>{children}</ClientWrapper>
+        <div id="google_translate_element" className="notranslate" />
         <Script id="gt-init" strategy="afterInteractive">{`function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'en,es,fr,pt,de,ar,hi,zh-CN,sw,yo,ja,ko,tr,ru,it,nl,pl,vi,th,id,ms,tl,sv,da,no,fi,ro,uk,el,he,bn,ta,ur,am,ha,ig,zu,af',layout:google.translate.TranslateElement.InlineLayout.SIMPLE,autoDisplay:false},'google_translate_element')}`}</Script>
         <Script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" strategy="afterInteractive" />
       </body>
