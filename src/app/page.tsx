@@ -16,16 +16,13 @@ const LANGUAGES = [
 ];
 
 export default function HomePage() {
-  const [langOpen, setLangOpen] = useState(false);
     const [mobileMenu, setMobileMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number|null>(null);
   const [isMonthly, setIsMonthly] = useState(true);
-  const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => { if (r.ok) window.location.href = "/dashboard"; }).catch(() => {});
-    const saved = localStorage.getItem("ch_lang");
     if (saved) setLang(saved);
   }, []);
 
@@ -35,23 +32,9 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Click outside to close language picker (#20)
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
-      if (mobileMenu) setMobileMenu(false);
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [langOpen, mobileMenu]);
 
-  const selectLang = (code: string) => {
-    setLang(code);
-    localStorage.setItem("ch_lang", code);
-    setLangOpen(false);
   };
 
-  const curLang = LANGUAGES.find(l => l.code === lang);
 
   return (
     <div className="min-h-screen bg-white">
@@ -74,21 +57,6 @@ export default function HomePage() {
 
             <div className="flex items-center gap-2 sm:gap-3">
               {/* Language picker (#20) */}
-              <div ref={langRef} className="relative">
-                <button onClick={() => setLangOpen(!langOpen)} className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 border border-gray-200">
-                  <span>{curLang?.flag}</span>
-                  <span className="hidden sm:inline">{curLang?.name}</span>
-                </button>
-                {langOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50">
-                    {LANGUAGES.map(l => (
-                      <button key={l.code} onClick={() => selectLang(l.code)} className={"w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-rose-50 transition-colors " + (lang === l.code ? "bg-rose-50 text-rose-600 font-medium" : "text-gray-700")}>
-                        <span>{l.flag}</span><span>{l.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
 
               <Link href="/login" className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-gray-700 hover:text-rose-600 transition-colors">Sign In</Link>
               <Link href="/signup" className="px-4 py-2 sm:px-6 sm:py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-bold hover:shadow-lg hover:shadow-rose-200 transition-all">Get Started</Link>
@@ -214,12 +182,12 @@ export default function HomePage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
-              {icon:"🔒",title:t(lang,"feat_verified"),desc:t(lang,"feat_verified_d")},
-              {icon:"🎥",title:t(lang,"feat_video"),desc:t(lang,"feat_video_d")},
-              {icon:"🌍",title:t(lang,"feat_global"),desc:t(lang,"feat_global_d")},
-              {icon:"🛡️",title:t(lang,"feat_privacy"),desc:t(lang,"feat_privacy_d")},
-              {icon:"💬",title:t(lang,"feat_message"),desc:t(lang,"feat_message_d")},
-              {icon:"📡",title:t(lang,"feat_live"),desc:t(lang,"feat_live_d")},
+              {icon:"🔒",title:"Verified Profiles",desc:"Face scan + ID check ensures every profile is a real person."},
+              {icon:"🎥",title:"Video Dating",desc:"See and hear your match before meeting. No catfishing."},
+              {icon:"🌍",title:"Global Community",desc:"Connect with singles from 150+ countries worldwide."},
+              {icon:"🛡️",title:"Privacy First",desc:"Control who sees your information. Hide your phone, email, and personal details."},
+              {icon:"💬",title:"Smart Messaging",desc:"Rich messaging with voice notes, photos, videos, and read receipts."},
+              {icon:"📡",title:"Live Streaming",desc:"Go live, connect with viewers, receive gifts, and earn coins."},
             ].map((f,i) => (
               <div key={i} className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
                 <div className="w-14 h-14 bg-rose-50 rounded-xl flex items-center justify-center text-2xl mb-4">{f.icon}</div>
@@ -241,10 +209,10 @@ export default function HomePage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {[
-              {step:"1",icon:"📝",title:t(lang,"step1"),desc:t(lang,"step1_d")},
-              {step:"2",icon:"💕",title:t(lang,"step2"),desc:t(lang,"step2_d")},
-              {step:"3",icon:"💬",title:t(lang,"step3"),desc:t(lang,"step3_d")},
-              {step:"4",icon:"☕",title:t(lang,"step4"),desc:t(lang,"step4_d")},
+              {step:"1",icon:"📝",title:"Create Profile",desc:"Sign up in 60 seconds. Add photos, bio, and your interests."},
+              {step:"2",icon:"💕",title:"Get Verified",desc:"Quick face scan + ID upload. Earn the trusted blue badge."},
+              {step:"3",icon:"💬",title:"Discover Matches",desc:"Swipe through AI-curated profiles tailored to your preferences."},
+              {step:"4",icon:"☕",title:"Connect and Date",desc:"Chat, voice call, or video date. Then meet in person!"},
             ].map((s,i) => (
               <div key={i} className="relative text-center">
                 <div className="w-16 h-16 mx-auto bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-lg shadow-rose-200">{s.icon}</div>
@@ -272,9 +240,9 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {[
-              {name:"Free",price:"$0",period:"/forever",desc:t(lang,"free_desc"),features:["Browse profiles","Limited daily matches","5 messages per day","Basic search filters","Voice and video calls"],excluded:["Ads shown","Limited photos","No rewinds","No live streaming","No profile boost"],cta:t(lang,"get_started"),popular:false},
-              {name:"Plus",price:isMonthly?"$12":"$10",period:"/month",desc:t(lang,"plus_desc"),features:["Everything in Free","No ads anywhere","16 photo uploads","Unlimited likes","Rewind last swipe","Extended profile views","Live streaming access","Priority matching"],excluded:[],cta:t(lang,"upgrade_plus"),popular:true},
-              {name:"Premium",price:isMonthly?"$25":"$20",period:"/month",desc:t(lang,"premium_desc"),features:["Everything in Plus","See who likes you","5 Super Likes per week","Daily Top Picks","Read receipts","Higher profile visibility","Monthly profile boost","Priority support"],excluded:[],cta:t(lang,"go_premium"),popular:false},
+              {name:"Free",price:"$0",period:"/forever",desc:"Perfect for getting started",features:["Browse profiles","Limited daily matches","5 messages per day","Basic search filters","Voice and video calls"],excluded:["Ads shown","Limited photos","No rewinds","No live streaming","No profile boost"],cta:"Get Started",popular:false},
+              {name:"Plus",price:isMonthly?"$12":"$10",period:"/month",desc:"Best for active daters",features:["Everything in Free","No ads anywhere","16 photo uploads","Unlimited likes","Rewind last swipe","Extended profile views","Live streaming access","Priority matching"],excluded:[],cta:"Upgrade to Plus",popular:true},
+              {name:"Premium",price:isMonthly?"$25":"$20",period:"/month",desc:"The ultimate dating experience",features:["Everything in Plus","See who likes you","5 Super Likes per week","Daily Top Picks","Read receipts","Higher profile visibility","Monthly profile boost","Priority support"],excluded:[],cta:"Go Premium",popular:false},
             ].map((plan,i) => (
               <div key={i} className={"rounded-2xl border overflow-hidden transition-all hover:shadow-lg " + (plan.popular ? "border-rose-500 border-2 relative shadow-lg shadow-rose-100" : "border-gray-200")}>
                 {plan.popular && <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white text-center py-2 text-xs font-bold tracking-wide">MOST POPULAR</div>}
