@@ -52,7 +52,7 @@ export default function LoginPage() {
       {/* Right side - form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-white">
         <div className="w-full max-w-md">
-          <Link href="/" className="flex items-center gap-2 mb-8">
+          <div className="flex items-center justify-between mb-8"><Link href="/" className="flex items-center gap-2">
             <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl flex items-center justify-center"><span className="text-white text-xl">💕</span></div>
             <span className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">ConnectHub</span>
           </Link>

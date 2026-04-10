@@ -179,6 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-3 sm:p-6 lg:p-8 max-w-6xl mx-auto pb-20 lg:pb-8">{children}</div><LocationDetector />
+        
         <PushNotifications />
         </main>
 
