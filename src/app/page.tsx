@@ -11,7 +11,7 @@ export default function HomePage() {
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => { if (r.ok) window.location.href = "/dashboard"; }).catch(() => {});
-    if (saved) setLang(saved);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
