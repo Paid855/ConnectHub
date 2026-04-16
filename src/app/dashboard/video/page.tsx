@@ -59,6 +59,18 @@ export default function LiveStreamPage() {
     return () => clearInterval(interval);
   }, [mode, currentStream]);
 
+  // Play local video whenever host track is ready AND mode is live
+  useEffect(() => {
+    if (role === "host" && mode === "live" && localTracks.video && localVideoRef.current) {
+      try {
+        localTracks.video.play(localVideoRef.current, { fit: "cover" });
+        console.log("[Agora] Local video playing");
+      } catch (e) {
+        console.error("[Agora] Play error:", e);
+      }
+    }
+  }, [role, mode, localTracks.video]);
+
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -145,23 +157,14 @@ export default function LiveStreamPage() {
       const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
       setLocalTracks({ audio: audioTrack, video: videoTrack });
 
-      // Wait for DOM to be ready, then play local video
-      setTimeout(() => {
-        if (localVideoRef.current) {
-          videoTrack.play(localVideoRef.current, { fit: "cover" });
-        } else {
-          // Fallback - try by ID
-          const el = document.getElementById("local-video-container");
-          if (el) videoTrack.play(el, { fit: "cover" });
-        }
-      }, 100);
+      // Video will be played by useEffect once ref is ready
 
       await client.publish([audioTrack, videoTrack]);
 
       client.on("user-joined", (user: any) => {
         setViewerCount(c => c + 1);
         setViewers(v => [...v, { uid: user.uid, joinedAt: Date.now() }]);
-        addToast("join", `Someone joined your stream`, "👋");
+        addToast("join", `A new viewer joined!`, "👋");
       });
       client.on("user-left", (user: any) => {
         setViewerCount(c => Math.max(0, c - 1));
@@ -195,14 +198,23 @@ export default function LiveStreamPage() {
       client.on("user-published", async (user: any, mediaType: any) => {
         await client.subscribe(user, mediaType);
         if (mediaType === "video") {
-          setTimeout(() => {
-            if (remoteVideoRef.current) {
-              user.videoTrack?.play(remoteVideoRef.current, { fit: "cover" });
-            } else {
-              const el = document.getElementById("remote-video-container");
-              if (el) user.videoTrack?.play(el, { fit: "cover" });
+          // Store for useEffect to pick up, also try immediate play
+          const tryPlay = () => {
+            if (remoteVideoRef.current && user.videoTrack) {
+              user.videoTrack.play(remoteVideoRef.current, { fit: "cover" });
+              console.log("[Agora] Remote video playing");
+              return true;
             }
-          }, 100);
+            return false;
+          };
+          if (!tryPlay()) {
+            // Retry a few times
+            let attempts = 0;
+            const retry = setInterval(() => {
+              attempts++;
+              if (tryPlay() || attempts > 20) clearInterval(retry);
+            }, 200);
+          }
         }
         if (mediaType === "audio") {
           user.audioTrack?.play();
@@ -500,8 +512,18 @@ export default function LiveStreamPage() {
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Video Area */}
       <div className="flex-1 relative overflow-hidden">
-        <div ref={localVideoRef} className={"w-full h-full bg-gray-900 " + (role === "host" ? "block" : "hidden")} id="local-video-container" style={{minHeight: "100%"}} />
-        <div ref={remoteVideoRef} className={"w-full h-full bg-gray-900 " + (role === "viewer" ? "block" : "hidden")} id="remote-video-container" style={{minHeight: "100%"}} />
+        <div
+          ref={localVideoRef}
+          id="local-video-container"
+          className="w-full h-full bg-gray-900 absolute inset-0"
+          style={{ display: role === "host" ? "block" : "none" }}
+        />
+        <div
+          ref={remoteVideoRef}
+          id="remote-video-container"
+          className="w-full h-full bg-gray-900 absolute inset-0"
+          style={{ display: role === "viewer" ? "block" : "none" }}
+        />
 
         {/* Top Gradient + Stream Info */}
         <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 via-black/30 to-transparent">
