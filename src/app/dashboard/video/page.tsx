@@ -145,9 +145,16 @@ export default function LiveStreamPage() {
       const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
       setLocalTracks({ audio: audioTrack, video: videoTrack });
 
-      if (localVideoRef.current) {
-        videoTrack.play(localVideoRef.current);
-      }
+      // Wait for DOM to be ready, then play local video
+      setTimeout(() => {
+        if (localVideoRef.current) {
+          videoTrack.play(localVideoRef.current, { fit: "cover" });
+        } else {
+          // Fallback - try by ID
+          const el = document.getElementById("local-video-container");
+          if (el) videoTrack.play(el, { fit: "cover" });
+        }
+      }, 100);
 
       await client.publish([audioTrack, videoTrack]);
 
@@ -187,8 +194,15 @@ export default function LiveStreamPage() {
 
       client.on("user-published", async (user: any, mediaType: any) => {
         await client.subscribe(user, mediaType);
-        if (mediaType === "video" && remoteVideoRef.current) {
-          user.videoTrack?.play(remoteVideoRef.current);
+        if (mediaType === "video") {
+          setTimeout(() => {
+            if (remoteVideoRef.current) {
+              user.videoTrack?.play(remoteVideoRef.current, { fit: "cover" });
+            } else {
+              const el = document.getElementById("remote-video-container");
+              if (el) user.videoTrack?.play(el, { fit: "cover" });
+            }
+          }, 100);
         }
         if (mediaType === "audio") {
           user.audioTrack?.play();
@@ -486,11 +500,8 @@ export default function LiveStreamPage() {
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Video Area */}
       <div className="flex-1 relative overflow-hidden">
-        {role === "host" ? (
-          <div ref={localVideoRef} className="w-full h-full bg-gray-900" />
-        ) : (
-          <div ref={remoteVideoRef} className="w-full h-full bg-gray-900" />
-        )}
+        <div ref={localVideoRef} className={"w-full h-full bg-gray-900 " + (role === "host" ? "block" : "hidden")} id="local-video-container" style={{minHeight: "100%"}} />
+        <div ref={remoteVideoRef} className={"w-full h-full bg-gray-900 " + (role === "viewer" ? "block" : "hidden")} id="remote-video-container" style={{minHeight: "100%"}} />
 
         {/* Top Gradient + Stream Info */}
         <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 via-black/30 to-transparent">
@@ -524,11 +535,11 @@ export default function LiveStreamPage() {
         </div>
 
         {/* Toast Notifications */}
-        <div className="absolute top-20 right-4 space-y-2 pointer-events-none">
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 space-y-2 pointer-events-none z-30 w-[90%] max-w-md">
           {toasts.map(t => (
-            <div key={t.id} className="bg-black/70 backdrop-blur-lg text-white text-sm px-4 py-2.5 rounded-full flex items-center gap-2 animate-in slide-in-from-right">
-              <span>{t.emoji}</span>
-              <span>{t.text}</span>
+            <div key={t.id} className="bg-gradient-to-r from-rose-500/95 to-pink-500/95 backdrop-blur-lg text-white text-sm px-5 py-3 rounded-full flex items-center justify-center gap-2 shadow-2xl shadow-rose-500/50 animate-in slide-in-from-top">
+              <span className="text-lg">{t.emoji}</span>
+              <span className="font-semibold">{t.text}</span>
             </div>
           ))}
         </div>
