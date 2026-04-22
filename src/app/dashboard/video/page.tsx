@@ -2,35 +2,31 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Video, Users, Radio, X, Gift, Send, Mic, MicOff, VideoOff, Eye, Crown, UserPlus, ShoppingCart } from "lucide-react";
+import { Video, Users, Radio, X, Gift, Send, Mic, MicOff, VideoOff, Eye, Crown, UserPlus, ShoppingCart, Check, Phone } from "lucide-react";
 
 const GIFTS = [
-  { id:"rose",name:"Rose",emoji:"🌹",coins:10 },
-  { id:"heart",name:"Heart",emoji:"💖",coins:25 },
-  { id:"kiss",name:"Kiss",emoji:"💋",coins:50 },
-  { id:"diamond",name:"Diamond",emoji:"💎",coins:100 },
-  { id:"crown",name:"Crown",emoji:"👑",coins:250 },
-  { id:"rocket",name:"Rocket",emoji:"🚀",coins:500 },
-  { id:"ring",name:"Ring",emoji:"💍",coins:1000 },
-  { id:"castle",name:"Castle",emoji:"🏰",coins:2500 },
+  {id:"rose",name:"Rose",emoji:"🌹",coins:10},{id:"heart",name:"Heart",emoji:"💖",coins:25},
+  {id:"kiss",name:"Kiss",emoji:"💋",coins:50},{id:"diamond",name:"Diamond",emoji:"💎",coins:100},
+  {id:"crown",name:"Crown",emoji:"👑",coins:250},{id:"rocket",name:"Rocket",emoji:"🚀",coins:500},
+  {id:"ring",name:"Ring",emoji:"💍",coins:1000},{id:"castle",name:"Castle",emoji:"🏰",coins:2500},
 ];
 
 export default function LiveStreamPage() {
   const router = useRouter();
   const [page, setPage] = useState<"list"|"setup"|"live">("list");
-  const [role, setRole] = useState<"host"|"viewer">("viewer");
+  const [role, setRole] = useState<"host"|"viewer"|"cohost">("viewer");
   const [streams, setStreams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("chat");
   const [stream, setStream] = useState<any>(null);
   const [viewerCount, setViewerCount] = useState(0);
-  const [viewers, setViewers] = useState<any[]>([]);
+  const [realViewers, setRealViewers] = useState<any[]>([]);
   const [muted, setMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
   const [msgs, setMsgs] = useState<any[]>([]);
   const [chatText, setChatText] = useState("");
-  const [client, setClient] = useState<any>(null);
+  const [agoraClient, setAgoraClient] = useState<any>(null);
   const [tracks, setTracks] = useState<{a:any,v:any}>({a:null,v:null});
   const [err, setErr] = useState("");
   const [ended, setEnded] = useState(false);
@@ -39,182 +35,179 @@ export default function LiveStreamPage() {
   const [toasts, setToasts] = useState<{id:number,text:string,emoji:string}[]>([]);
   const [showViewerList, setShowViewerList] = useState(false);
   const [me, setMe] = useState<any>(null);
-
-  const hostRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<HTMLDivElement>(null);
+  const [invited, setInvited] = useState(false);
+  const [inviteSending, setInviteSending] = useState<string|null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
 
-  const toast = useCallback((text:string, emoji="💬") => {
-    const id = Date.now()+Math.random();
+  const toast = useCallback((text:string, emoji="💬")=>{
+    const id=Date.now()+Math.random();
     setToasts(t=>[...t,{id,text,emoji}]);
     setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),4000);
   },[]);
 
-  // Load streams list
   const loadStreams = useCallback(async()=>{
-    try{ const r=await fetch("/api/live"); const d=await r.json(); setStreams(d.streams||[]); }catch{}
+    try{const r=await fetch("/api/live");const d=await r.json();setStreams(d.streams||[]);}catch{}
     setLoading(false);
   },[]);
 
-  // Load my info + coins
+  // Load user info + coins
   useEffect(()=>{
     (async()=>{
-      try{ const r=await fetch("/api/auth/me"); const d=await r.json(); setMe(d.user); }catch{}
-      try{ const r=await fetch("/api/coins"); const d=await r.json(); setCoins(d.coins||0); }catch{}
+      try{const r=await fetch("/api/auth/me");const d=await r.json();setMe(d.user);}catch{}
+      try{const r=await fetch("/api/coins");const d=await r.json();setCoins(d.coins||0);}catch{}
     })();
     loadStreams();
   },[loadStreams]);
 
-  // Refresh stream list every 10s on list page
+  // Refresh list
   useEffect(()=>{
     if(page!=="list") return;
     const i=setInterval(loadStreams,10000);
     return()=>clearInterval(i);
   },[page,loadStreams]);
 
-  // Auto-refresh chat every 2s during live
+  // Auto-refresh chat + viewers + invite check during live
   useEffect(()=>{
     if(page!=="live"||!stream) return;
     const loadMsgs = async()=>{
-      try{ const r=await fetch(`/api/live/chat?streamId=${stream.id}`); const d=await r.json(); setMsgs(d.messages||[]); }catch{}
+      try{const r=await fetch(`/api/live/chat?streamId=${stream.id}`);const d=await r.json();setMsgs(d.messages||[]);}catch{}
     };
-    loadMsgs();
-    const i=setInterval(loadMsgs,2000);
-    return()=>clearInterval(i);
-  },[page,stream]);
+    const loadViewers = async()=>{
+      try{const r=await fetch(`/api/live/viewers?streamId=${stream.id}`);const d=await r.json();setRealViewers(d.viewers||[]);setViewerCount(d.count||0);}catch{}
+    };
+    const checkInvite = async()=>{
+      if(role!=="viewer") return;
+      try{const r=await fetch(`/api/live/invite?streamId=${stream.id}`);const d=await r.json();if(d.invited&&!invited) setInvited(true);}catch{}
+    };
+    loadMsgs(); loadViewers();
+    const i1=setInterval(loadMsgs,2000);
+    const i2=setInterval(loadViewers,5000);
+    const i3=setInterval(checkInvite,3000);
+    return()=>{clearInterval(i1);clearInterval(i2);clearInterval(i3);};
+  },[page,stream,role,invited]);
 
-  // Auto-scroll chat
-  useEffect(()=>{ chatEnd.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
+  useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
 
-  // ===== HOST: Start broadcasting =====
+  // ===== HOST: Go live =====
   const goLive = async()=>{
-    if(!title.trim()){ setErr("Enter a stream title"); return; }
+    if(!title.trim()){setErr("Enter a stream title");return;}
     setErr("");
-    try {
-      // 1. Create stream in DB
-      const cr = await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start",title})});
-      const {stream:s} = await cr.json();
-      setStream(s);
-      setRole("host");
+    try{
+      const cr=await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start",title})});
+      const{stream:s}=await cr.json();
+      setStream(s); setRole("host");
 
-      // 2. Init Agora
-      const AgoraRTC = (await import("agora-rtc-sdk-ng")).default;
+      const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
       AgoraRTC.setLogLevel(4);
-      const c = AgoraRTC.createClient({mode:"live",codec:"vp8"});
+      const c=AgoraRTC.createClient({mode:"live",codec:"vp8"});
       await c.setClientRole("host");
 
-      // 3. Get token
-      const ch = `stream_${s.id}`;
-      const tk = await fetch("/api/agora",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channelName:ch,isHost:true})}).then(r=>r.json());
+      const ch=`stream_${s.id}`;
+      const tk=await fetch("/api/agora",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channelName:ch,isHost:true})}).then(r=>r.json());
+      await c.join(tk.appId,ch,tk.token,tk.uid);
 
-      // 4. Join channel
-      await c.join(tk.appId, ch, tk.token, tk.uid);
-
-      // 5. Create camera + mic
-      const [at, vt] = await AgoraRTC.createMicrophoneAndCameraTracks(
-        { encoderConfig: "high_quality" },
-        { encoderConfig: "720p_2" }
-      );
+      const[at,vt]=await AgoraRTC.createMicrophoneAndCameraTracks({encoderConfig:"high_quality"},{encoderConfig:"720p_2"});
       setTracks({a:at,v:vt});
+      await c.publish([at,vt]);
 
-      // 6. Publish
-      await c.publish([at, vt]);
-
-      // 7. Viewer events
-      c.on("user-joined", ()=>{
-        setViewerCount(n=>n+1);
-        setViewers(v=>[...v,{uid:Date.now(),t:Date.now()}]);
-        toast("A new viewer joined!","👋");
-      });
-      c.on("user-left", ()=>{
-        setViewerCount(n=>Math.max(0,n-1));
-      });
-
-      setClient(c);
-      setPage("live");
-      toast("You are now live!","🔴");
-
-      // 8. Play local video AFTER state updates (next tick)
-      requestAnimationFrame(()=>{
-        requestAnimationFrame(()=>{
-          const el = document.getElementById("host-video");
-          if(el && vt) {
-            vt.play(el, {fit:"cover",mirror:true});
-            console.log("[Agora] Host video playing in element", el);
-          } else {
-            console.error("[Agora] Host element not found or no track", !!el, !!vt);
-          }
-        });
-      });
-
-    } catch(e:any){
-      console.error("Go live error:",e);
-      setErr("Failed: "+(e.message||"Unknown error. Make sure camera is allowed."));
-    }
-  };
-
-  // ===== VIEWER: Join stream =====
-  const joinLive = async(s:any)=>{
-    setStream(s);
-    setRole("viewer");
-    setErr("");
-    try {
-      const AgoraRTC = (await import("agora-rtc-sdk-ng")).default;
-      AgoraRTC.setLogLevel(4);
-      const c = AgoraRTC.createClient({mode:"live",codec:"vp8"});
-      await c.setClientRole("audience");
-
-      const ch = `stream_${s.id}`;
-      const tk = await fetch("/api/agora",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channelName:ch,isHost:false})}).then(r=>r.json());
-
-      // When host publishes video/audio
-      c.on("user-published", async(user:any, type:any)=>{
-        await c.subscribe(user, type);
+      // Listen for co-host video
+      c.on("user-published",async(user:any,type:any)=>{
+        await c.subscribe(user,type);
         if(type==="video"){
-          const playRemote = ()=>{
-            const el = document.getElementById("viewer-video");
-            if(el && user.videoTrack){
-              user.videoTrack.play(el, {fit:"cover"});
-              console.log("[Agora] Remote video playing");
-              return true;
-            }
-            return false;
-          };
-          if(!playRemote()){
-            let tries=0;
-            const iv = setInterval(()=>{
-              tries++;
-              if(playRemote()||tries>30) clearInterval(iv);
-            },200);
-          }
+          const tryPlay=()=>{const el=document.getElementById("cohost-video");if(el&&user.videoTrack){user.videoTrack.play(el,{fit:"cover"});return true;}return false;};
+          if(!tryPlay()){let n=0;const iv=setInterval(()=>{n++;if(tryPlay()||n>20)clearInterval(iv);},200);}
         }
         if(type==="audio") user.audioTrack?.play();
       });
 
-      // Host left = stream ended
-      c.on("user-left", ()=>{
+      c.on("user-joined",()=>toast("A new viewer joined!","👋"));
+      c.on("user-left",()=>{});
+
+      setAgoraClient(c);
+      setPage("live");
+      toast("You are now live!","🔴");
+
+      requestAnimationFrame(()=>{requestAnimationFrame(()=>{
+        const el=document.getElementById("host-video");
+        if(el&&vt){vt.play(el,{fit:"cover",mirror:true});}
+      });});
+    }catch(e:any){setErr("Failed: "+(e.message||"Unknown error"));}
+  };
+
+  // ===== VIEWER: Join stream =====
+  const joinLive = async(s:any)=>{
+    setStream(s); setRole("viewer"); setErr("");
+    try{
+      const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
+      AgoraRTC.setLogLevel(4);
+      const c=AgoraRTC.createClient({mode:"live",codec:"vp8"});
+      await c.setClientRole("audience");
+
+      const ch=`stream_${s.id}`;
+      const tk=await fetch("/api/agora",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channelName:ch,isHost:false})}).then(r=>r.json());
+
+      c.on("user-published",async(user:any,type:any)=>{
+        await c.subscribe(user,type);
+        if(type==="video"){
+          const tryPlay=()=>{const el=document.getElementById("viewer-video");if(el&&user.videoTrack){user.videoTrack.play(el,{fit:"cover"});return true;}return false;};
+          if(!tryPlay()){let n=0;const iv=setInterval(()=>{n++;if(tryPlay()||n>30)clearInterval(iv);},200);}
+        }
+        if(type==="audio") user.audioTrack?.play();
+      });
+
+      c.on("user-left",()=>{
         setTimeout(async()=>{
-          try{
-            const r=await fetch("/api/live"); const d=await r.json();
-            if(!d.streams?.find((x:any)=>x.id===s.id)) setEnded(true);
-          }catch{}
+          try{const r=await fetch("/api/live");const d=await r.json();if(!d.streams?.find((x:any)=>x.id===s.id))setEnded(true);}catch{}
         },1000);
       });
 
-      await c.join(tk.appId, ch, tk.token, tk.uid);
-      setClient(c);
+      await c.join(tk.appId,ch,tk.token,tk.uid);
+      setAgoraClient(c);
       setPage("live");
       toast(`Joined ${s.host?.name||"the host"}'s stream`,"🎉");
 
-      // Post join message to chat
-      try{
-        await fetch("/api/live/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:s.id,content:"👋 joined the stream"})});
-      }catch{}
+      // Register as viewer
+      try{await fetch("/api/live/viewers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:s.id})});}catch{}
+    }catch(e:any){setErr("Failed to join: "+(e.message||"Unknown error"));}
+  };
 
-    } catch(e:any){
-      console.error("Join error:",e);
-      setErr("Failed to join: "+(e.message||"Unknown error"));
-    }
+  // ===== ACCEPT CO-HOST INVITE =====
+  const acceptInvite = async()=>{
+    if(!agoraClient||!stream) return;
+    setInvited(false);
+    try{
+      const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
+
+      // Switch from audience to host
+      await agoraClient.setClientRole("host");
+
+      // Create own camera + mic
+      const[at,vt]=await AgoraRTC.createMicrophoneAndCameraTracks();
+      setTracks({a:at,v:vt});
+      await agoraClient.publish([at,vt]);
+
+      setRole("cohost");
+      toast("You are now co-hosting!","🎤");
+
+      // Play own video in small preview
+      requestAnimationFrame(()=>{requestAnimationFrame(()=>{
+        const el=document.getElementById("cohost-self-video");
+        if(el&&vt) vt.play(el,{fit:"cover",mirror:true});
+      });});
+
+      // Announce in chat
+      try{await fetch("/api/live/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,content:`🎤 ${me?.name||"A viewer"} is now co-hosting!`})});}catch{}
+    }catch(e:any){toast("Failed to start co-hosting: "+(e.message||""),"❌");}
+  };
+
+  // ===== HOST: Invite viewer to co-host =====
+  const inviteViewer = async(viewerId:string, viewerName:string)=>{
+    setInviteSending(viewerId);
+    try{
+      await fetch("/api/live/invite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,inviteeId:viewerId})});
+      toast(`Invite sent to ${viewerName}!`,"📩");
+    }catch{toast("Failed to send invite","❌");}
+    setTimeout(()=>setInviteSending(null),2000);
   };
 
   // ===== END STREAM =====
@@ -222,46 +215,41 @@ export default function LiveStreamPage() {
     try{
       if(tracks.v){tracks.v.stop();tracks.v.close();}
       if(tracks.a){tracks.a.stop();tracks.a.close();}
-      if(client) await client.leave();
-      if(role==="host"){
-        await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})});
-      }
+      if(agoraClient) await agoraClient.leave();
+      if(role==="host") await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})});
     }catch{}
-    setClient(null);setTracks({a:null,v:null});setStream(null);setPage("list");
-    setViewerCount(0);setViewers([]);setMsgs([]);setEnded(false);setTitle("");
-    setRole("viewer");loadStreams();
-    try{ const r=await fetch("/api/coins"); const d=await r.json(); setCoins(d.coins||0); }catch{}
+    setAgoraClient(null);setTracks({a:null,v:null});setStream(null);setPage("list");
+    setViewerCount(0);setRealViewers([]);setMsgs([]);setEnded(false);setTitle("");
+    setRole("viewer");setInvited(false);loadStreams();
+    try{const r=await fetch("/api/coins");const d=await r.json();setCoins(d.coins||0);}catch{}
   };
 
-  // Toggle mic/cam
-  const toggleMic = async()=>{ if(tracks.a){await tracks.a.setEnabled(muted);setMuted(!muted);} };
-  const toggleCam = async()=>{ if(tracks.v){await tracks.v.setEnabled(camOff);setCamOff(!camOff);} };
+  const toggleMic=async()=>{if(tracks.a){await tracks.a.setEnabled(muted);setMuted(!muted);}};
+  const toggleCam=async()=>{if(tracks.v){await tracks.v.setEnabled(camOff);setCamOff(!camOff);}};
 
-  // Send chat
-  const sendChat = async()=>{
+  const sendChat=async()=>{
     if(!chatText.trim()||!stream) return;
-    const t=chatText.trim(); setChatText("");
+    const t=chatText.trim();setChatText("");
     try{
       await fetch("/api/live/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,content:t})});
-      const r=await fetch(`/api/live/chat?streamId=${stream.id}`); const d=await r.json(); setMsgs(d.messages||[]);
+      const r=await fetch(`/api/live/chat?streamId=${stream.id}`);const d=await r.json();setMsgs(d.messages||[]);
     }catch{}
   };
 
-  // Send gift
-  const sendGift = async(g:any)=>{
-    if(coins<g.coins){ toast("Not enough coins!","💰"); setShowGifts(false); setTimeout(()=>router.push("/dashboard/coins"),1000); return; }
+  const sendGift=async(g:any)=>{
+    if(coins<g.coins){toast("Not enough coins!","💰");setShowGifts(false);setTimeout(()=>router.push("/dashboard/coins"),1000);return;}
     try{
       const r=await fetch("/api/gifts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({receiverId:stream.userId,giftType:g.name,amount:g.coins})});
       const d=await r.json();
       if(d.success){
-        setCoins(c=>c-g.coins); toast(`Sent ${g.emoji} ${g.name}!`,g.emoji); setShowGifts(false);
+        setCoins(c=>c-g.coins);toast(`Sent ${g.emoji} ${g.name}!`,g.emoji);setShowGifts(false);
         await fetch("/api/live/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,content:`🎁 sent ${g.emoji} ${g.name} (${g.coins} coins)`})});
-        const r2=await fetch(`/api/live/chat?streamId=${stream.id}`); const d2=await r2.json(); setMsgs(d2.messages||[]);
-      } else { toast(d.error||"Gift failed","❌"); }
-    }catch{ toast("Gift failed","❌"); }
+        const r2=await fetch(`/api/live/chat?streamId=${stream.id}`);const d2=await r2.json();setMsgs(d2.messages||[]);
+      }else{toast(d.error||"Gift failed","❌");}
+    }catch{toast("Gift failed","❌");}
   };
 
-  // ==================== STREAM ENDED ====================
+  // ===== STREAM ENDED =====
   if(ended){
     return(
       <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
@@ -275,7 +263,7 @@ export default function LiveStreamPage() {
     );
   }
 
-  // ==================== LIST PAGE ====================
+  // ===== LIST =====
   if(page==="list"){
     return(
       <div className="min-h-screen bg-gradient-to-b from-rose-50/30 to-white pb-24">
@@ -301,7 +289,7 @@ export default function LiveStreamPage() {
               {streams.map(s=>(
                 <button key={s.id} onClick={()=>joinLive(s)} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all text-left group">
                   <div className="aspect-video bg-gradient-to-br from-rose-400 via-pink-400 to-purple-500 relative overflow-hidden">
-                    {s.host?.profilePhoto?(<img src={s.host.profilePhoto} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-500"/>):(<div className="w-full h-full flex items-center justify-center text-6xl">👤</div>)}
+                    {s.host?.profilePhoto?<img src={s.host.profilePhoto} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-500"/>:<div className="w-full h-full flex items-center justify-center text-6xl">👤</div>}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
                     <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1"><span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"/> LIVE</div>
                     <div className="absolute top-3 right-3 bg-black/40 backdrop-blur text-white text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1"><Eye className="w-3 h-3"/> {s.viewers||0}</div>
@@ -319,7 +307,7 @@ export default function LiveStreamPage() {
     );
   }
 
-  // ==================== SETUP PAGE ====================
+  // ===== SETUP =====
   if(page==="setup"){
     return(
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 flex items-center justify-center p-4">
@@ -329,8 +317,7 @@ export default function LiveStreamPage() {
             <button onClick={()=>setPage("list")} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5"/></button>
           </div>
           <div className="w-full aspect-video bg-gradient-to-br from-rose-400 via-pink-400 to-purple-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/20"/>
-            <div className="relative text-center"><Radio className="w-16 h-16 text-white mx-auto mb-2"/><p className="text-white font-bold text-lg">Ready to Stream</p><p className="text-white/80 text-xs">Your audience is waiting</p></div>
+            <div className="absolute inset-0 bg-black/20"/><div className="relative text-center"><Radio className="w-16 h-16 text-white mx-auto mb-2"/><p className="text-white font-bold text-lg">Ready to Stream</p></div>
           </div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Stream Title *</label>
           <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="What is your stream about?" maxLength={80} className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl outline-none text-sm focus:ring-2 focus:ring-rose-300 focus:border-rose-400 mb-2"/>
@@ -352,15 +339,23 @@ export default function LiveStreamPage() {
     );
   }
 
-  // ==================== LIVE PAGE ====================
+  // ===== LIVE =====
   return(
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      {/* VIDEO */}
       <div className="flex-1 relative overflow-hidden bg-gray-900">
-        {/* HOST sees own camera */}
-        {role==="host" && <div id="host-video" style={{width:"100%",height:"100%",position:"absolute",top:0,left:0,background:"#111"}}/>}
-        {/* VIEWER sees remote */}
-        {role==="viewer" && <div id="viewer-video" style={{width:"100%",height:"100%",position:"absolute",top:0,left:0,background:"#111"}}/>}
+        {/* Host self-view */}
+        {role==="host"&&<div id="host-video" style={{width:"100%",height:"100%",position:"absolute",top:0,left:0,background:"#111"}}/>}
+        {/* Co-host video (shown alongside host) */}
+        {role==="host"&&<div id="cohost-video" style={{width:"120px",height:"160px",position:"absolute",bottom:"140px",right:"12px",borderRadius:"16px",overflow:"hidden",border:"3px solid rgba(255,255,255,0.3)",zIndex:15,background:"#222"}}/>}
+        {/* Viewer sees host */}
+        {role==="viewer"&&<div id="viewer-video" style={{width:"100%",height:"100%",position:"absolute",top:0,left:0,background:"#111"}}/>}
+        {/* Co-host sees host + own small preview */}
+        {role==="cohost"&&(
+          <>
+            <div id="viewer-video" style={{width:"100%",height:"100%",position:"absolute",top:0,left:0,background:"#111"}}/>
+            <div id="cohost-self-video" style={{width:"120px",height:"160px",position:"absolute",bottom:"140px",right:"12px",borderRadius:"16px",overflow:"hidden",border:"3px solid rgba(255,255,255,0.3)",zIndex:15,background:"#222"}}/>
+          </>
+        )}
 
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 via-black/30 to-transparent z-10">
@@ -368,12 +363,11 @@ export default function LiveStreamPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <div className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"><span className="w-2 h-2 bg-white rounded-full animate-pulse"/> LIVE</div>
-                <button onClick={()=>setShowViewerList(true)} className="bg-black/40 backdrop-blur text-white text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-black/60"><Eye className="w-3 h-3"/> {viewerCount}</button>
+                <button onClick={()=>setShowViewerList(true)} className="bg-black/40 backdrop-blur text-white text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-black/60"><Eye className="w-3 h-3"/> {viewerCount} viewer{viewerCount!==1?"s":""}</button>
+                {role==="cohost"&&<div className="bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-full">🎤 Co-hosting</div>}
               </div>
               <p className="text-white font-bold text-lg drop-shadow-lg line-clamp-1">{stream?.title||title}</p>
-              {role==="viewer"&&stream?.host&&(
-                <p className="text-white/80 text-xs flex items-center gap-1 mt-0.5">{stream.host.verified&&<span className="text-blue-400">✓</span>}{stream.host.name||"Host"}</p>
-              )}
+              {role!=="host"&&stream?.host&&<p className="text-white/80 text-xs flex items-center gap-1 mt-0.5">{stream.host.verified&&<span className="text-blue-400">✓</span>}{stream.host.name||"Host"}</p>}
             </div>
             <button onClick={leave} className="w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center ml-3 flex-shrink-0"><X className="w-5 h-5"/></button>
           </div>
@@ -381,20 +375,33 @@ export default function LiveStreamPage() {
 
         {/* Toasts */}
         <div className="absolute top-24 left-1/2 -translate-x-1/2 space-y-2 pointer-events-none z-30 w-[90%] max-w-md">
-          {toasts.map(t=>(
-            <div key={t.id} className="bg-gradient-to-r from-rose-500/95 to-pink-500/95 backdrop-blur-lg text-white text-sm px-5 py-3 rounded-full flex items-center justify-center gap-2 shadow-2xl"><span className="text-lg">{t.emoji}</span><span className="font-semibold">{t.text}</span></div>
-          ))}
+          {toasts.map(t=>(<div key={t.id} className="bg-gradient-to-r from-rose-500/95 to-pink-500/95 backdrop-blur-lg text-white text-sm px-5 py-3 rounded-full flex items-center justify-center gap-2 shadow-2xl"><span className="text-lg">{t.emoji}</span><span className="font-semibold">{t.text}</span></div>))}
         </div>
 
+        {/* Co-host invite popup for viewer */}
+        {invited&&role==="viewer"&&(
+          <div className="absolute inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4"><Phone className="w-8 h-8 text-white"/></div>
+              <h3 className="text-xl font-extrabold text-gray-900 mb-2">Co-Host Invite!</h3>
+              <p className="text-gray-500 text-sm mb-6">The host wants you to join the live stream together! Your camera and mic will turn on.</p>
+              <div className="flex gap-3">
+                <button onClick={()=>setInvited(false)} className="flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-sm">Decline</button>
+                <button onClick={acceptInvite} className="flex-1 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-bold text-sm shadow-lg">Accept</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Chat overlay */}
-        <div className="absolute left-3 right-3 bottom-4 max-h-[40vh] overflow-y-auto scrollbar-hide z-10">
+        <div className="absolute left-3 right-3 bottom-4 max-h-[35vh] overflow-y-auto scrollbar-hide z-10">
           <div className="space-y-1.5">
             {msgs.slice(-20).map((m:any)=>(
               <div key={m.id} className="flex items-start gap-2">
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden">
                   {m.user?.profilePhoto?<img src={m.user.profilePhoto} alt="" className="w-full h-full object-cover"/>:(m.user?.name?.[0]||"?")}
                 </div>
-                <div className="bg-black/50 backdrop-blur-md rounded-2xl px-3 py-1.5 max-w-[75%]">
+                <div className={"backdrop-blur-md rounded-2xl px-3 py-1.5 max-w-[75%] "+(m.content.includes("🎁")?"bg-amber-500/40":"bg-black/50")}>
                   <span className="text-white/80 text-[11px] font-semibold mr-1.5">{m.user?.name||"User"}</span>
                   <span className="text-white text-sm break-words">{m.content}</span>
                 </div>
@@ -407,70 +414,81 @@ export default function LiveStreamPage() {
         {err&&<div className="absolute top-24 left-4 right-4 bg-red-500 text-white p-3 rounded-xl text-sm z-20">{err}</div>}
       </div>
 
-      {/* CONTROLS */}
+      {/* Controls */}
       <div className="bg-black/95 p-3 pb-6 z-10">
-        {/* Chat input for EVERYONE */}
         <div className="flex items-center gap-2 mb-2">
           <input value={chatText} onChange={e=>setChatText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Say something..." className="flex-1 px-4 py-3 bg-white/10 text-white placeholder:text-white/40 rounded-full outline-none text-sm border border-white/10 focus:border-rose-500/50"/>
           <button onClick={sendChat} className="w-11 h-11 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full flex items-center justify-center flex-shrink-0"><Send className="w-4 h-4"/></button>
-          {role==="viewer"&&<button onClick={()=>setShowGifts(true)} className="w-11 h-11 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full flex items-center justify-center flex-shrink-0"><Gift className="w-5 h-5"/></button>}
+          {role!=="host"&&<button onClick={()=>setShowGifts(true)} className="w-11 h-11 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full flex items-center justify-center flex-shrink-0"><Gift className="w-5 h-5"/></button>}
         </div>
-        {/* Host controls */}
-        {role==="host"&&(
+        {(role==="host"||role==="cohost")&&(
           <div className="flex items-center justify-center gap-2">
             <button onClick={toggleMic} className={"w-11 h-11 rounded-full flex items-center justify-center "+(muted?"bg-red-500 text-white":"bg-white/10 text-white hover:bg-white/20")}>{muted?<MicOff className="w-5 h-5"/>:<Mic className="w-5 h-5"/>}</button>
             <button onClick={toggleCam} className={"w-11 h-11 rounded-full flex items-center justify-center "+(camOff?"bg-red-500 text-white":"bg-white/10 text-white hover:bg-white/20")}>{camOff?<VideoOff className="w-5 h-5"/>:<Video className="w-5 h-5"/>}</button>
-            <button onClick={()=>setShowViewerList(true)} className="w-11 h-11 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20"><Users className="w-5 h-5"/></button>
-            <button onClick={leave} className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold text-sm">End Stream</button>
+            {role==="host"&&<button onClick={()=>setShowViewerList(true)} className="w-11 h-11 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20"><Users className="w-5 h-5"/></button>}
+            <button onClick={leave} className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold text-sm">{role==="host"?"End Stream":"Leave"}</button>
           </div>
         )}
       </div>
 
-      {/* GIFT MODAL */}
+      {/* Gift modal */}
       {showGifts&&(
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-end sm:items-center justify-center" onClick={()=>setShowGifts(false)}>
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl max-h-[80vh] overflow-hidden" onClick={e=>e.stopPropagation()}>
             <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-amber-50 to-orange-50">
               <div><h3 className="font-bold text-gray-900 flex items-center gap-2"><Gift className="w-5 h-5 text-amber-500"/> Send a Gift</h3><p className="text-xs text-gray-500 mt-0.5">80% goes to the host</p></div>
-              <div className="flex items-center gap-2">
-                <div className="bg-amber-100 px-3 py-1.5 rounded-full flex items-center gap-1.5"><span className="text-amber-600">🪙</span><span className="font-bold text-amber-900 text-sm">{coins}</span></div>
-                <button onClick={()=>setShowGifts(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5"/></button>
-              </div>
+              <div className="flex items-center gap-2"><div className="bg-amber-100 px-3 py-1.5 rounded-full flex items-center gap-1.5"><span className="text-amber-600">🪙</span><span className="font-bold text-amber-900 text-sm">{coins}</span></div><button onClick={()=>setShowGifts(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5"/></button></div>
             </div>
             <div className="p-5">
               <div className="grid grid-cols-4 gap-3 mb-4">
-                {GIFTS.map(g=>(
-                  <button key={g.id} onClick={()=>sendGift(g)} disabled={coins<g.coins} className={"aspect-square rounded-2xl flex flex-col items-center justify-center transition-all "+(coins<g.coins?"bg-gray-50 opacity-50":"bg-gradient-to-br from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 hover:scale-105 border border-amber-100")}>
-                    <span className="text-3xl mb-1">{g.emoji}</span><span className="text-[10px] font-bold text-gray-700">{g.name}</span><span className="text-[10px] text-amber-600 font-semibold">🪙 {g.coins}</span>
-                  </button>
-                ))}
+                {GIFTS.map(g=>(<button key={g.id} onClick={()=>sendGift(g)} disabled={coins<g.coins} className={"aspect-square rounded-2xl flex flex-col items-center justify-center transition-all "+(coins<g.coins?"bg-gray-50 opacity-50":"bg-gradient-to-br from-amber-50 to-orange-50 hover:scale-105 border border-amber-100")}><span className="text-3xl mb-1">{g.emoji}</span><span className="text-[10px] font-bold text-gray-700">{g.name}</span><span className="text-[10px] text-amber-600 font-semibold">🪙 {g.coins}</span></button>))}
               </div>
-              <Link href="/dashboard/coins" onClick={()=>setShowGifts(false)} className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full font-bold text-sm flex items-center justify-center gap-2 hover:shadow-lg"><ShoppingCart className="w-4 h-4"/> Buy More Coins</Link>
+              <Link href="/dashboard/coins" onClick={()=>setShowGifts(false)} className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full font-bold text-sm flex items-center justify-center gap-2"><ShoppingCart className="w-4 h-4"/> Buy More Coins</Link>
             </div>
           </div>
         </div>
       )}
 
-      {/* VIEWERS MODAL */}
+      {/* Viewers modal with REAL names and invite */}
       {showViewerList&&(
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-end sm:items-center justify-center" onClick={()=>setShowViewerList(false)}>
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl max-h-[80vh] overflow-hidden" onClick={e=>e.stopPropagation()}>
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 flex items-center gap-2"><Users className="w-5 h-5 text-rose-500"/> Viewers ({viewerCount})</h3>
+              <div>
+                <h3 className="font-bold text-gray-900 flex items-center gap-2"><Users className="w-5 h-5 text-rose-500"/> Viewers</h3>
+                <p className="text-gray-500 text-xs mt-0.5">{viewerCount} active viewer{viewerCount!==1?"s":""}</p>
+              </div>
               <button onClick={()=>setShowViewerList(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5"/></button>
             </div>
             <div className="p-5 overflow-y-auto max-h-[60vh]">
-              {viewers.length===0?(
+              {realViewers.length===0?(
                 <div className="text-center py-8"><div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-3"><Users className="w-8 h-8 text-gray-400"/></div><p className="text-gray-500 text-sm">No viewers yet</p><p className="text-gray-400 text-xs mt-1">Share your stream to get viewers!</p></div>
               ):(
                 <div className="space-y-2">
-                  {viewers.map((v:any,i:number)=>(
-                    <div key={v.uid} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  {realViewers.map((v:any)=>(
+                    <div key={v.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold">V</div>
-                        <div><p className="font-semibold text-gray-900 text-sm">Viewer #{i+1}</p><p className="text-xs text-gray-500">Watching now</p></div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden">
+                          {v.profilePhoto?<img src={v.profilePhoto} alt="" className="w-full h-full object-cover"/>:(v.name?.[0]||"?")}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900 text-sm flex items-center gap-1">
+                            {v.name||"User"}
+                            {v.verified&&<span className="text-blue-500 text-xs">✓</span>}
+                            {v.tier==="premium"&&<Crown className="w-3 h-3 text-amber-500"/>}
+                          </p>
+                          <p className="text-xs text-gray-500">Watching now</p>
+                        </div>
                       </div>
-                      {role==="host"&&<button onClick={()=>toast("Invite sent! (co-host coming soon)","📩")} className="px-3 py-1.5 bg-rose-100 text-rose-600 rounded-full text-xs font-bold flex items-center gap-1"><UserPlus className="w-3 h-3"/> Invite</button>}
+                      {role==="host"&&(
+                        <button
+                          onClick={()=>inviteViewer(v.id,v.name||"User")}
+                          disabled={inviteSending===v.id}
+                          className={"px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-all "+(inviteSending===v.id?"bg-green-100 text-green-600":"bg-rose-100 text-rose-600 hover:bg-rose-200")}
+                        >
+                          {inviteSending===v.id?<><Check className="w-3 h-3"/>Sent</>:<><UserPlus className="w-3 h-3"/>Invite to Co-Host</>}
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
