@@ -113,8 +113,8 @@ export default function MessagesPage() {
               <p className={"text-xs " + (isOnline(chatUser.lastSeen)?"text-emerald-500":"text-gray-400")}>{isOnline(chatUser.lastSeen) ? "Online" : "Offline"}</p>
             </div>
           </Link>
-          <button onClick={async()=>{try{await fetch("/api/calls",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"call",receiverId:chatUser.id,type:"voice"})});alert("Calling... waiting for them to pick up");}catch{}}} className={"p-2.5 rounded-lg " + (dc?"hover:bg-gray-700 text-gray-400":"hover:bg-gray-100 text-gray-500")}><Phone className="w-5 h-5" /></button>
-          <button onClick={async()=>{try{await fetch("/api/calls",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"call",receiverId:chatUser.id,type:"video"})});alert("Video calling... waiting for them to pick up");}catch{}}} className={"p-2.5 rounded-lg " + (dc?"hover:bg-gray-700 text-gray-400":"hover:bg-gray-100 text-gray-500")}><Video className="w-5 h-5" /></button>
+          <button onClick={()=>{window.dispatchEvent(new CustomEvent("startCall",{detail:{receiverId:chatUser.id,receiverName:chatUser.name,receiverPhoto:chatUser.profilePhoto,type:"voice"}}))}} className={"p-2.5 rounded-lg " + (dc?"hover:bg-gray-700 text-gray-400":"hover:bg-gray-100 text-gray-500")}><Phone className="w-5 h-5" /></button>
+          <button onClick={()=>{window.dispatchEvent(new CustomEvent("startCall",{detail:{receiverId:chatUser.id,receiverName:chatUser.name,receiverPhoto:chatUser.profilePhoto,type:"video"}}))}} className={"p-2.5 rounded-lg " + (dc?"hover:bg-gray-700 text-gray-400":"hover:bg-gray-100 text-gray-500")}><Video className="w-5 h-5" /></button>
         </div>
 
         {/* Messages */}
