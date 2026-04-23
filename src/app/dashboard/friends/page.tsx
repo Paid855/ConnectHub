@@ -1,97 +1,136 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useUser, TierBadge } from "../layout";
-import { Users, UserPlus, Check, X, MessageCircle, Shield, Clock } from "lucide-react";
+import { useUser } from "../layout";
+import { Users, UserPlus, UserCheck, UserX, MessageCircle, Shield, Crown, Gem, Search, Heart } from "lucide-react";
 import Link from "next/link";
 
 export default function FriendsPage() {
   const { user, dark } = useUser();
   const dc = dark;
-  const [tab, setTab] = useState("friends");
-  const [friends, setFriends] = useState([]);
-  const [requests, setRequests] = useState([]);
-  const [sent, setSent] = useState([]);
+  const [tab, setTab] = useState<"friends"|"requests"|"sent">("friends");
+  const [friends, setFriends] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [sent, setSent] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
-    try { const res = await fetch("/api/friends"); if (res.ok) { const d = await res.json(); setFriends(d.friends||[]); setRequests(d.requests||[]); setSent(d.sent||[]); } } catch {} finally { setLoading(false); }
+    try {
+      const res = await fetch("/api/friends");
+      const d = await res.json();
+      setFriends(d.friends || []);
+      setRequests(d.requests || []);
+      setSent(d.sent || []);
+    } catch {}
+    setLoading(false);
   };
+
   useEffect(() => { load(); }, []);
 
-  const handleRequest = async (userId, action) => {
-    await fetch("/api/friends", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ friendId:userId, action }) });
+  const accept = async (id: string) => {
+    await fetch("/api/friends", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ friendId: id, action: "accept" }) });
+    load();
+  };
+  const reject = async (id: string) => {
+    await fetch("/api/friends", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ friendId: id, action: "reject" }) });
     load();
   };
 
-  const isOnline = (d) => d ? Date.now() - new Date(d).getTime() < 300000 : false;
-  if (!user) return null;
-  if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin" /></div>;
+  const isOnline = (d: string|null) => d ? Date.now() - new Date(d).getTime() < 5*60*1000 : false;
 
-  const Avi = ({u}) => u?.profilePhoto ? <img src={u.profilePhoto} className="w-12 h-12 rounded-full object-cover" /> : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{u?.name?.[0]}</div>;
+  const tabs = [
+    { k: "friends" as const, label: "Friends", count: friends.length, icon: Users },
+    { k: "requests" as const, label: "Requests", count: requests.length, icon: UserPlus },
+    { k: "sent" as const, label: "Sent", count: sent.length, icon: Heart },
+  ];
+
+  const currentList = tab === "friends" ? friends : tab === "requests" ? requests : sent;
+  const filtered = currentList.filter(p => !search || p.name?.toLowerCase().includes(search.toLowerCase()));
+
+  if (!user) return null;
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className={"text-2xl font-bold mb-5 " + (dc?"text-white":"text-gray-900")}>Friends</h1>
-      <div className={"flex gap-1 mb-5 rounded-xl p-1 " + (dc?"bg-gray-800":"bg-gray-100")}>
-        {[["friends","Friends ("+friends.length+")"],["requests","Requests ("+requests.length+")"],["sent","Sent ("+sent.length+")"]].map(([k,l]) => (
-          <button key={k} onClick={()=>setTab(k)} className={"flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all " + (tab===k?(dc?"bg-gray-700 text-white":"bg-white text-gray-900 shadow-sm"):(dc?"text-gray-500":"text-gray-500"))}>{l}</button>
+    <div>
+      <div className="mb-6">
+        <h1 className={"text-2xl sm:text-3xl font-extrabold " + (dc?"text-white":"text-gray-900")}>
+          My <span className="bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">Connections</span>
+        </h1>
+        <p className={"text-sm mt-1 " + (dc?"text-gray-500":"text-gray-500")}>{friends.length} friend{friends.length!==1?"s":""} · {requests.length} pending request{requests.length!==1?"s":""}</p>
+      </div>
+
+      {/* Tabs */}
+      <div className={"flex gap-1 mb-6 rounded-xl p-1 " + (dc?"bg-gray-800":"bg-gray-100")}>
+        {tabs.map(t => (
+          <button key={t.k} onClick={()=>setTab(t.k)} className={"flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all " + (tab===t.k?(dc?"bg-gray-700 text-white shadow":"bg-white text-gray-900 shadow-sm"):(dc?"text-gray-500":"text-gray-500"))}>
+            <t.icon className="w-4 h-4" />
+            {t.label}
+            {t.count > 0 && <span className={"text-[10px] font-bold px-1.5 py-0.5 rounded-full " + (tab===t.k?"bg-rose-500 text-white":"bg-gray-200 text-gray-500")}>{t.count}</span>}
+          </button>
         ))}
       </div>
 
-      {tab === "friends" && (friends.length === 0 ? (
-        <div className={"text-center py-16 rounded-2xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
+      {/* Search */}
+      <div className={"flex items-center gap-2 rounded-xl px-4 py-3 border mb-4 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-200")}>
+        <Search className={"w-4 h-4 " + (dc?"text-gray-500":"text-gray-400")} />
+        <input className={"bg-transparent border-none outline-none text-sm w-full " + (dc?"text-white placeholder:text-gray-500":"text-gray-900 placeholder:text-gray-400")} placeholder="Search connections..." value={search} onChange={e=>setSearch(e.target.value)} />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12"><div className="w-10 h-10 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin" /></div>
+      ) : filtered.length === 0 ? (
+        <div className={"rounded-2xl border p-10 text-center " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
           <Users className={"w-12 h-12 mx-auto mb-3 " + (dc?"text-gray-600":"text-gray-300")} />
-          <p className={"font-bold mb-1 " + (dc?"text-white":"text-gray-900")}>No friends yet</p>
-          <Link href="/dashboard" className="mt-4 inline-block px-5 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-semibold">Discover People</Link>
+          <h3 className={"font-bold " + (dc?"text-white":"text-gray-900")}>
+            {tab==="friends"?"No friends yet":tab==="requests"?"No pending requests":"No sent requests"}
+          </h3>
+          <p className={"text-sm mt-1 " + (dc?"text-gray-500":"text-gray-500")}>
+            {tab==="friends"?"Start swiping to connect with people!":"Check back later"}
+          </p>
+          {tab==="friends" && <Link href="/dashboard/browse" className="inline-block mt-4 px-6 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-bold">Browse People</Link>}
         </div>
       ) : (
-        <div className="space-y-2">{friends.map((f) => (
-          <div key={f.id} className={"flex items-center gap-3 p-4 rounded-xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
-            <Link href={"/dashboard/user?id="+(f.user?.id||"")}><Avi u={f.user} /></Link>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <Link href={"/dashboard/user?id="+(f.user?.id||"")} className={"font-bold text-sm hover:text-rose-500 " + (dc?"text-white":"text-gray-900")}>{f.user?.name}</Link>
-                {f.user?.verified && <Shield className="w-3.5 h-3.5 text-blue-500" />}
-                <TierBadge tier={f.user?.tier} />
+        <div className="space-y-2">
+          {filtered.map((p: any) => (
+            <div key={p.id} className={"flex items-center gap-3 p-3 rounded-2xl border transition-all " + (dc?"bg-gray-800 border-gray-700 hover:bg-gray-750":"bg-white border-gray-100 hover:bg-gray-50 hover:shadow-sm")}>
+              <Link href={"/dashboard/user?id="+p.id} className="relative flex-shrink-0">
+                {p.profilePhoto ? (
+                  <img src={p.profilePhoto} className="w-14 h-14 rounded-xl object-cover" />
+                ) : (
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg">{p.name?.[0]}</div>
+                )}
+                {isOnline(p.lastSeen) && <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-gray-800" />}
+              </Link>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className={"font-bold text-sm truncate " + (dc?"text-white":"text-gray-900")}>{p.name}</p>
+                  {p.verified && <Shield className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+                  {p.tier==="gold" && <Crown className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
+                  {p.tier==="premium" && <Gem className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />}
+                </div>
+                <p className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>
+                  {p.country || ""} {p.age ? "· "+p.age : ""} {isOnline(p.lastSeen) ? "· 🟢 Online" : ""}
+                </p>
               </div>
-              <p className={"text-xs " + (isOnline(f.user?.lastSeen)?"text-emerald-500":"text-gray-400")}>{isOnline(f.user?.lastSeen)?"Online":"Offline"}</p>
+              <div className="flex items-center gap-2">
+                {tab === "requests" && (
+                  <>
+                    <button onClick={()=>accept(p.id)} className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl flex items-center justify-center hover:shadow-lg transition-all"><UserCheck className="w-5 h-5" /></button>
+                    <button onClick={()=>reject(p.id)} className={"w-10 h-10 border-2 rounded-xl flex items-center justify-center " + (dc?"border-gray-600 text-gray-400":"border-gray-200 text-gray-400")}><UserX className="w-5 h-5" /></button>
+                  </>
+                )}
+                {tab === "friends" && (
+                  <Link href={"/dashboard/messages?user="+p.id} className="w-10 h-10 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl flex items-center justify-center hover:shadow-lg transition-all">
+                    <MessageCircle className="w-5 h-5" />
+                  </Link>
+                )}
+                {tab === "sent" && (
+                  <span className={"text-xs font-medium px-3 py-1.5 rounded-full " + (dc?"bg-amber-500/20 text-amber-400":"bg-amber-50 text-amber-600")}>Pending</span>
+                )}
+              </div>
             </div>
-            <Link href={"/dashboard/messages?user="+(f.user?.id||"")} className={"p-2.5 rounded-xl border " + (dc?"bg-gray-700 border-gray-600 text-white":"bg-rose-50 border-rose-200 text-rose-500")}><MessageCircle className="w-4 h-4" /></Link>
-          </div>
-        ))}</div>
-      ))}
-
-      {tab === "requests" && (requests.length === 0 ? (
-        <div className={"text-center py-16 rounded-2xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}><UserPlus className={"w-12 h-12 mx-auto mb-3 " + (dc?"text-gray-600":"text-gray-300")} /><p className={"font-bold " + (dc?"text-white":"text-gray-900")}>No pending requests</p></div>
-      ) : (
-        <div className="space-y-2">{requests.map((r) => (
-          <div key={r.id} className={"flex items-center gap-3 p-4 rounded-xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
-            <Link href={"/dashboard/user?id="+(r.user?.id||"")}><Avi u={r.user} /></Link>
-            <div className="flex-1">
-              <Link href={"/dashboard/user?id="+(r.user?.id||"")} className={"font-bold text-sm hover:text-rose-500 " + (dc?"text-white":"text-gray-900")}>{r.user?.name}</Link>
-              <p className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>Wants to be friends</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={()=>handleRequest(r.user?.id,"accept")} className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center"><Check className="w-5 h-5" /></button>
-              <button onClick={()=>handleRequest(r.user?.id,"reject")} className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center"><X className="w-5 h-5" /></button>
-            </div>
-          </div>
-        ))}</div>
-      ))}
-
-      {tab === "sent" && (sent.length === 0 ? (
-        <div className={"text-center py-16 rounded-2xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}><Clock className={"w-12 h-12 mx-auto mb-3 " + (dc?"text-gray-600":"text-gray-300")} /><p className={"font-bold " + (dc?"text-white":"text-gray-900")}>No sent requests</p></div>
-      ) : (
-        <div className="space-y-2">{sent.map((s) => (
-          <div key={s.id} className={"flex items-center gap-3 p-4 rounded-xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
-            <Link href={"/dashboard/user?id="+(s.friend?.id||"")}><Avi u={s.friend} /></Link>
-            <div className="flex-1">
-              <Link href={"/dashboard/user?id="+(s.friend?.id||"")} className={"font-bold text-sm hover:text-rose-500 " + (dc?"text-white":"text-gray-900")}>{s.friend?.name}</Link>
-            </div>
-            <span className={"text-xs font-medium px-3 py-1 rounded-full " + (dc?"bg-amber-500/20 text-amber-400":"bg-amber-50 text-amber-600")}>Pending</span>
-          </div>
-        ))}</div>
-      ))}
+          ))}
+        </div>
+      )}
     </div>
   );
 }
