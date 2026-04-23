@@ -162,10 +162,12 @@ export default function IncomingCall() {
   // Connect to Agora for active call
   const connectCall = async (callId: string, type: string, user: any) => {
     try {
-      setCallActive(true);
-      setActiveCallId(callId);
-      setActiveCallUser(user);
-      setCallType(type as "voice"|"video");
+      if (!callActive) {
+        setCallActive(true);
+        setActiveCallId(callId);
+        setActiveCallUser(user);
+        setCallType(type as "voice"|"video");
+      }
       startTime.current = Date.now();
       durationTimer.current = setInterval(() => setDuration(Math.floor((Date.now() - startTime.current) / 1000)), 1000);
 
@@ -188,14 +190,33 @@ export default function IncomingCall() {
 
       await client.join(tk.appId, channelName, tk.token, tk.uid);
 
+      // Subscribe to any users who already joined before us
+      for (const remoteUser of client.remoteUsers) {
+        if (remoteUser.hasVideo) {
+          await client.subscribe(remoteUser, "video");
+          const tryPlay = () => { const el = document.getElementById("call-remote-video"); if (el && remoteUser.videoTrack) { remoteUser.videoTrack.play(el, { fit: "cover" }); return true; } return false; };
+          if (!tryPlay()) { let n = 0; const iv = setInterval(() => { n++; if (tryPlay() || n > 20) clearInterval(iv); }, 200); }
+        }
+        if (remoteUser.hasAudio) {
+          await client.subscribe(remoteUser, "audio");
+          remoteUser.audioTrack?.play();
+        }
+      }
+
       if (type === "video") {
         const [at, vt] = await AgoraRTC.createMicrophoneAndCameraTracks();
         setTracks({ a: at, v: vt });
         await client.publish([at, vt]);
-        requestAnimationFrame(() => { requestAnimationFrame(() => {
+        // Wait for DOM to be ready
+        const playLocal = () => {
           const el = document.getElementById("call-local-video");
-          if (el && vt) vt.play(el, { fit: "cover", mirror: true });
-        }); });
+          if (el && vt) { vt.play(el, { fit: "cover", mirror: true }); return true; }
+          return false;
+        };
+        if (!playLocal()) {
+          let n = 0;
+          const iv = setInterval(() => { n++; if (playLocal() || n > 20) clearInterval(iv); }, 200);
+        }
       } else {
         const at = await AgoraRTC.createMicrophoneAudioTrack();
         setTracks({ a: at, v: null });
@@ -214,8 +235,15 @@ export default function IncomingCall() {
       const data = await res.json();
       if (data.success) {
         const user = incomingCall.caller;
+        const cId = incomingCall.id;
+        const cType = callType;
         setIncomingCall(null);
-        connectCall(incomingCall.id, callType, user);
+        setCallActive(true);
+        setActiveCallUser(user);
+        setActiveCallId(cId);
+        setCallType(cType);
+        // Small delay to let React render the active call UI first
+        setTimeout(() => connectCall(cId, cType, user), 300);
       }
     } catch (e) { console.error("Accept call error:", e); }
   };
