@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, email, username, password, phone, age, gender, lookingFor, country, dateOfBirth } = body;
+    const { name, email, username, password, phone, age, gender, lookingFor, country, dateOfBirth, securityQuestion, securityAnswer } = body;
 
     if (!name || !email || !password) return NextResponse.json({ error: "Name, email and password required" }, { status: 400 });
     if (password.length < 6) return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
         lookingFor: lookingFor || null,
         country: country || null,
         referralCode,
+        securityQuestion: securityQuestion || null,
+        securityAnswer: securityAnswer || null,
         securityQuestion: securityQuestion || null,
         securityAnswer: securityAnswer || null,
         coins: 20,
