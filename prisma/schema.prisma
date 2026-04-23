@@ -29,6 +29,7 @@ model User {
   securityAnswer     String?
   resetCode          String?
   resetCodeExpires   DateTime?
+  lastActive         DateTime?
   isPrivate          Boolean  @default(false)
   coins              Int      @default(0)
   boostedUntil       DateTime?

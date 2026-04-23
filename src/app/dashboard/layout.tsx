@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import LocationDetector from "@/components/LocationDetector";
 import PushNotifications from "@/components/PushNotifications";
+import IncomingCall from "@/components/IncomingCall";
 import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins, Eye, Trophy, Ban, Camera, Gift } from "lucide-react";
 
 type UserData = { id:string; name:string; email:string; username?:string; age:number|null; gender:string|null; lookingFor:string|null; bio:string|null; country:string|null; profilePhoto:string|null; tier:string; verified:boolean; verificationStatus:string; phone:string|null; isPrivate:boolean; interests:string[]; coins:number; createdAt:string; };
@@ -259,7 +260,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-3 sm:p-6 lg:p-8 max-w-6xl mx-auto pb-20 lg:pb-8">{children}</div><LocationDetector /><PushNotifications /></main>
+        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-3 sm:p-6 lg:p-8 max-w-6xl mx-auto pb-20 lg:pb-8">{children}</div><LocationDetector /><PushNotifications />
+        <IncomingCall /></main>
 
         {/* Mobile Bottom Navigation */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800 safe-area-bottom">

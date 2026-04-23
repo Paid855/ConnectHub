@@ -34,7 +34,10 @@ export async function GET(req: NextRequest) {
     }
 
     prisma.user.update({ where: { id }, data: { lastSeen: new Date() } }).catch(() => {});
-    return NextResponse.json({ user });
+    // Update lastActive timestamp
+  await prisma.user.update({ where: { id: user.id }, data: { lastActive: new Date() } }).catch(() => {});
+
+  return NextResponse.json({ user });
   } catch (e) {
     console.error("Session error:", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
