@@ -309,9 +309,19 @@ export default function VerifyPage() {
     }
   }, [challengeIdx]);
 
-  // Start detection loop when entering selfie_live
+  // Start detection loop and re-attach video when entering selfie_live
   useEffect(() => {
     if (phase === "selfie_live") {
+      // Re-attach stream to video element after render
+      const attachStream = () => {
+        if (videoRef.current && streamRef.current) {
+          videoRef.current.srcObject = streamRef.current;
+          videoRef.current.play().catch(() => {});
+        }
+      };
+      attachStream();
+      setTimeout(attachStream, 300);
+      setTimeout(attachStream, 800);
       animRef.current = requestAnimationFrame(detectionLoop);
     }
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
@@ -325,10 +335,6 @@ export default function VerifyPage() {
         audio: false
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
       setChallengeIdx(0);
       setProgress(0);
       setChallengeProgress(0);
@@ -338,6 +344,19 @@ export default function VerifyPage() {
       blinkFrames.current = 0;
       smileFrames.current = 0;
       setPhase("selfie_live");
+      // Attach stream after React renders the new video element
+      setTimeout(() => {
+        if (videoRef.current && streamRef.current) {
+          videoRef.current.srcObject = streamRef.current;
+          videoRef.current.play().catch(() => {});
+        }
+      }, 500);
+      setTimeout(() => {
+        if (videoRef.current && streamRef.current) {
+          videoRef.current.srcObject = streamRef.current;
+          videoRef.current.play().catch(() => {});
+        }
+      }, 1500);
     } catch {
       setError("Camera access required. Please allow camera permission and try again.");
     }
@@ -621,13 +640,13 @@ export default function VerifyPage() {
           {/* Main camera area */}
           <div className="flex-1 flex flex-col items-center justify-center px-6">
             {/* Circle with ring */}
-            <div className="relative" style={{ width: 300, height: 300 }}>
+            <div className="relative" style={{ width: "min(85vw, 360px)", height: "min(85vw, 360px)" }}>
               {/* Gray background ring */}
-              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 300 300">
-                <circle cx="150" cy="150" r="143" fill="none" stroke="#e5e7eb" strokeWidth="8" />
-                <circle cx="150" cy="150" r="143" fill="none" stroke="#3b82f6" strokeWidth="8" strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 143}
-                  strokeDashoffset={2 * Math.PI * 143 * (1 - challengeProgress / 100)}
+              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 360 360">
+                <circle cx="180" cy="180" r="173" fill="none" stroke="#d1d5db" strokeWidth="8" />
+                <circle cx="180" cy="180" r="173" fill="none" stroke="#3b82f6" strokeWidth="8" strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 173}
+                  strokeDashoffset={2 * Math.PI * 173 * (1 - challengeProgress / 100)}
                   className="transition-all duration-300" />
               </svg>
 
