@@ -40,24 +40,34 @@ body {
 .goog-te-gadget > span { display: none !important; }
 .goog-te-gadget img { display: none !important; }
 .goog-te-gadget .goog-te-combo {
-  padding: 10px 16px;
-  border-radius: 12px;
-  border: 2px solid #fecdd3;
-  font-size: 13px;
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  font-size: 0;
   font-weight: 600;
   font-family: 'Inter', system-ui, sans-serif;
   color: #881337;
-  background: linear-gradient(135deg, #fff1f2, #fce7f3);
+  background: transparent;
   cursor: pointer;
   outline: none;
-  min-width: 160px;
+  min-width: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23e11d48' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+}
+#google_translate_element:hover .goog-te-gadget .goog-te-combo,
+#google_translate_element:focus-within .goog-te-gadget .goog-te-combo {
+  padding: 8px 12px;
+  border: 1px solid #fecdd3;
+  font-size: 12px;
+  min-width: 140px;
+  width: auto;
+  height: auto;
+  opacity: 1;
+  background: white;
 }
 .goog-te-gadget .goog-te-combo:hover {
   border-color: #f43f5e;
@@ -68,24 +78,35 @@ body {
   box-shadow: 0 0 0 4px rgba(244,63,94,0.12);
 }
 
-/* Professional floating widget container */
+/* Compact language icon */
 #google_translate_element {
   position: fixed;
   bottom: 80px;
   left: 12px;
   z-index: 99999;
   background: white;
-  border-radius: 16px;
-  padding: 10px 14px;
-  box-shadow: 0 8px 32px rgba(244,63,94,0.15), 0 2px 8px rgba(0,0,0,0.08);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
   border: 2px solid #fecdd3;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+#google_translate_element:hover,
+#google_translate_element:focus-within {
+  width: auto;
+  min-width: 180px;
+  border-radius: 22px;
+  padding: 4px 8px;
 }
 #google_translate_element::before {
   content: "🌐";
-  font-size: 18px;
+  font-size: 20px;
   flex-shrink: 0;
 }
 

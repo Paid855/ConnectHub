@@ -18,21 +18,22 @@ export default function FriendsPage() {
     try {
       const res = await fetch("/api/friends");
       const d = await res.json();
-      setFriends(d.friends || []);
-      setRequests(d.requests || []);
-      setSent(d.sent || []);
+      // Unwrap nested objects - API returns {user:{...}} for friends/requests and {friend:{...}} for sent
+      setFriends((d.friends||[]).map((f:any) => ({ ...f.user, friendRecordId: f.id, createdAt: f.createdAt })).filter((f:any) => f.id));
+      setRequests((d.requests||[]).map((r:any) => ({ ...r.user, friendRecordId: r.id, createdAt: r.createdAt })).filter((r:any) => r.id));
+      setSent((d.sent||[]).map((s:any) => ({ ...s.friend, friendRecordId: s.id, createdAt: s.createdAt })).filter((s:any) => s.id));
     } catch {}
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const accept = async (id: string) => {
-    await fetch("/api/friends", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ friendId: id, action: "accept" }) });
+  const accept = async (userId: string) => {
+    await fetch("/api/friends", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ friendId: userId, action: "accept" }) });
     load();
   };
-  const reject = async (id: string) => {
-    await fetch("/api/friends", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ friendId: id, action: "reject" }) });
+  const reject = async (userId: string) => {
+    await fetch("/api/friends", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ friendId: userId, action: "reject" }) });
     load();
   };
 
@@ -45,7 +46,7 @@ export default function FriendsPage() {
   ];
 
   const currentList = tab === "friends" ? friends : tab === "requests" ? requests : sent;
-  const filtered = currentList.filter(p => !search || p.name?.toLowerCase().includes(search.toLowerCase()));
+  const filtered = currentList.filter(p => !search || (p.name||"").toLowerCase().includes(search.toLowerCase()));
 
   if (!user) return null;
 
@@ -64,7 +65,7 @@ export default function FriendsPage() {
           <button key={t.k} onClick={()=>setTab(t.k)} className={"flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all " + (tab===t.k?(dc?"bg-gray-700 text-white shadow":"bg-white text-gray-900 shadow-sm"):(dc?"text-gray-500":"text-gray-500"))}>
             <t.icon className="w-4 h-4" />
             {t.label}
-            {t.count > 0 && <span className={"text-[10px] font-bold px-1.5 py-0.5 rounded-full " + (tab===t.k?"bg-rose-500 text-white":"bg-gray-200 text-gray-500")}>{t.count}</span>}
+            {t.count > 0 && <span className={"text-[10px] font-bold px-1.5 py-0.5 rounded-full " + (tab===t.k?"bg-rose-500 text-white":(dc?"bg-gray-600 text-gray-400":"bg-gray-200 text-gray-500"))}>{t.count}</span>}
           </button>
         ))}
       </div>
@@ -91,26 +92,26 @@ export default function FriendsPage() {
       ) : (
         <div className="space-y-2">
           {filtered.map((p: any) => (
-            <div key={p.id} className={"flex items-center gap-3 p-3 rounded-2xl border transition-all " + (dc?"bg-gray-800 border-gray-700 hover:bg-gray-750":"bg-white border-gray-100 hover:bg-gray-50 hover:shadow-sm")}>
+            <div key={p.id} className={"flex items-center gap-3 p-3 rounded-2xl border transition-all " + (dc?"bg-gray-800 border-gray-700 hover:bg-gray-700/50":"bg-white border-gray-100 hover:bg-gray-50 hover:shadow-sm")}>
               <Link href={"/dashboard/user?id="+p.id} className="relative flex-shrink-0">
                 {p.profilePhoto ? (
                   <img src={p.profilePhoto} className="w-14 h-14 rounded-xl object-cover" />
                 ) : (
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg">{p.name?.[0]}</div>
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg">{p.name?.[0]||"?"}</div>
                 )}
-                {isOnline(p.lastSeen) && <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-gray-800" />}
+                {isOnline(p.lastSeen) && <div className={"absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 " + (dc?"border-gray-800":"border-white")} />}
               </Link>
-              <div className="flex-1 min-w-0">
+              <Link href={"/dashboard/user?id="+p.id} className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className={"font-bold text-sm truncate " + (dc?"text-white":"text-gray-900")}>{p.name}</p>
+                  <p className={"font-bold text-sm truncate " + (dc?"text-white":"text-gray-900")}>{p.name||"User"}</p>
                   {p.verified && <Shield className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
                   {p.tier==="gold" && <Crown className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
                   {p.tier==="premium" && <Gem className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />}
                 </div>
                 <p className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>
-                  {p.country || ""} {p.age ? "· "+p.age : ""} {isOnline(p.lastSeen) ? "· 🟢 Online" : ""}
+                  {isOnline(p.lastSeen) ? "🟢 Online" : "Offline"}
                 </p>
-              </div>
+              </Link>
               <div className="flex items-center gap-2">
                 {tab === "requests" && (
                   <>
