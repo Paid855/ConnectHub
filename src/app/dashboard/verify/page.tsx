@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useUser } from "../layout";
-import { Camera, CheckCircle, XCircle, RotateCcw, Shield, Upload, FileText, AlertTriangle, Loader2, ArrowLeft, Sparkles } from "lucide-react";
+import { Camera, CheckCircle, XCircle, X, RotateCcw, Shield, Upload, FileText, AlertTriangle, Loader2, ArrowLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 type Phase = "intro"|"id_select"|"id_upload"|"selfie_prep"|"selfie_live"|"processing"|"success"|"failed";
