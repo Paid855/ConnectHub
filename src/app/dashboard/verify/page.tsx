@@ -276,7 +276,7 @@ export default function VerifyPage() {
 
     // Throttle to avoid shaking - run every 200ms not every frame
     setTimeout(() => {
-      if (phase === "selfie_live") animRef.current = requestAnimationFrame(detectionLoop);
+      if (phase === "selfie_live") setTimeout(() => { setTimeout(() => { setTimeout(() => animRef.current = requestAnimationFrame(detectionLoop), 300); }, 300); }, 300);
     }, 200);
   }, [phase, challengeIdx, detectFace, detectFaceNative, faceDetected]);
 
@@ -331,7 +331,7 @@ export default function VerifyPage() {
       setTimeout(attachStream, 1000);
       // Start detection with a delay to let camera warm up
       setTimeout(() => {
-        if (phase === "selfie_live") animRef.current = requestAnimationFrame(detectionLoop);
+        if (phase === "selfie_live") setTimeout(() => { setTimeout(() => { setTimeout(() => animRef.current = requestAnimationFrame(detectionLoop), 300); }, 300); }, 300);
       }, 1500);
     }
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
