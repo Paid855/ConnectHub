@@ -7,13 +7,17 @@ import Link from "next/link";
 type Phase = "intro"|"id_select"|"id_upload"|"selfie_prep"|"selfie_live"|"processing"|"success"|"failed";
 type Challenge = { id: string; instruction: string; icon: string; detector: string; duration: number; };
 
-const CHALLENGES: Challenge[] = [
-  { id:"center", instruction:"Position your face in the circle", icon:"👤", detector:"face_center", duration: 3000 },
-  { id:"left", instruction:"Slowly turn your head LEFT", icon:"👈", detector:"head_left", duration: 3500 },
-  { id:"right", instruction:"Slowly turn your head RIGHT", icon:"👉", detector:"head_right", duration: 3500 },
-  { id:"blink", instruction:"Blink your eyes slowly", icon:"😑", detector:"blink", duration: 3000 },
-  { id:"smile", instruction:"Give us a big smile!", icon:"😊", detector:"smile", duration: 3000 },
+const BASE_CHALLENGES: Challenge[] = [
+  { id:"center", instruction:"Look straight ahead", icon:"👤", detector:"face_center", duration: 3000 },
+  { id:"left", instruction:"Turn to the left", icon:"👈", detector:"head_left", duration: 3500 },
+  { id:"right", instruction:"Turn to the right", icon:"👉", detector:"head_right", duration: 3500 },
 ];
+const FINAL_OPTIONS: Challenge[] = [
+  { id:"blink", instruction:"Blink your eyes", icon:"😑", detector:"blink", duration: 3500 },
+  { id:"smile", instruction:"Smile", icon:"😊", detector:"smile", duration: 3500 },
+];
+// Will be set at runtime
+let CHALLENGES: Challenge[] = [];
 
 const ID_TYPES = [
   { value:"passport", label:"International Passport", icon:"🛂" },
@@ -277,6 +281,7 @@ export default function VerifyPage() {
   }, [phase, challengeIdx, detectFace, detectFaceNative, faceDetected]);
 
   const passChallenge = useCallback(() => {
+    const idx = challengeIdxRef.current;
     // Capture frame
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -293,10 +298,10 @@ export default function VerifyPage() {
     }
 
     setChallengePassed(prev => [...prev, true]);
-    const totalProgress = ((challengeIdx + 1) / CHALLENGES.length) * 100;
+    const totalProgress = ((idx + 1) / CHALLENGES.length) * 100;
     setProgress(totalProgress);
 
-    if (challengeIdx + 1 >= CHALLENGES.length) {
+    if (idx + 1 >= CHALLENGES.length) {
       // All challenges done
       setTimeout(() => {
         setPhase("processing");
@@ -315,7 +320,6 @@ export default function VerifyPage() {
   // Start detection loop and re-attach video when entering selfie_live
   useEffect(() => {
     if (phase === "selfie_live") {
-      // Re-attach stream to video element after render
       const attachStream = () => {
         if (videoRef.current && streamRef.current) {
           videoRef.current.srcObject = streamRef.current;
@@ -324,8 +328,11 @@ export default function VerifyPage() {
       };
       attachStream();
       setTimeout(attachStream, 300);
-      setTimeout(attachStream, 800);
-      animRef.current = requestAnimationFrame(detectionLoop);
+      setTimeout(attachStream, 1000);
+      // Start detection with a delay to let camera warm up
+      setTimeout(() => {
+        if (phase === "selfie_live") animRef.current = requestAnimationFrame(detectionLoop);
+      }, 1500);
     }
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
   }, [phase, detectionLoop]);
@@ -338,6 +345,8 @@ export default function VerifyPage() {
         audio: false
       });
       streamRef.current = stream;
+      // Randomly pick blink or smile as final challenge
+      CHALLENGES = [...BASE_CHALLENGES, FINAL_OPTIONS[Math.random() < 0.5 ? 0 : 1]];
       setChallengeIdx(0);
       setProgress(0);
       setChallengeProgress(0);
@@ -604,13 +613,18 @@ export default function VerifyPage() {
             <div className={"rounded-2xl p-5 mb-6 " + (dc ? "bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20" : "bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100")}>
               <h3 className={"font-bold mb-3 text-sm " + (dc ? "text-white" : "text-gray-900")}>You will be asked to:</h3>
               <div className="space-y-2.5">
-                {CHALLENGES.map((c, i) => (
+                {BASE_CHALLENGES.map((c, i) => (
                   <div key={c.id} className="flex items-center gap-3">
                     <div className={"w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold " + (dc ? "bg-gray-700 text-gray-300" : "bg-white text-gray-600 shadow-sm")}>{i + 1}</div>
                     <span className="text-xl">{c.icon}</span>
                     <span className={"text-sm " + (dc ? "text-gray-300" : "text-gray-700")}>{c.instruction}</span>
                   </div>
                 ))}
+                <div className="flex items-center gap-3">
+                  <div className={"w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold " + (dc ? "bg-gray-700 text-gray-300" : "bg-white text-gray-600 shadow-sm")}>4</div>
+                  <span className="text-xl">🎲</span>
+                  <span className={"text-sm " + (dc ? "text-gray-300" : "text-gray-700")}>Random challenge (blink or smile)</span>
+                </div>
               </div>
             </div>
 
@@ -675,17 +689,13 @@ export default function VerifyPage() {
             {/* Instruction text */}
             <div className="mt-10 text-center">
               <h2 className="text-2xl font-bold text-gray-900">
-                {CHALLENGES[challengeIdx]?.detector === "face_center" && "Look straight ahead"}
-                {CHALLENGES[challengeIdx]?.detector === "head_left" && "Turn to the left"}
-                {CHALLENGES[challengeIdx]?.detector === "head_right" && "Turn to the right"}
-                {CHALLENGES[challengeIdx]?.detector === "blink" && "Blink your eyes"}
-                {CHALLENGES[challengeIdx]?.detector === "smile" && "Smile"}
+                {CHALLENGES[challengeIdx]?.instruction || "Hold still"}
               </h2>
               {!faceDetected && (
                 <p className="text-red-500 text-sm mt-2 font-medium">Position your face in the circle</p>
               )}
               {faceDetected && challengeProgress > 0 && challengeProgress < 100 && (
-                <p className="text-emerald-600 text-sm mt-2 font-medium">{feedbackText}</p>
+                <p className="text-emerald-600 text-sm mt-2 font-medium">Hold still...</p>
               )}
             </div>
           </div>
