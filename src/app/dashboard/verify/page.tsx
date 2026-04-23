@@ -270,7 +270,10 @@ export default function VerifyPage() {
       }
     }
 
-    animRef.current = requestAnimationFrame(detectionLoop);
+    // Throttle to avoid shaking - run every 200ms not every frame
+    setTimeout(() => {
+      if (phase === "selfie_live") animRef.current = requestAnimationFrame(detectionLoop);
+    }, 200);
   }, [phase, challengeIdx, detectFace, detectFaceNative, faceDetected]);
 
   const passChallenge = useCallback(() => {
@@ -640,20 +643,20 @@ export default function VerifyPage() {
           {/* Main camera area */}
           <div className="flex-1 flex flex-col items-center justify-center px-6">
             {/* Circle with ring */}
-            <div className="relative" style={{ width: "min(85vw, 360px)", height: "min(85vw, 360px)" }}>
+            <div className="relative" style={{ width: 320, height: 320 }}>
               {/* Gray background ring */}
-              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 360 360">
-                <circle cx="180" cy="180" r="173" fill="none" stroke="#d1d5db" strokeWidth="8" />
-                <circle cx="180" cy="180" r="173" fill="none" stroke="#3b82f6" strokeWidth="8" strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 173}
-                  strokeDashoffset={2 * Math.PI * 173 * (1 - challengeProgress / 100)}
+              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 320 320">
+                <circle cx="160" cy="160" r="153" fill="none" stroke="#d1d5db" strokeWidth="8" />
+                <circle cx="160" cy="160" r="153" fill="none" stroke="#3b82f6" strokeWidth="8" strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 153}
+                  strokeDashoffset={2 * Math.PI * 153 * (1 - challengeProgress / 100)}
                   className="transition-all duration-300" />
               </svg>
 
               {/* Video circle */}
               <div className="absolute inset-[6px] rounded-full overflow-hidden">
                 <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay style={{ transform: "scaleX(-1)" }} />
-                <canvas ref={overlayRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-0" />
+                
               </div>
 
               {/* Direction arrow indicator */}
