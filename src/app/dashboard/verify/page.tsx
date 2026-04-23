@@ -28,13 +28,13 @@ const FINAL_STEPS: StepDef[] = [
 function SelfieScreen({ steps, stream, onDone, onCancel }: { steps: StepDef[]; stream: MediaStream; onDone: (f: string[]) => void; onCancel: () => void }) {
   const vid = useRef<HTMLVideoElement>(null);
   const cvs = useRef<HTMLCanvasElement>(null);
-  const ring = useRef<SVGCircleElement>(null);
-  const title = useRef<HTMLHeadingElement>(null);
-  const hint = useRef<HTMLParagraphElement>(null);
-  const cnt = useRef<HTMLSpanElement>(null);
-  const arrL = useRef<HTMLDivElement>(null);
-  const arrR = useRef<HTMLDivElement>(null);
-  const dots = useRef<HTMLDivElement>(null);
+  const ringE = useRef<SVGCircleElement>(null);
+  const titleE = useRef<HTMLHeadingElement>(null);
+  const hintE = useRef<HTMLParagraphElement>(null);
+  const cntE = useRef<HTMLSpanElement>(null);
+  const aL = useRef<HTMLDivElement>(null);
+  const aR = useRef<HTMLDivElement>(null);
+  const dotsE = useRef<HTMLDivElement>(null);
   const R = 153, C = 2 * Math.PI * R;
   const cur = useRef(0), pct = useRef(0), fin = useRef(false), caps = useRef<string[]>([]);
 
@@ -71,12 +71,12 @@ function SelfieScreen({ steps, stream, onDone, onCancel }: { steps: StepDef[]; s
 
   function ui(i: number) {
     const s = steps[i]; if (!s) return;
-    if (title.current) title.current.textContent = s.text;
-    if (cnt.current) cnt.current.textContent = (i + 1) + "/" + steps.length;
-    if (arrL.current) arrL.current.style.display = s.arrow === "left" ? "flex" : "none";
-    if (arrR.current) arrR.current.style.display = s.arrow === "right" ? "flex" : "none";
-    if (dots.current) for (let j = 0; j < dots.current.children.length; j++) {
-      const el = dots.current.children[j] as HTMLElement;
+    if (titleE.current) titleE.current.textContent = s.text;
+    if (cntE.current) cntE.current.textContent = (i + 1) + "/" + steps.length;
+    if (aL.current) aL.current.style.display = s.arrow === "left" ? "flex" : "none";
+    if (aR.current) aR.current.style.display = s.arrow === "right" ? "flex" : "none";
+    if (dotsE.current) for (let j = 0; j < dotsE.current.children.length; j++) {
+      const el = dotsE.current.children[j] as HTMLElement;
       el.style.width = j === i ? "24px" : "8px";
       el.style.backgroundColor = j <= i ? "#2563eb" : "#d1d5db";
     }
@@ -99,18 +99,18 @@ function SelfieScreen({ steps, stream, onDone, onCancel }: { steps: StepDef[]; s
           else if (st.id === "right") ok = face.cx < 0.45;
           else ok = face.w > 0.1;
         }
-        if (hint.current) {
-          if (!face) { hint.current.textContent = "Position your face in the circle"; hint.current.style.color = "#ef4444"; }
-          else if (!ok) { hint.current.textContent = "Follow the instruction above"; hint.current.style.color = "#f59e0b"; }
-          else { hint.current.textContent = "Hold still..."; hint.current.style.color = "#16a34a"; }
+        if (hintE.current) {
+          if (!face) { hintE.current.textContent = "Position your face in the circle"; hintE.current.style.color = "#ef4444"; }
+          else if (!ok) { hintE.current.textContent = "Follow the instruction above"; hintE.current.style.color = "#f59e0b"; }
+          else { hintE.current.textContent = "Hold still..."; hintE.current.style.color = "#16a34a"; }
         }
         if (ok) pct.current = Math.min(100, pct.current + 3);
         else pct.current = Math.max(0, pct.current - 5);
-        if (ring.current) ring.current.style.strokeDashoffset = String(C * (1 - pct.current / 100));
+        if (ringE.current) ringE.current.style.strokeDashoffset = String(C * (1 - pct.current / 100));
         if (pct.current >= 100) {
           const f = grab(); if (f) caps.current.push(f);
           pct.current = 0;
-          if (ring.current) ring.current.style.strokeDashoffset = String(C);
+          if (ringE.current) ringE.current.style.strokeDashoffset = String(C);
           cur.current = i + 1;
           if (cur.current >= steps.length) { fin.current = true; if (tid) clearInterval(tid); onDone(caps.current); return; }
           ui(cur.current);
@@ -125,26 +125,26 @@ function SelfieScreen({ steps, stream, onDone, onCancel }: { steps: StepDef[]; s
       <canvas ref={cvs} className="hidden" />
       <div className="flex items-center justify-between px-4 pt-12 pb-3">
         <button onClick={onCancel} className="w-10 h-10 flex items-center justify-center"><X className="w-6 h-6 text-gray-900" /></button>
-        <span ref={cnt} className="text-sm font-medium text-gray-500">1/{steps.length}</span>
+        <span ref={cntE} className="text-sm font-medium text-gray-500">1/{steps.length}</span>
         <span className="w-10" />
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-6">
         <div className="relative" style={{ width: 320, height: 320 }}>
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 320 320" style={{ transform: "rotate(-90deg)" }}>
             <circle cx="160" cy="160" r={R} fill="none" stroke="#d1d5db" strokeWidth="7" />
-            <circle ref={ring} cx="160" cy="160" r={R} fill="none" stroke="#2563eb" strokeWidth="7" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C} style={{ transition: "stroke-dashoffset 0.25s linear" }} />
+            <circle ref={ringE} cx="160" cy="160" r={R} fill="none" stroke="#2563eb" strokeWidth="7" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C} style={{ transition: "stroke-dashoffset 0.25s linear" }} />
           </svg>
           <div className="absolute rounded-full overflow-hidden" style={{ top: 7, left: 7, right: 7, bottom: 7 }}>
             <video ref={vid} className="w-full h-full object-cover" playsInline muted autoPlay style={{ transform: "scaleX(-1)" }} />
           </div>
-          <div ref={arrL} className="absolute left-[-24px] top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 rounded-full items-center justify-center shadow-lg z-10" style={{ display: "none" }}><ArrowLeft className="w-6 h-6 text-white" /></div>
-          <div ref={arrR} className="absolute right-[-24px] top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 rounded-full items-center justify-center shadow-lg z-10 rotate-180" style={{ display: "none" }}><ArrowLeft className="w-6 h-6 text-white" /></div>
+          <div ref={aL} className="absolute left-[-24px] top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 rounded-full items-center justify-center shadow-lg z-10" style={{ display: "none" }}><ArrowLeft className="w-6 h-6 text-white" /></div>
+          <div ref={aR} className="absolute right-[-24px] top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 rounded-full items-center justify-center shadow-lg z-10 rotate-180" style={{ display: "none" }}><ArrowLeft className="w-6 h-6 text-white" /></div>
         </div>
-        <h2 ref={title} className="text-2xl font-bold text-gray-900 mt-10 text-center">{steps[0]?.text}</h2>
-        <p ref={hint} className="text-sm mt-2 font-medium text-gray-400">Detecting face...</p>
+        <h2 ref={titleE} className="text-2xl font-bold text-gray-900 mt-10 text-center">{steps[0]?.text}</h2>
+        <p ref={hintE} className="text-sm mt-2 font-medium text-gray-400">Detecting face...</p>
       </div>
       <div className="px-6 pb-10">
-        <div ref={dots} className="flex items-center justify-center gap-2">
+        <div ref={dotsE} className="flex items-center justify-center gap-2">
           {steps.map((_, i) => (<div key={i} className="h-2 rounded-full" style={{ width: i === 0 ? 24 : 8, backgroundColor: i === 0 ? "#2563eb" : "#d1d5db", transition: "all 0.3s" }} />))}
         </div>
       </div>
@@ -180,8 +180,8 @@ export default function VerifyPage() {
     } catch { setError("Camera access required."); }
   };
 
-  const onDone = (f: string[]) => { setFrames(f); stopCam(); setPhase("processing"); };
-  const onCancel = () => { stopCam(); setPhase("selfie_prep"); };
+  const handleDone = (f: string[]) => { setFrames(f); stopCam(); setPhase("processing"); };
+  const handleCancel = () => { stopCam(); setPhase("selfie_prep"); };
 
   useEffect(() => {
     if (phase !== "processing") return;
@@ -221,7 +221,7 @@ export default function VerifyPage() {
 
   return (
     <div className="max-w-lg mx-auto">
-      {phase === "selfie_live" && streamRef.current && <SelfieScreen steps={steps} stream={streamRef.current} onDone={onDone} onCancel={onCancel} />}
+      {phase === "selfie_live" && streamRef.current && <SelfieScreen steps={steps} stream={streamRef.current} onDone={handleDone} onCancel={handleCancel} />}
 
       {phase === "intro" && (<div className="py-4"><div className={"rounded-3xl overflow-hidden border " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}><div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-8 text-center"><div className="w-20 h-20 mx-auto bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center mb-4"><Shield className="w-10 h-10 text-white" /></div><h1 className="text-2xl font-extrabold text-white mb-2">Identity Verification</h1><p className="text-blue-200 text-sm">Get verified and earn the trusted badge</p></div><div className="p-6"><div className={"p-4 rounded-xl mb-6 " + (dc ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-emerald-50 border border-emerald-100")}><p className={"text-xs font-medium flex items-center gap-2 " + (dc ? "text-emerald-400" : "text-emerald-700")}><Sparkles className="w-4 h-4" /> Earn 100 bonus coins when verified!</p></div><button onClick={() => setPhase("id_select")} className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold">Begin Verification</button></div></div></div>)}
 
@@ -229,7 +229,7 @@ export default function VerifyPage() {
 
       {phase === "id_upload" && (<div className="py-4"><div className={"rounded-3xl border p-6 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}><div className="flex items-center gap-3 mb-6"><button onClick={() => setPhase("id_select")} className="p-2 rounded-xl hover:bg-gray-100"><ArrowLeft className="w-5 h-5" /></button><h2 className={"text-xl font-extrabold " + (dc ? "text-white" : "text-gray-900")}>Upload Your ID</h2></div>{error && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}<input ref={idFR} type="file" accept="image/*" capture="environment" onChange={e => upId(e, "front")} className="hidden" /><input ref={idBR} type="file" accept="image/*" capture="environment" onChange={e => upId(e, "back")} className="hidden" /><p className={"text-sm font-semibold mb-2 " + (dc ? "text-gray-300" : "text-gray-700")}>Front of ID *</p>{idFront ? (<div className="relative mb-4"><img src={idFront} className="w-full rounded-2xl border object-cover max-h-48" /><button onClick={() => setIdFront(null)} className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center"><X className="w-4 h-4" /></button></div>) : (<button onClick={() => idFR.current?.click()} className="w-full py-10 rounded-2xl border-2 border-dashed flex flex-col items-center gap-2 mb-4 text-gray-400 hover:border-blue-400"><Upload className="w-8 h-8" /><p className="text-sm font-semibold">Upload front of ID</p></button>)}<p className={"text-sm font-semibold mb-2 " + (dc ? "text-gray-300" : "text-gray-700")}>Back of ID (optional)</p>{idBack ? (<div className="relative mb-4"><img src={idBack} className="w-full rounded-2xl border object-cover max-h-48" /><button onClick={() => setIdBack(null)} className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center"><X className="w-4 h-4" /></button></div>) : (<button onClick={() => idBR.current?.click()} className="w-full py-8 rounded-2xl border-2 border-dashed flex flex-col items-center gap-2 mb-4 text-gray-400 hover:border-blue-400"><Upload className="w-6 h-6" /><p className="text-xs">Upload back of ID</p></button>)}<div className="flex gap-3 mt-4"><button onClick={() => setPhase("id_select")} className={"flex-1 py-3.5 rounded-xl border-2 font-bold text-sm " + (dc ? "border-gray-600 text-gray-300" : "border-gray-200 text-gray-600")}>Back</button><button onClick={() => { if (!idFront) { setError("Upload front of ID"); return; } setPhase("selfie_prep"); }} className="flex-1 py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-sm">Next: Selfie</button></div></div></div>)}
 
-      {phase === "selfie_prep" && (<div className="py-4"><div className={"rounded-3xl border p-6 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}><div className="flex items-center gap-3 mb-6"><button onClick={() => setPhase("id_upload")} className="p-2 rounded-xl hover:bg-gray-100"><ArrowLeft className="w-5 h-5" /></button><h2 className={"text-xl font-extrabold " + (dc ? "text-white" : "text-gray-900")}>Live Face Scan</h2></div><div className={"rounded-2xl p-5 mb-6 " + (dc ? "bg-blue-500/10" : "bg-blue-50")}><p className={"text-sm font-bold mb-3 " + (dc ? "text-white" : "text-gray-900")}>You will be asked to:</p><div className="space-y-2">{["Look straight ahead", "Turn to the left", "Turn to the right", "Random: blink or smile"].map((t, i) => (<div key={i} className="flex items-center gap-3"><div className={"w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold " + (dc ? "bg-gray-700 text-gray-300" : "bg-white text-gray-600 shadow-sm")}>{i+1}</div><span className={"text-sm " + (dc ? "text-gray-300" : "text-gray-700")}>{t}</span></div>))}</div></div><p className={"text-xs mb-6 " + (dc ? "text-amber-400" : "text-amber-700")}>Blue ring only fills when you follow the instruction. Remove hats and sunglasses. Use good lighting.</p>{error && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}<button onClick={startCam} className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2"><Camera className="w-5 h-5" /> Start Face Scan</button></div></div>)}
+      {phase === "selfie_prep" && (<div className="py-4"><div className={"rounded-3xl border p-6 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}><div className="flex items-center gap-3 mb-6"><button onClick={() => setPhase("id_upload")} className="p-2 rounded-xl hover:bg-gray-100"><ArrowLeft className="w-5 h-5" /></button><h2 className={"text-xl font-extrabold " + (dc ? "text-white" : "text-gray-900")}>Live Face Scan</h2></div><div className={"rounded-2xl p-5 mb-6 " + (dc ? "bg-blue-500/10" : "bg-blue-50")}><p className={"text-sm font-bold mb-3 " + (dc ? "text-white" : "text-gray-900")}>You will be asked to:</p><div className="space-y-2">{["Look straight ahead", "Turn to the left", "Turn to the right", "Random: blink or smile"].map((t, i) => (<div key={i} className="flex items-center gap-3"><div className={"w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold " + (dc ? "bg-gray-700 text-gray-300" : "bg-white text-gray-600 shadow-sm")}>{i+1}</div><span className={"text-sm " + (dc ? "text-gray-300" : "text-gray-700")}>{t}</span></div>))}</div></div><p className={"text-xs mb-6 " + (dc ? "text-amber-400" : "text-amber-700")}>Blue ring only fills when you follow the instruction. Remove hats and sunglasses.</p>{error && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}<button onClick={startCam} className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2"><Camera className="w-5 h-5" /> Start Face Scan</button></div></div>)}
 
       {phase === "processing" && (<div className="text-center py-16"><div className="w-16 h-16 mx-auto border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-6" /><h2 className={"text-xl font-extrabold mb-2 " + (dc ? "text-white" : "text-gray-900")}>Analyzing...</h2><p className={"text-sm " + (dc ? "text-gray-400" : "text-gray-500")}>Verifying your face scan and documents</p></div>)}
 
