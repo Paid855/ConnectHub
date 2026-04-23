@@ -37,6 +37,8 @@ export default function SignupPage() {
   })() : null;
 
   const handleSignup = async () => {
+    if (!form.securityQuestion) { setError("Please select a security question"); return; }
+    if (!form.securityAnswer.trim()) { setError("Please answer your security question"); return; }
     setError(""); setLoading(true);
     try {
       const res = await fetch("/api/auth/signup", {

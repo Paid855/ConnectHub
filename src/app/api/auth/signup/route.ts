@@ -49,8 +49,6 @@ export async function POST(req: NextRequest) {
         referralCode,
         securityQuestion: securityQuestion || null,
         securityAnswer: securityAnswer || null,
-        securityQuestion: securityQuestion || null,
-        securityAnswer: securityAnswer || null,
         coins: 20,
       }
     });
