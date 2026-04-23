@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-white text-gray-900 antialiased min-h-screen overflow-x-hidden" style={{fontFamily:"'Inter',system-ui,sans-serif"}}>
         <ClientWrapper>{children}</ClientWrapper>
         <div id="google_translate_element" className="notranslate" />
-        <Script id="gt-init" strategy="afterInteractive">{`function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'en,es,fr,pt,de,ar,hi,zh-CN,sw,yo,ja,ko,tr,ru,it,nl,pl,vi,th,id,ms,tl,sv,da,no,fi,ro,uk,el,he,bn,ta,ur,am,ha,ig,zu,af',layout:google.translate.TranslateElement.InlineLayout.SIMPLE,autoDisplay:false},'google_translate_element')}`}</Script>
+        <Script id="gt-init" strategy="afterInteractive">{`function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'en,es,fr,pt,de,ar,hi,zh-CN,ja,ko,tr,ru,it,sw,yo,ig,zu,af,ha',layout:google.translate.TranslateElement.InlineLayout.SIMPLE,autoDisplay:false},'google_translate_element')}`}</Script>
         <Script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" strategy="afterInteractive" />
       </body>
     </html>

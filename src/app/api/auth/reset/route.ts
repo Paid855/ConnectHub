@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "@/lib/rate-limit";
 
-const resetCodes = new Map<string, { code: string; expires: number }>();
+const resetCodes = new Map<string, { code: string; expires: number; verified: boolean }>();
 
 async function sendResetEmail(email: string, resetCode: string) {
   const nodemailer = require("nodemailer");
@@ -11,10 +11,7 @@ async function sendResetEmail(email: string, resetCode: string) {
     host: "mail.privateemail.com",
     port: 465,
     secure: true,
-    auth: {
-      user: process.env.EMAIL_USER || "noreply@connecthub.love",
-      pass: process.env.EMAIL_PASS,
-    },
+    auth: { user: process.env.EMAIL_USER || "noreply@connecthub.love", pass: process.env.EMAIL_PASS },
   });
   await transporter.sendMail({
     from: '"ConnectHub" <noreply@connecthub.love>',
@@ -38,15 +35,10 @@ async function sendResetEmail(email: string, resetCode: string) {
   });
 }
 
-function generateAndStoreCode(email: string): string {
-  const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-  resetCodes.set(email.toLowerCase(), { code: resetCode, expires: Date.now() + 10 * 60 * 1000 });
-  return resetCode;
-}
-
 export async function POST(req: NextRequest) {
   const { action, email, code, securityAnswer, newPassword } = await req.json();
 
+  // Step 1: Request reset — send code immediately
   if (action === "request") {
     if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
     const rl = rateLimit("reset:" + email, 3, 600000);
@@ -55,18 +47,38 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findFirst({ where: { email: email.toLowerCase() } });
     if (!user) return NextResponse.json({ error: "No account with that email" }, { status: 404 });
 
-    // If NO security question, send code immediately
-    if (!user.securityQuestion) {
-      const resetCode = generateAndStoreCode(email);
-      try { await sendResetEmail(email, resetCode); } catch (e) { console.error("Reset email error:", e); }
-      return NextResponse.json({ success: true, hasSecurityQuestion: false, codeSent: true });
-    }
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    resetCodes.set(email.toLowerCase(), { code: resetCode, expires: Date.now() + 10 * 60 * 1000, verified: false });
 
-    return NextResponse.json({ success: true, hasSecurityQuestion: true, securityQuestion: user.securityQuestion });
+    try { await sendResetEmail(email, resetCode); } catch (e) { console.error("Reset email error:", e); }
+
+    return NextResponse.json({ success: true, codeSent: true });
   }
 
+  // Step 2: Verify the 6-digit code
+  if (action === "verify_code") {
+    if (!email || !code) return NextResponse.json({ error: "Code required" }, { status: 400 });
+    const stored = resetCodes.get(email.toLowerCase());
+    if (!stored || Date.now() > stored.expires) return NextResponse.json({ error: "Code expired or not found. Request a new one." }, { status: 400 });
+    if (stored.code !== code) return NextResponse.json({ error: "Invalid code" }, { status: 400 });
+
+    // Mark code as verified
+    stored.verified = true;
+    resetCodes.set(email.toLowerCase(), stored);
+
+    // Check if user has a security question
+    const user = await prisma.user.findFirst({ where: { email: email.toLowerCase() } });
+    const hasSecQ = !!(user?.securityQuestion);
+
+    return NextResponse.json({ verified: true, hasSecurityQuestion: hasSecQ, securityQuestion: user?.securityQuestion || "" });
+  }
+
+  // Step 3: Verify security answer (if user has one)
   if (action === "verify_security") {
     if (!email || !securityAnswer) return NextResponse.json({ error: "Answer required" }, { status: 400 });
+    const stored = resetCodes.get(email.toLowerCase());
+    if (!stored || !stored.verified) return NextResponse.json({ error: "Code not verified" }, { status: 400 });
+
     const user = await prisma.user.findFirst({ where: { email: email.toLowerCase() } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
@@ -74,28 +86,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Incorrect answer" }, { status: 400 });
     }
 
-    const resetCode = generateAndStoreCode(email);
-    try { await sendResetEmail(email, resetCode); } catch (e) { console.error("Reset email error:", e); }
-
-    return NextResponse.json({ codeSent: true });
+    return NextResponse.json({ success: true });
   }
 
-  if (action === "verify_code") {
-    if (!email || !code) return NextResponse.json({ error: "Code required" }, { status: 400 });
-    const stored = resetCodes.get(email.toLowerCase());
-    if (!stored || Date.now() > stored.expires) return NextResponse.json({ error: "Code expired or not found. Request a new one." }, { status: 400 });
-    if (stored.code !== code) return NextResponse.json({ error: "Invalid code" }, { status: 400 });
-    return NextResponse.json({ verified: true });
-  }
-
+  // Step 4: Reset password
   if (action === "reset") {
-    if (!email || !code || !newPassword) return NextResponse.json({ error: "All fields required" }, { status: 400 });
+    if (!email || !newPassword) return NextResponse.json({ error: "All fields required" }, { status: 400 });
     if (newPassword.length < 6) return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
     const stored = resetCodes.get(email.toLowerCase());
-    if (!stored || stored.code !== code) return NextResponse.json({ error: "Invalid or expired code" }, { status: 400 });
+    if (!stored || !stored.verified) return NextResponse.json({ error: "Code not verified" }, { status: 400 });
+
     const hashed = await bcrypt.hash(newPassword, 12);
     await prisma.user.updateMany({ where: { email: email.toLowerCase() }, data: { password: hashed } });
     resetCodes.delete(email.toLowerCase());
+
     return NextResponse.json({ success: true });
   }
 
