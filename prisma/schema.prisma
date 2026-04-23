@@ -27,6 +27,8 @@ model User {
   idDocument         String?
   securityQuestion   String?
   securityAnswer     String?
+  resetCode          String?
+  resetCodeExpires   DateTime?
   isPrivate          Boolean  @default(false)
   coins              Int      @default(0)
   boostedUntil       DateTime?
