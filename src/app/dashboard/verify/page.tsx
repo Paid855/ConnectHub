@@ -606,65 +606,76 @@ export default function VerifyPage() {
         </div>
       )}
 
-      {/* ===== LIVE SELFIE ===== */}
+      {/* ===== LIVE SELFIE (Facebook/Meta Style) ===== */}
       {phase === "selfie_live" && (
-        <div className="py-4 text-center">
-          {/* Overall progress */}
-          <div className="flex items-center gap-2 mb-4">
-            {CHALLENGES.map((c, i) => (
-              <div key={c.id} className={"h-1.5 flex-1 rounded-full transition-all " + (i < challengeIdx ? "bg-emerald-500" : i === challengeIdx ? "bg-blue-500" : (dc ? "bg-gray-700" : "bg-gray-200"))} />
-            ))}
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+          {/* Top bar */}
+          <div className="flex items-center justify-between px-4 py-3 safe-area-top">
+            <button onClick={() => { stopCamera(); setPhase("selfie_prep"); }} className="w-10 h-10 flex items-center justify-center">
+              <X className="w-6 h-6 text-gray-900" />
+            </button>
+            <span className="text-sm font-medium text-gray-500">{challengeIdx + 1}/{CHALLENGES.length}</span>
+            <button className="text-blue-600 font-semibold text-sm">Help</button>
           </div>
 
-          {/* Camera view in circle */}
-          <div className="relative mx-auto" style={{ width: 280, height: 280 }}>
-            {/* Outer ring */}
-            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 280 280">
-              <circle cx="140" cy="140" r="136" fill="none" stroke={dc ? "#374151" : "#e5e7eb"} strokeWidth="4" />
-              <circle cx="140" cy="140" r="136" fill="none" stroke={faceDetected ? "#22c55e" : "#ef4444"} strokeWidth="5" strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 136}
-                strokeDashoffset={2 * Math.PI * 136 * (1 - challengeProgress / 100)}
-                className="transition-all duration-200" />
-            </svg>
+          {/* Main camera area */}
+          <div className="flex-1 flex flex-col items-center justify-center px-6">
+            {/* Circle with ring */}
+            <div className="relative" style={{ width: 300, height: 300 }}>
+              {/* Gray background ring */}
+              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 300 300">
+                <circle cx="150" cy="150" r="143" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+                <circle cx="150" cy="150" r="143" fill="none" stroke="#3b82f6" strokeWidth="8" strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 143}
+                  strokeDashoffset={2 * Math.PI * 143 * (1 - challengeProgress / 100)}
+                  className="transition-all duration-300" />
+              </svg>
 
-            {/* Video in circle */}
-            <div className="absolute inset-2 rounded-full overflow-hidden border-4 border-transparent">
-              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay style={{ transform: "scaleX(-1)" }} />
-              <canvas ref={overlayRef} className="absolute inset-0 w-full h-full pointer-events-none" />
-            </div>
-
-            {/* Face detection indicator */}
-            <div className={"absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 " + (faceDetected ? "bg-emerald-500 text-white" : "bg-red-500 text-white")}>
-              {faceDetected ? <><CheckCircle className="w-3 h-3" /> Face Detected</> : <><AlertTriangle className="w-3 h-3" /> No Face</>}
-            </div>
-          </div>
-
-          {/* Challenge instruction */}
-          <div className={"mt-8 p-5 rounded-2xl " + (dc ? "bg-gray-800 border border-gray-700" : "bg-white border border-gray-100 shadow-lg")}>
-            <div className="flex items-center justify-between mb-2">
-              <span className={"text-xs font-bold " + (dc ? "text-gray-500" : "text-gray-400")}>Challenge {challengeIdx + 1} of {CHALLENGES.length}</span>
-              <span className={"text-xs font-bold " + feedbackColor}>{Math.round(challengeProgress)}%</span>
-            </div>
-            <div className="text-4xl mb-3">{CHALLENGES[challengeIdx]?.icon}</div>
-            <p className={"text-lg font-extrabold mb-1 " + (dc ? "text-white" : "text-gray-900")}>{CHALLENGES[challengeIdx]?.instruction}</p>
-            <p className={"text-sm font-medium " + feedbackColor}>{feedbackText || "Position your face in the circle"}</p>
-
-            {/* Challenge progress bar */}
-            <div className={"w-full h-2 rounded-full mt-4 overflow-hidden " + (dc ? "bg-gray-700" : "bg-gray-100")}>
-              <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-200" style={{ width: challengeProgress + "%" }} />
-            </div>
-          </div>
-
-          {/* Passed challenges */}
-          <div className="flex items-center justify-center gap-3 mt-4">
-            {CHALLENGES.map((c, i) => (
-              <div key={c.id} className={"w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all " + (i < challengeIdx ? "bg-emerald-100 scale-100" : i === challengeIdx ? (dc ? "bg-gray-700 scale-110 ring-2 ring-blue-500" : "bg-blue-50 scale-110 ring-2 ring-blue-500") : (dc ? "bg-gray-800 opacity-40" : "bg-gray-100 opacity-40"))}>
-                {i < challengeIdx ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : c.icon}
+              {/* Video circle */}
+              <div className="absolute inset-[6px] rounded-full overflow-hidden">
+                <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay style={{ transform: "scaleX(-1)" }} />
+                <canvas ref={overlayRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-0" />
               </div>
-            ))}
+
+              {/* Direction arrow indicator */}
+              {CHALLENGES[challengeIdx]?.detector === "head_left" && (
+                <div className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                  <ArrowLeft className="w-6 h-6 text-white" />
+                </div>
+              )}
+              {CHALLENGES[challengeIdx]?.detector === "head_right" && (
+                <div className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg" style={{transform:"translateY(-50%) scaleX(-1)"}}>
+                  <ArrowLeft className="w-6 h-6 text-white" />
+                </div>
+              )}
+            </div>
+
+            {/* Instruction text */}
+            <div className="mt-10 text-center">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {CHALLENGES[challengeIdx]?.detector === "face_center" && "Look straight ahead"}
+                {CHALLENGES[challengeIdx]?.detector === "head_left" && "Turn to the left"}
+                {CHALLENGES[challengeIdx]?.detector === "head_right" && "Turn to the right"}
+                {CHALLENGES[challengeIdx]?.detector === "blink" && "Blink your eyes"}
+                {CHALLENGES[challengeIdx]?.detector === "smile" && "Smile"}
+              </h2>
+              {!faceDetected && (
+                <p className="text-red-500 text-sm mt-2 font-medium">Position your face in the circle</p>
+              )}
+              {faceDetected && challengeProgress > 0 && challengeProgress < 100 && (
+                <p className="text-emerald-600 text-sm mt-2 font-medium">{feedbackText}</p>
+              )}
+            </div>
           </div>
 
-          <button onClick={() => { stopCamera(); setPhase("selfie_prep"); }} className={"mt-6 px-6 py-2.5 rounded-full text-sm font-semibold border " + (dc ? "border-gray-600 text-gray-400" : "border-gray-200 text-gray-500")}>Cancel</button>
+          {/* Bottom - step indicators */}
+          <div className="px-6 pb-8 safe-area-bottom">
+            <div className="flex items-center justify-center gap-2">
+              {CHALLENGES.map((ch, i) => (
+                <div key={ch.id} className={"w-3 h-3 rounded-full transition-all " + (i < challengeIdx ? "bg-blue-600" : i === challengeIdx ? "bg-blue-600 w-8" : "bg-gray-300")} />
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
