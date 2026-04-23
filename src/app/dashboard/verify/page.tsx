@@ -25,6 +25,230 @@ const FINAL_STEPS = [
   { id:"smile", text:"Smile", arrow:"none" },
 ];
 
+
+// Isolated selfie component - no parent re-renders = no shaking
+function SelfieScreen({ steps, videoRef, canvasRef, onComplete, onCancel }: {
+  steps: {id:string,text:string,arrow:string}[];
+  videoRef: React.RefObject<HTMLVideoElement|null>;
+  canvasRef: React.RefObject<HTMLCanvasElement|null>;
+  onComplete: (frames:string[]) => void;
+  onCancel: () => void;
+}) {
+  const currentStep = useRef(0);
+  const progressRef = useRef(0);
+  const faceOkRef = useRef(false);
+  const framesRef = useRef<string[]>([]);
+  const ringRef = useRef<SVGCircleElement>(null);
+  const textRef = useRef<HTMLHeadingElement>(null);
+  const arrowLeftRef = useRef<HTMLDivElement>(null);
+  const arrowRightRef = useRef<HTMLDivElement>(null);
+  const dotsRef = useRef<HTMLDivElement>(null);
+  const counterRef = useRef<HTMLSpanElement>(null);
+  const feedbackRef = useRef<HTMLParagraphElement>(null);
+  const doneRef = useRef(false);
+  const circumference = 2 * Math.PI * 153;
+
+  const captureFrame = (): string => {
+    if (!videoRef.current || !canvasRef.current) return "";
+    const v = videoRef.current;
+    const cv = canvasRef.current;
+    cv.width = 480; cv.height = 480;
+    const ctx = cv.getContext("2d");
+    if (!ctx || v.videoWidth === 0) return "";
+    const s = Math.min(v.videoWidth, v.videoHeight);
+    ctx.drawImage(v, (v.videoWidth-s)/2, (v.videoHeight-s)/2, s, s, 0, 0, 480, 480);
+    return cv.toDataURL("image/jpeg", 0.85);
+  };
+
+  const detectFace = (): {x:number,y:number,w:number,h:number}|null => {
+    if (!videoRef.current || !canvasRef.current) return null;
+    const v = videoRef.current;
+    const cv = canvasRef.current;
+    cv.width = 160; cv.height = 160;
+    const ctx = cv.getContext("2d");
+    if (!ctx || v.videoWidth === 0) return null;
+    const sz = Math.min(v.videoWidth, v.videoHeight);
+    ctx.drawImage(v, (v.videoWidth-sz)/2, (v.videoHeight-sz)/2, sz, sz, 0, 0, 160, 160);
+    const img = ctx.getImageData(0,0,160,160);
+    const d = img.data;
+    let minX=160,maxX=0,minY=160,maxY=0,count=0;
+    for (let y=0;y<160;y+=3) {
+      for (let x=0;x<160;x+=3) {
+        const i=(y*160+x)*4;
+        const r=d[i],g=d[i+1],b=d[i+2];
+        if (r>60&&g>40&&b>20&&r>g&&r>b&&(r-g)>12&&(r-b)>12&&r>75) {
+          if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; count++;
+        }
+      }
+    }
+    if (count < 30) return null;
+    const w=maxX-minX, h=maxY-minY;
+    if (w<25||h<25) return null;
+    return { x:(minX+maxX)/2/160, y:(minY+maxY)/2/160, w:w/160, h:h/160 };
+  };
+
+  const updateUI = (stepIdx: number) => {
+    const step = steps[stepIdx];
+    if (!step) return;
+    if (textRef.current) textRef.current.textContent = step.text;
+    if (counterRef.current) counterRef.current.textContent = (stepIdx+1)+"/"+steps.length;
+    if (arrowLeftRef.current) arrowLeftRef.current.style.display = step.arrow==="left"?"flex":"none";
+    if (arrowRightRef.current) arrowRightRef.current.style.display = step.arrow==="right"?"flex":"none";
+    if (dotsRef.current) {
+      Array.from(dotsRef.current.children).forEach((dot,i) => {
+        const el = dot as HTMLElement;
+        if (i<stepIdx) { el.className="h-2 rounded-full bg-blue-600 w-2 transition-all duration-300"; }
+        else if (i===stepIdx) { el.className="h-2 rounded-full bg-blue-600 w-6 transition-all duration-300"; }
+        else { el.className="h-2 rounded-full bg-gray-300 w-2 transition-all duration-300"; }
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (doneRef.current) return;
+    let running = true;
+    const STEP_DURATION = 3500;
+
+    // Attach video
+    const attachVideo = () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.play().catch(()=>{});
+      }
+    };
+    attachVideo();
+    setTimeout(attachVideo, 500);
+    setTimeout(attachVideo, 1500);
+
+    const mainLoop = () => {
+      if (!running || doneRef.current) return;
+
+      const stepIdx = currentStep.current;
+      if (stepIdx >= steps.length) {
+        doneRef.current = true;
+        onComplete(framesRef.current);
+        return;
+      }
+
+      const step = steps[stepIdx];
+      const face = detectFace();
+      let faceOk = false;
+
+      if (face) {
+        const cx = face.x; // 0=left edge, 0.5=center, 1=right edge
+        if (step.id === "center") {
+          faceOk = Math.abs(cx - 0.5) < 0.18 && Math.abs(face.y - 0.45) < 0.2 && face.w > 0.15;
+        } else if (step.id === "left") {
+          // Mirrored: turning left moves face right in image
+          faceOk = cx > 0.55;
+        } else if (step.id === "right") {
+          faceOk = cx < 0.45;
+        } else if (step.id === "blink" || step.id === "smile") {
+          // For blink/smile, just need face present
+          faceOk = face.w > 0.15;
+        }
+      }
+
+      faceOkRef.current = faceOk;
+
+      // Update feedback text
+      if (feedbackRef.current) {
+        if (!face) {
+          feedbackRef.current.textContent = "Position your face in the circle";
+          feedbackRef.current.style.color = "#ef4444";
+        } else if (!faceOk) {
+          feedbackRef.current.textContent = "Follow the instruction above";
+          feedbackRef.current.style.color = "#f59e0b";
+        } else {
+          feedbackRef.current.textContent = "Hold still...";
+          feedbackRef.current.style.color = "#22c55e";
+        }
+      }
+
+      // Progress: only advance when face matches challenge
+      if (faceOk) {
+        progressRef.current = Math.min(100, progressRef.current + (100 / (STEP_DURATION / 250)));
+      } else {
+        // Reset progress when not matching
+        progressRef.current = Math.max(0, progressRef.current - 2);
+      }
+
+      // Update ring directly via DOM
+      if (ringRef.current) {
+        ringRef.current.style.strokeDashoffset = String(circumference * (1 - progressRef.current / 100));
+      }
+
+      // Step complete
+      if (progressRef.current >= 100) {
+        const frame = captureFrame();
+        if (frame) framesRef.current.push(frame);
+        progressRef.current = 0;
+        if (ringRef.current) ringRef.current.style.strokeDashoffset = String(circumference);
+        currentStep.current = stepIdx + 1;
+        updateUI(stepIdx + 1);
+
+        if (currentStep.current >= steps.length) {
+          doneRef.current = true;
+          setTimeout(() => onComplete(framesRef.current), 300);
+          return;
+        }
+      }
+
+      if (running) setTimeout(mainLoop, 250);
+    };
+
+    // Start after camera warms up
+    updateUI(0);
+    setTimeout(mainLoop, 2000);
+
+    return () => { running = false; };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-white flex flex-col">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 pt-12 pb-3">
+        <button onClick={onCancel} className="w-10 h-10 flex items-center justify-center">
+          <X className="w-6 h-6 text-gray-900"/>
+        </button>
+        <span ref={counterRef} className="text-sm font-medium text-gray-500">1/{steps.length}</span>
+        <span className="text-sm text-transparent select-none">Help</span>
+      </div>
+
+      {/* Center */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
+        <div className="relative" style={{width:320,height:320}}>
+          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 320 320" style={{transform:"rotate(-90deg)"}}>
+            <circle cx="160" cy="160" r="153" fill="none" stroke="#d1d5db" strokeWidth="7"/>
+            <circle ref={ringRef} cx="160" cy="160" r="153" fill="none" stroke="#2563eb" strokeWidth="7" strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference}
+              style={{transition:"stroke-dashoffset 0.2s linear"}}/>
+          </svg>
+          <div className="absolute rounded-full overflow-hidden" style={{top:7,left:7,right:7,bottom:7}}>
+            <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay style={{transform:"scaleX(-1)"}}/>
+          </div>
+          {/* Arrows */}
+          <div ref={arrowLeftRef} className="absolute left-[-24px] top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 rounded-full items-center justify-center shadow-lg z-10" style={{display:"none"}}>
+            <ArrowLeft className="w-6 h-6 text-white"/>
+          </div>
+          <div ref={arrowRightRef} className="absolute right-[-24px] top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 rounded-full items-center justify-center shadow-lg z-10 rotate-180" style={{display:"none"}}>
+            <ArrowLeft className="w-6 h-6 text-white"/>
+          </div>
+        </div>
+        <h2 ref={textRef} className="text-2xl font-bold text-gray-900 mt-10 text-center">{steps[0]?.text}</h2>
+        <p ref={feedbackRef} className="text-sm mt-2 font-medium text-gray-400">Detecting face...</p>
+      </div>
+
+      {/* Bottom dots */}
+      <div className="px-6 pb-10">
+        <div ref={dotsRef} className="flex items-center justify-center gap-2">
+          {steps.map((_,i)=>(<div key={i} className={"h-2 rounded-full transition-all duration-300 "+(i===0?"bg-blue-600 w-6":"bg-gray-300 w-2")}/>))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function VerifyPage() {
   const { user, reload, dark } = useUser();
   const dc = dark;
@@ -34,6 +258,7 @@ export default function VerifyPage() {
   const timerRef = useRef<any>(null);
   const idFrontRef = useRef<HTMLInputElement>(null);
   const idBackRef = useRef<HTMLInputElement>(null);
+  const captureBackup = useRef<string>("");
 
   const [phase, setPhase] = useState<Phase>("intro");
   const [stepIdx, setStepIdx] = useState(0);
@@ -141,25 +366,36 @@ export default function VerifyPage() {
   useEffect(() => {
     if (phase !== "processing") return;
     stopCamera();
-    (async () => {
+    const doSubmit = async () => {
+      // Small delay to ensure frames state is set
+      await new Promise(r => setTimeout(r, 500));
       try {
+        const payload = {
+          verificationPhoto: frames[0] || captureBackup.current || "",
+          idDocument: idFront || "",
+          idDocumentBack: idBack || "",
+          idType,
+          frames: frames.length,
+          selfieFrames: frames,
+          challenges: steps.map(s => s.id),
+        };
+        console.log("Submitting verification:", { frameCount: frames.length, hasIdFront: !!idFront, idType });
         const res = await fetch("/api/auth/verify", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            verificationPhoto: frames[0] || "",
-            idDocument: idFront || "",
-            idDocumentBack: idBack || "",
-            idType,
-            frames: frames.length,
-            selfieFrames: frames,
-            challenges: steps.map(s => s.id),
-          })
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
         });
+        const data = await res.json();
         if (res.ok) { setPhase("success"); reload(); }
-        else { const d = await res.json(); setPhase("failed"); setError(d.error || "Verification failed"); }
-      } catch { setPhase("failed"); setError("Network error"); }
-    })();
-  }, [phase]);
+        else { setPhase("failed"); setError(data.error || "Verification failed. Please try again."); }
+      } catch (e) {
+        console.error("Verify submit error:", e);
+        setPhase("failed");
+        setError("Connection error. Please check your internet and try again.");
+      }
+    };
+    doSubmit();
+  }, [phase, frames]);
 
   const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>, side: "front"|"back") => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -340,71 +576,9 @@ export default function VerifyPage() {
       )}
 
       {/* ===== LIVE SELFIE (Facebook/Meta Style) ===== */}
-      {phase === "selfie_live" && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col">
-          {/* Top bar */}
-          <div className="flex items-center justify-between px-4 pt-12 pb-3">
-            <button onClick={()=>{stopCamera();setPhase("selfie_prep");}} className="w-10 h-10 flex items-center justify-center">
-              <X className="w-6 h-6 text-gray-900"/>
-            </button>
-            <span className="text-sm font-medium text-gray-500">{stepIdx+1}/{steps.length}</span>
-            <span className="text-sm font-medium text-transparent select-none">Help</span>
-          </div>
+      {phase === "selfie_live" && <SelfieScreen steps={steps} videoRef={videoRef} canvasRef={canvasRef} onComplete={(capturedFrames) => { setFrames(capturedFrames); setPhase("processing"); }} onCancel={() => { stopCamera(); setPhase("selfie_prep"); }} />}
 
-          {/* Center camera area */}
-          <div className="flex-1 flex flex-col items-center justify-center px-6">
-            {/* Circle */}
-            <div className="relative" style={{width:320,height:320}}>
-              {/* SVG ring */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 320 320" style={{transform:"rotate(-90deg)"}}>
-                <circle cx="160" cy="160" r="153" fill="none" stroke="#d1d5db" strokeWidth="7"/>
-                <circle cx="160" cy="160" r="153" fill="none" stroke="#2563eb" strokeWidth="7" strokeLinecap="round"
-                  strokeDasharray={2*Math.PI*153}
-                  strokeDashoffset={2*Math.PI*153*(1-stepProgress/100)}
-                  style={{transition:"stroke-dashoffset 0.15s linear"}}/>
-              </svg>
-
-              {/* Video */}
-              <div className="absolute rounded-full overflow-hidden" style={{top:7,left:7,right:7,bottom:7}}>
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-cover"
-                  playsInline muted autoPlay
-                  style={{transform:"scaleX(-1)"}}
-                />
-              </div>
-
-              {/* Direction arrows */}
-              {steps[stepIdx]?.arrow === "left" && (
-                <div className="absolute left-[-24px] top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg z-10">
-                  <ArrowLeft className="w-6 h-6 text-white"/>
-                </div>
-              )}
-              {steps[stepIdx]?.arrow === "right" && (
-                <div className="absolute right-[-24px] top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg z-10 rotate-180">
-                  <ArrowLeft className="w-6 h-6 text-white"/>
-                </div>
-              )}
-            </div>
-
-            {/* Instruction */}
-            <h2 className="text-2xl font-bold text-gray-900 mt-10 text-center">
-              {steps[stepIdx]?.text || "Hold still"}
-            </h2>
-          </div>
-
-          {/* Bottom dots */}
-          <div className="px-6 pb-10">
-            <div className="flex items-center justify-center gap-2">
-              {steps.map((_,i)=>(
-                <div key={i} className={"h-2 rounded-full transition-all duration-300 "+(i<stepIdx?"bg-blue-600 w-2":i===stepIdx?"bg-blue-600 w-6":"bg-gray-300 w-2")}/>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===== PROCESSING ===== */}
+            {/* ===== PROCESSING ===== */}
       {phase === "processing" && (
         <div className="text-center py-16">
           <div className="w-16 h-16 mx-auto border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-6"/>
