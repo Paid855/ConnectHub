@@ -11,6 +11,7 @@
   "dependencies": {
     "@prisma/client": "5.22.0",
     "@stripe/stripe-js": "^8.11.0",
+    "@vladmandic/face-api": "^1.7.15",
     "agora-access-token": "^2.0.4",
     "agora-rtc-sdk-ng": "^4.24.3",
     "bcryptjs": "^2.4.3",
