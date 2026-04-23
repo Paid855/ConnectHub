@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
         lookingFor: lookingFor || null,
         country: country || null,
         referralCode,
+        securityQuestion: securityQuestion || null,
+        securityAnswer: securityAnswer || null,
         coins: 20,
       }
     });

@@ -12,7 +12,7 @@ export default function SignupPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name:"", email:"", password:"", username:"", phone:"", dateOfBirth:"", gender:"", lookingFor:"", country:"", bio:"" });
+  const [form, setForm] = useState({ name:"", email:"", password:"", username:"", phone:"", dateOfBirth:"", gender:"", lookingFor:"", country:"", bio:"", securityQuestion:"", securityAnswer:"" });
   const [photo, setPhoto] = useState<string|null>(null);
   const [usernameStatus, setUsernameStatus] = useState<""|"checking"|"available"|"taken">("");
   const [showPwd, setShowPwd] = useState(false);
@@ -211,6 +211,22 @@ export default function SignupPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                   <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="+1 234 567 8900" />
+                </div>
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-purple-800 mb-1 flex items-center gap-1.5">🔒 Security Question</p>
+                  <p className="text-xs text-purple-600 mb-3">Used to verify your identity when resetting your password</p>
+                  <select value={form.securityQuestion} onChange={e => setForm({...form, securityQuestion: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-purple-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm bg-white mb-2">
+                    <option value="">Select a security question</option>
+                    <option value="What is your mother's maiden name?">What is your mother&apos;s maiden name?</option>
+                    <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                    <option value="What city were you born in?">What city were you born in?</option>
+                    <option value="What is your favorite movie?">What is your favorite movie?</option>
+                    <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+                    <option value="What is the name of your best friend?">What is the name of your best friend?</option>
+                  </select>
+                  {form.securityQuestion && (
+                    <input value={form.securityAnswer} onChange={e => setForm({...form, securityAnswer: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-purple-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="Your answer (remember this!)" />
+                  )}
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setStep(1)} className="flex-1 py-3.5 border-2 border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50">Back</button>
