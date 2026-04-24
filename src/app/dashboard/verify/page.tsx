@@ -249,12 +249,25 @@ export default function VerifyPage() {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) { setErr("Max 10MB"); return; }
     setErr("");
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      if (side === "f") setIdFront(ev.target?.result as string);
-      else setIdBack(ev.target?.result as string);
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 600;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const cvs = document.createElement("canvas");
+      cvs.width = w;
+      cvs.height = h;
+      const ctx = cvs.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, w, h);
+      const compressed = cvs.toDataURL("image/jpeg", 0.5);
+      if (side === "f") setIdFront(compressed);
+      else setIdBack(compressed);
     };
-    reader.readAsDataURL(file);
+    img.src = URL.createObjectURL(file);
   };
 
   const retry = () => {
