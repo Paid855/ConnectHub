@@ -531,8 +531,26 @@ export default function AdminDashboard() {
                   <div><h3 className="text-lg font-bold">{selectedVerif.name}</h3><p className="text-sm text-gray-500">{selectedVerif.email}</p><div className="flex gap-2 text-xs text-gray-500 mt-1">{selectedVerif.age && <span>Age: {selectedVerif.age}</span>}{selectedVerif.gender && <span className="capitalize">{selectedVerif.gender}</span>}{selectedVerif.country && <span>{selectedVerif.country}</span>}{selectedVerif.idType && <span className="capitalize">{selectedVerif.idType.replace("_", " ")}</span>}</div></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                  {selectedVerif.verificationPhoto && <div><p className="text-xs text-gray-500 mb-2 font-medium">Selfie</p><img src={selectedVerif.verificationPhoto} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedVerif.verificationPhoto)} alt="Selfie" /></div>}
-                  {selectedVerif.idDocument && <div><p className="text-xs text-gray-500 mb-2 font-medium">ID Front</p><img src={selectedVerif.idDocument} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedVerif.idDocument)} alt="ID" /></div>}
+                  {(() => {
+                    let vf: any[] = [];
+                    try { if ((selectedVerif as any).verificationFrames) { vf = JSON.parse((selectedVerif as any).verificationFrames).frames || []; } } catch {}
+                    return vf.length > 0 ? (
+                      <div className="col-span-full mb-4">
+                        <p className="text-xs text-gray-400 font-bold mb-3 flex items-center gap-2"><Camera className="w-4 h-4" /> Liveness Selfie Frames ({vf.length})</p>
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                          {vf.map((f: any, i: number) => (
+                            <div key={i} className="text-center">
+                              <img src={f.image} className="w-full aspect-square rounded-xl border border-gray-700 object-cover cursor-pointer hover:opacity-80 hover:ring-2 hover:ring-blue-500" onClick={() => setPhotoViewer(f.image)} alt={f.label} />
+                              <p className="text-[10px] text-gray-500 mt-1 font-semibold">{f.label}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : selectedVerif.verificationPhoto ? (
+                      <div><p className="text-xs text-gray-500 mb-2 font-medium">Selfie</p><img src={selectedVerif.verificationPhoto} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedVerif.verificationPhoto)} alt="Selfie" /></div>
+                    ) : null;
+                  })()}
+                  {selectedVerif.idDocument && <div><p className="text-xs text-gray-500 mb-2 font-medium">ID Front {selectedVerif.idType && <span className="capitalize">({selectedVerif.idType.replace("_", " ")})</span>}</p><img src={selectedVerif.idDocument} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedVerif.idDocument)} alt="ID Front" /></div>}
                   {selectedVerif.idDocumentBack && <div><p className="text-xs text-gray-500 mb-2 font-medium">ID Back</p><img src={selectedVerif.idDocumentBack} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedVerif.idDocumentBack)} alt="ID Back" /></div>}
                 </div>
                 <div className="flex gap-3">
