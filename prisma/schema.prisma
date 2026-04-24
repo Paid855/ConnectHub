@@ -31,6 +31,11 @@ model User {
   resetCodeExpires   DateTime?
   lastActive         DateTime?
   isPrivate          Boolean  @default(false)
+  banned             Boolean   @default(false)
+  city               String?
+  idDocumentBack     String?
+  idType             String?
+  photos             String[]  @default([])
   coins              Int      @default(0)
   boostedUntil       DateTime?
   lastLoginReward    DateTime?
