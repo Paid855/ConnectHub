@@ -1,193 +1,463 @@
 "use client";
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useUser } from "../layout";
-import {
-  Camera, CheckCircle, XCircle, RotateCcw, Shield,
-  Upload, ArrowLeft, X, Sparkles, ChevronRight
-} from "lucide-react";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import Link from "next/link";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Camera,
+  CameraOff,
+  Check,
+  CheckCircle,
+  ChevronRight,
+  HelpCircle,
+  RotateCcw,
+  Shield,
+  Sparkles,
+  Upload,
+  X,
+  XCircle,
+} from "lucide-react";
+import { useUser } from "../layout";
 
-type Phase = "intro" | "ids" | "idu" | "prep" | "cam" | "review" | "wait" | "ok" | "fail";
+type Phase =
+  | "intro"
+  | "ids"
+  | "idu"
+  | "prep"
+  | "cam"
+  | "review"
+  | "wait"
+  | "ok"
+  | "fail";
 
-const IDS = [
-  { v: "passport", l: "International Passport", i: "\u{1F6C2}" },
-  { v: "national_id", l: "National ID Card", i: "\u{1FAAA}" },
-  { v: "drivers_license", l: "Driver License", i: "\u{1F697}" },
-  { v: "voters_card", l: "Voter Card", i: "\u{1F5F3}" },
-  { v: "residence_permit", l: "Residence Permit", i: "\u{1F3E0}" },
-  { v: "military_id", l: "Military ID", i: "\u{1F396}" },
+type IDTypeValue =
+  | "passport"
+  | "national_id"
+  | "drivers_license"
+  | "voters_card"
+  | "residence_permit"
+  | "military_id";
+
+type IDOption = {
+  v: IDTypeValue;
+  l: string;
+  i: string;
+};
+
+type SelfieChallenge = {
+  id: "front" | "left" | "right";
+  label: string;
+  shortLabel: string;
+  helper: string;
+  bubble: "none" | "left" | "right";
+  icon: string;
+};
+
+type CapturedSelfie = {
+  pose: SelfieChallenge["id"];
+  label: string;
+  image: string;
+  capturedAt: string;
+};
+
+const VERIFY_ENDPOINT = "/api/auth/verify";
+
+const IDS: IDOption[] = [
+  { v: "passport", l: "International Passport", i: "🛂" },
+  { v: "national_id", l: "National ID Card", i: "🪪" },
+  { v: "drivers_license", l: "Driver License", i: "🚗" },
+  { v: "voters_card", l: "Voter Card", i: "🗳️" },
+  { v: "residence_permit", l: "Residence Permit", i: "🏠" },
+  { v: "military_id", l: "Military ID", i: "🎖️" },
 ];
 
-const POSES = [
-  { id: "front", label: "Look straight at camera", icon: "\u{1F642}" },
-  { id: "left", label: "Turn your head to the LEFT", icon: "\u{1F448}" },
-  { id: "right", label: "Turn your head to the RIGHT", icon: "\u{1F449}" },
+const SELFIE_CHALLENGES: SelfieChallenge[] = [
+  {
+    id: "front",
+    label: "Look straight",
+    shortLabel: "Front",
+    helper: "Keep your face centered inside the circle.",
+    bubble: "none",
+    icon: "🙂",
+  },
+  {
+    id: "left",
+    label: "Turn to the left",
+    shortLabel: "Left",
+    helper: "Turn your head left, not your whole phone.",
+    bubble: "left",
+    icon: "←",
+  },
+  {
+    id: "right",
+    label: "Turn to the right",
+    shortLabel: "Right",
+    helper: "Turn your head right and hold still.",
+    bubble: "right",
+    icon: "→",
+  },
 ];
 
-function CameraScreen({
+const cx = (...classes: Array<string | false | null | undefined>) =>
+  classes.filter(Boolean).join(" ");
+
+function stopStream(stream: MediaStream | null) {
+  stream?.getTracks().forEach((track) => track.stop());
+}
+
+async function compressImageFile(file: File, maxSide = 1000, quality = 0.72) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Please upload a valid image file.");
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error("Image is too large. Maximum size is 10MB.");
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Could not read this image."));
+      image.src = objectUrl;
+    });
+
+    let { width, height } = img;
+    const scale = Math.min(1, maxSide / Math.max(width, height));
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not process this image.");
+
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", quality);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function StepDots({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="flex items-center justify-center gap-2">
+      {Array.from({ length: total }).map((_, index) => (
+        <span
+          key={index}
+          className={cx(
+            "h-2 rounded-full transition-all",
+            index < current && "w-6 bg-emerald-500",
+            index === current && "w-8 bg-blue-600",
+            index > current && "w-2 bg-gray-300"
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CameraProgressRing({ current, total }: { current: number; total: number }) {
+  const radius = 156;
+  const circumference = 2 * Math.PI * radius;
+  const progress = (current + 1) / total;
+  const offset = circumference * (1 - progress);
+
+  return (
+    <svg className="absolute -inset-5 h-[calc(100%+40px)] w-[calc(100%+40px)] rotate-[-90deg]" viewBox="0 0 360 360">
+      <circle
+        cx="180"
+        cy="180"
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="8"
+        className="text-gray-300"
+      />
+      <circle
+        cx="180"
+        cy="180"
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        className="text-blue-600 transition-all duration-500"
+      />
+    </svg>
+  );
+}
+
+function DirectionBubble({ side }: { side: SelfieChallenge["bubble"] }) {
+  if (side === "none") return null;
+
+  const isLeft = side === "left";
+
+  return (
+    <div
+      className={cx(
+        "absolute top-1/2 z-30 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl ring-4 ring-white",
+        isLeft ? "-left-9" : "-right-9"
+      )}
+      aria-hidden="true"
+    >
+      {isLeft ? <ArrowLeft className="h-9 w-9" /> : <ArrowLeft className="h-9 w-9 rotate-180" />}
+    </div>
+  );
+}
+
+function LiveSelfieCapture({
   onDone,
   onCancel,
 }: {
-  onDone: (photos: string[]) => void;
+  onDone: (photos: CapturedSelfie[]) => void;
   onCancel: () => void;
 }) {
-  const vidRef = useRef<HTMLVideoElement>(null);
-  const canRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<number | null>(null);
+
   const [step, setStep] = useState(0);
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [flash, setFlash] = useState(false);
+  const [photos, setPhotos] = useState<CapturedSelfie[]>([]);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [cameraError, setCameraError] = useState("");
+  const [flash, setFlash] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  const currentChallenge = SELFIE_CHALLENGES[step];
+  const busy = countdown !== null;
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const closeCamera = useCallback(() => {
+    clearTimer();
+    stopStream(streamRef.current);
+    streamRef.current = null;
+  }, [clearTimer]);
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
+
+    async function startCamera() {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } },
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Camera is not available in this browser.");
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user",
+            width: { ideal: 960 },
+            height: { ideal: 960 },
+          },
           audio: false,
         });
-        if (!mounted) { s.getTracks().forEach((t) => t.stop()); return; }
-        streamRef.current = s;
-        if (vidRef.current) {
-          vidRef.current.srcObject = s;
-          vidRef.current.play().catch(() => {});
+
+        if (!mounted) {
+          stopStream(stream);
+          return;
         }
-      } catch {
-        onCancel();
+
+        streamRef.current = stream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => undefined);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Could not open camera.";
+        setCameraError(message);
       }
-    })();
+    }
+
+    startCamera();
+
     return () => {
       mounted = false;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-      }
+      closeCamera();
     };
-  }, []);
+  }, [closeCamera]);
 
-  const capture = useCallback(() => {
-    const v = vidRef.current;
-    const c = canRef.current;
-    if (!v || !c || v.videoWidth === 0) return;
+  const captureCurrentFrame = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
 
-    // 3-2-1 countdown then capture
-    setCountdown(3);
-    let count = 3;
-    const timer = setInterval(() => {
-      count--;
-      if (count > 0) {
-        setCountdown(count);
-      } else {
-        clearInterval(timer);
-        setCountdown(null);
+    if (!video || !canvas || video.videoWidth === 0 || video.videoHeight === 0) {
+      setCameraError("Camera is still loading. Please try again.");
+      return;
+    }
 
-        // Flash effect
-        setFlash(true);
-        setTimeout(() => setFlash(false), 200);
+    const size = Math.min(video.videoWidth, video.videoHeight);
+    const sx = (video.videoWidth - size) / 2;
+    const sy = (video.videoHeight - size) / 2;
 
-        // Capture
-        c.width = 320;
-        c.height = 320;
-        const ctx = c.getContext("2d");
-        if (!ctx) return;
-        const sz = Math.min(v.videoWidth, v.videoHeight);
-        ctx.drawImage(v, (v.videoWidth - sz) / 2, (v.videoHeight - sz) / 2, sz, sz, 0, 0, 320, 320);
-        const dataUrl = c.toDataURL("image/jpeg", 0.6);
+    canvas.width = 720;
+    canvas.height = 720;
 
-        const newPhotos = [...photos, dataUrl];
-        setPhotos(newPhotos);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      setCameraError("Could not capture selfie.");
+      return;
+    }
 
-        if (step + 1 >= POSES.length) {
-          // All poses done - stop camera and return
-          if (streamRef.current) {
-            streamRef.current.getTracks().forEach((t) => t.stop());
-            streamRef.current = null;
-          }
-          onDone(newPhotos);
-        } else {
-          setStep(step + 1);
-        }
+    ctx.drawImage(video, sx, sy, size, size, 0, 0, canvas.width, canvas.height);
+
+    const image = canvas.toDataURL("image/jpeg", 0.78);
+    const frame: CapturedSelfie = {
+      pose: currentChallenge.id,
+      label: currentChallenge.shortLabel,
+      image,
+      capturedAt: new Date().toISOString(),
+    };
+
+    setFlash(true);
+    window.setTimeout(() => setFlash(false), 160);
+
+    const nextPhotos = [...photos, frame];
+    setPhotos(nextPhotos);
+
+    if (step + 1 >= SELFIE_CHALLENGES.length) {
+      closeCamera();
+      window.setTimeout(() => onDone(nextPhotos), 200);
+      return;
+    }
+
+    setStep((value) => value + 1);
+  }, [closeCamera, currentChallenge.id, currentChallenge.shortLabel, onDone, photos, step]);
+
+  const startCountdown = useCallback(() => {
+    if (busy || cameraError) return;
+
+    let next = 3;
+    setCountdown(next);
+    clearTimer();
+
+    timerRef.current = window.setInterval(() => {
+      next -= 1;
+
+      if (next > 0) {
+        setCountdown(next);
+        return;
       }
-    }, 800);
-  }, [step, photos, onDone]);
 
-  const pose = POSES[step];
+      clearTimer();
+      setCountdown(null);
+      captureCurrentFrame();
+    }, 800);
+  }, [busy, cameraError, captureCurrentFrame, clearTimer]);
+
+  const cancel = () => {
+    closeCamera();
+    onCancel();
+  };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-gray-950 flex flex-col">
-      <canvas ref={canRef} className="hidden" />
+    <div className="fixed inset-0 z-[100] flex flex-col bg-white text-gray-950">
+      <canvas ref={canvasRef} className="hidden" />
 
-      {/* Flash overlay */}
-      {flash && <div className="absolute inset-0 bg-white z-50 animate-pulse" />}
+      {flash && <div className="pointer-events-none absolute inset-0 z-50 bg-white" />}
 
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 pt-12 pb-3 bg-gray-950">
-        <button onClick={onCancel} className="w-10 h-10 flex items-center justify-center">
-          <X className="w-6 h-6 text-white" />
-        </button>
-        <span className="text-sm font-medium text-gray-400">
-          Step {step + 1} of {POSES.length}
-        </span>
-        <span className="w-10" />
-      </div>
-
-      {/* Instruction */}
-      <div className="text-center px-6 py-4 bg-gray-950">
-        <span className="text-4xl">{pose?.icon}</span>
-        <h2 className="text-xl font-bold text-white mt-2">{pose?.label}</h2>
-        <p className="text-gray-400 text-sm mt-1">Position yourself, then tap the capture button</p>
-      </div>
-
-      {/* Camera view */}
-      <div className="flex-1 flex items-center justify-center bg-gray-950 px-6">
-        <div className="relative w-[280px] h-[280px]">
-          {/* Circle border */}
-          <div className="absolute inset-0 rounded-full border-4 border-blue-500 z-10" />
-
-          {/* Progress dots */}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-            {POSES.map((_, i) => (
-              <div
-                key={i}
-                className="w-3 h-3 rounded-full"
-                style={{
-                  backgroundColor: i < step ? "#22c55e" : i === step ? "#3b82f6" : "#4b5563",
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Video */}
-          <div className="w-full h-full rounded-full overflow-hidden">
-            <video
-              ref={vidRef}
-              className="w-full h-full object-cover"
-              playsInline
-              muted
-              autoPlay
-              style={{ transform: "scaleX(-1)" }}
-            />
-          </div>
-
-          {/* Countdown overlay */}
-          {countdown !== null && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full z-30">
-              <span className="text-6xl font-bold text-white">{countdown}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Capture button */}
-      <div className="pb-10 pt-6 flex justify-center bg-gray-950">
+      <div className="flex items-center justify-between px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <button
-          onClick={capture}
-          disabled={countdown !== null}
-          className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center disabled:opacity-50"
+          type="button"
+          onClick={cancel}
+          className="flex h-11 w-11 items-center justify-center rounded-full text-gray-950 transition hover:bg-gray-100"
+          aria-label="Close selfie verification"
         >
-          <div className="w-14 h-14 rounded-full bg-white" />
+          <X className="h-7 w-7" />
         </button>
+
+        <button
+          type="button"
+          onClick={() => setHelpOpen((value) => !value)}
+          className="text-lg font-bold underline underline-offset-4"
+        >
+          Help
+        </button>
+      </div>
+
+      {helpOpen && (
+        <div className="mx-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
+          <div className="mb-2 flex items-center gap-2 font-bold">
+            <HelpCircle className="h-4 w-4" /> Selfie tips
+          </div>
+          <p>Use good light, remove sunglasses or face coverings, and keep only your face inside the circle.</p>
+        </div>
+      )}
+
+      <div className="flex flex-1 flex-col items-center justify-start px-5 pt-8">
+        <div className="mb-8 w-full max-w-sm">
+          <StepDots current={step} total={SELFIE_CHALLENGES.length} />
+        </div>
+
+        <div className="relative h-[min(78vw,350px)] w-[min(78vw,350px)]">
+          <CameraProgressRing current={step} total={SELFIE_CHALLENGES.length} />
+          <DirectionBubble side={currentChallenge.bubble} />
+
+          <div className="absolute inset-0 overflow-hidden rounded-full bg-gray-200 ring-[10px] ring-white">
+            {cameraError ? (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-8 text-center text-gray-700">
+                <CameraOff className="h-12 w-12" />
+                <p className="text-sm font-semibold">{cameraError}</p>
+              </div>
+            ) : (
+              <video
+                ref={videoRef}
+                className="h-full w-full object-cover"
+                autoPlay
+                muted
+                playsInline
+                style={{ transform: "scaleX(-1)" }}
+              />
+            )}
+
+            {countdown !== null && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45">
+                <span className="text-7xl font-black text-white drop-shadow-lg">{countdown}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-14 text-center">
+          <div className="mb-3 text-3xl font-black tracking-tight text-gray-950 sm:text-4xl">
+            {currentChallenge.label}
+          </div>
+          <p className="mx-auto max-w-xs text-sm font-medium text-gray-500">{currentChallenge.helper}</p>
+        </div>
+
+        <div className="mt-8 flex w-full max-w-sm items-center gap-3">
+          <button
+            type="button"
+            onClick={cancel}
+            className="h-14 flex-1 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-700 shadow-sm"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={startCountdown}
+            disabled={busy || !!cameraError}
+            className="h-14 flex-[1.5] rounded-2xl bg-blue-600 text-sm font-black text-white shadow-lg shadow-blue-600/25 transition enabled:hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy ? "Hold still..." : "Capture"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -196,168 +466,240 @@ function CameraScreen({
 export default function VerifyPage() {
   const { user, reload, dark } = useUser();
   const dc = dark;
+
   const [phase, setPhase] = useState<Phase>("intro");
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [idType, setIdType] = useState("");
+  const [idType, setIdType] = useState<IDTypeValue | "">("");
   const [idFront, setIdFront] = useState<string | null>(null);
   const [idBack, setIdBack] = useState<string | null>(null);
+  const [selfies, setSelfies] = useState<CapturedSelfie[]>([]);
   const [err, setErr] = useState("");
-  const ref1 = useRef<HTMLInputElement>(null);
-  const ref2 = useRef<HTMLInputElement>(null);
 
-  const handleDone = (p: string[]) => {
-    setPhotos(p);
-    setPhase("review");
-  };
+  const frontInputRef = useRef<HTMLInputElement>(null);
+  const backInputRef = useRef<HTMLInputElement>(null);
 
-  const handleCancel = () => {
-    setPhase("prep");
-  };
+  const selectedIDLabel = useMemo(
+    () => IDS.find((item) => item.v === idType)?.l || "Government ID",
+    [idType]
+  );
 
-  const submit = async () => {
-    setPhase("wait");
+  const resetAll = () => {
+    setPhase("intro");
     setErr("");
+    setIdType("");
+    setIdFront(null);
+    setIdBack(null);
+    setSelfies([]);
+  };
+
+  const uploadId = async (event: ChangeEvent<HTMLInputElement>, side: "front" | "back") => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
     try {
-      const res = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          verificationPhoto: photos[0] || "",
-          idDocument: idFront || "",
-          idDocumentBack: idBack || "",
-          idType,
-          frames: photos.length,
-          challenges: POSES.map((p) => p.id),
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setPhase("ok");
-        reload();
-      } else {
-        setPhase("fail");
-        setErr(data.error || "Verification failed.");
-      }
-    } catch {
-      setPhase("fail");
-      setErr("Connection error. Please try again.");
+      setErr("");
+      const image = await compressImageFile(file);
+      if (side === "front") setIdFront(image);
+      else setIdBack(image);
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : "Could not upload this ID image.");
+    } finally {
+      event.target.value = "";
     }
   };
 
-  const uploadId = (e: React.ChangeEvent<HTMLInputElement>, side: "f" | "b") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { setErr("Max 10MB"); return; }
-    setErr("");
-    const img = new Image();
-    img.onload = () => {
-      const MAX = 600;
-      let w = img.width, h = img.height;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else { w = Math.round(w * MAX / h); h = MAX; }
-      }
-      const cvs = document.createElement("canvas");
-      cvs.width = w;
-      cvs.height = h;
-      const ctx = cvs.getContext("2d");
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0, w, h);
-      const compressed = cvs.toDataURL("image/jpeg", 0.5);
-      if (side === "f") setIdFront(compressed);
-      else setIdBack(compressed);
-    };
-    img.src = URL.createObjectURL(file);
-  };
+  const submit = async () => {
+    if (!idType) {
+      setErr("Please select your ID type.");
+      setPhase("ids");
+      return;
+    }
 
-  const retry = () => {
-    setPhase("intro");
+    if (!idFront) {
+      setErr("Please upload the front of your ID.");
+      setPhase("idu");
+      return;
+    }
+
+    if (selfies.length !== SELFIE_CHALLENGES.length) {
+      setErr("Please complete the live selfie steps.");
+      setPhase("prep");
+      return;
+    }
+
+    setPhase("wait");
     setErr("");
-    setIdFront(null);
-    setIdBack(null);
-    setIdType("");
-    setPhotos([]);
+
+    const sessionId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    try {
+      const response = await fetch(VERIFY_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idType,
+          idTypeLabel: selectedIDLabel,
+          idDocument: idFront,
+          idDocumentBack: idBack || "",
+
+          // Backward-compatible fields for your old API/admin portal.
+          verificationPhoto: selfies[0]?.image || "",
+          frames: selfies.length,
+          challenges: SELFIE_CHALLENGES.map((challenge) => challenge.id),
+
+          // New structured live-selfie payload for admin review.
+          verificationMode: "live_selfie_challenge_v2",
+          verificationStatus: "pending",
+          sessionId,
+          selfieFrames: selfies,
+          liveness: {
+            requiredChallenges: SELFIE_CHALLENGES.map((challenge) => challenge.id),
+            completedChallenges: selfies.map((photo) => photo.pose),
+            submittedAt: new Date().toISOString(),
+            userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+          },
+        }),
+      });
+
+      let data: { error?: string } = {};
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || "Verification submission failed.");
+      }
+
+      setPhase("ok");
+      await reload?.();
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : "Connection error. Please try again.");
+      setPhase("fail");
+    }
   };
 
   if (!user) return null;
 
-  if (user.verified || user.verificationStatus === "approved") return (
-    <div className="max-w-md mx-auto text-center py-16">
-      <div className={"rounded-3xl border p-8 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}>
-        <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-        <h2 className={"text-2xl font-bold mb-2 " + (dc ? "text-white" : "text-gray-900")}>Verified!</h2>
-        <p className={"text-sm mb-6 " + (dc ? "text-gray-400" : "text-gray-500")}>Your identity is confirmed.</p>
-        <Link href="/dashboard/profile" className="px-6 py-3 bg-emerald-500 text-white rounded-full font-bold text-sm inline-block">View Profile</Link>
+  if (user.verified || user.verificationStatus === "approved") {
+    return (
+      <div className="mx-auto max-w-md py-16 text-center">
+        <div className={cx("rounded-3xl border p-8", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
+          <CheckCircle className="mx-auto mb-4 h-16 w-16 text-emerald-500" />
+          <h2 className={cx("mb-2 text-2xl font-bold", dc ? "text-white" : "text-gray-900")}>Verified</h2>
+          <p className={cx("mb-6 text-sm", dc ? "text-gray-400" : "text-gray-500")}>Your identity is confirmed.</p>
+          <Link href="/dashboard/profile" className="inline-block rounded-full bg-emerald-500 px-6 py-3 text-sm font-bold text-white">
+            View Profile
+          </Link>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  if (user.verificationStatus === "pending") return (
-    <div className="max-w-md mx-auto text-center py-16">
-      <div className={"rounded-3xl border p-8 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}>
-        <div className="w-14 h-14 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <h2 className={"text-2xl font-bold mb-2 " + (dc ? "text-white" : "text-gray-900")}>Under Review</h2>
-        <p className={"text-sm mb-6 " + (dc ? "text-gray-400" : "text-gray-500")}>Our team is reviewing. Usually 1-24 hours.</p>
-        <Link href="/dashboard" className="px-6 py-3 bg-rose-500 text-white rounded-full font-bold text-sm inline-block">Dashboard</Link>
+  if (user.verificationStatus === "pending") {
+    return (
+      <div className="mx-auto max-w-md py-16 text-center">
+        <div className={cx("rounded-3xl border p-8", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
+          <div className="mx-auto mb-4 h-14 w-14 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+          <h2 className={cx("mb-2 text-2xl font-bold", dc ? "text-white" : "text-gray-900")}>Under Review</h2>
+          <p className={cx("mb-6 text-sm", dc ? "text-gray-400" : "text-gray-500")}>Your verification is waiting for admin approval.</p>
+          <Link href="/dashboard" className="inline-block rounded-full bg-rose-500 px-6 py-3 text-sm font-bold text-white">
+            Dashboard
+          </Link>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="max-w-lg mx-auto">
-      {/* Camera overlay */}
+    <div className="mx-auto max-w-lg">
       {phase === "cam" && (
-        <CameraScreen onDone={handleDone} onCancel={handleCancel} />
+        <LiveSelfieCapture
+          onDone={(captured) => {
+            setSelfies(captured);
+            setPhase("review");
+          }}
+          onCancel={() => setPhase("prep")}
+        />
       )}
 
-      {/* Intro */}
       {phase === "intro" && (
         <div className="py-4">
-          <div className={"rounded-3xl overflow-hidden border " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}>
+          <div className={cx("overflow-hidden rounded-3xl border", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
             <div className="bg-gradient-to-br from-blue-600 to-purple-700 p-8 text-center">
-              <Shield className="w-12 h-12 text-white mx-auto mb-3" />
+              <Shield className="mx-auto mb-3 h-12 w-12 text-white" />
               <h1 className="text-2xl font-bold text-white">Verify Your Identity</h1>
-              <p className="text-blue-200 text-sm mt-1">Get the trusted badge on your profile</p>
+              <p className="mt-1 text-sm text-blue-100">Complete ID upload and live selfie checks.</p>
             </div>
-            <div className="p-6 space-y-4">
-              <div className={"p-4 rounded-xl " + (dc ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-emerald-50 border border-emerald-100")}>
-                <p className={"text-xs font-medium flex items-center gap-2 " + (dc ? "text-emerald-400" : "text-emerald-700")}>
-                  <Sparkles className="w-4 h-4" /> Earn 100 bonus coins when verified!
+
+            <div className="space-y-4 p-6">
+              <div className={cx("rounded-xl border p-4", dc ? "border-emerald-500/20 bg-emerald-500/10" : "border-emerald-100 bg-emerald-50")}>
+                <p className={cx("flex items-center gap-2 text-xs font-medium", dc ? "text-emerald-400" : "text-emerald-700")}>
+                  <Sparkles className="h-4 w-4" /> Verified profiles help reduce fake accounts and romance scams.
                 </p>
               </div>
 
-              <div className={"rounded-xl p-4 space-y-3 " + (dc ? "bg-gray-700/50" : "bg-gray-50")}>
-                <p className={"text-sm font-semibold " + (dc ? "text-white" : "text-gray-900")}>How it works:</p>
-                {["Upload your government ID", "Take 3 selfie photos (front, left, right)", "Admin reviews and approves"].map((t, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className={"w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold " + (dc ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-700")}>{i + 1}</div>
-                    <span className={"text-sm " + (dc ? "text-gray-300" : "text-gray-600")}>{t}</span>
+              <div className={cx("space-y-3 rounded-xl p-4", dc ? "bg-gray-700/50" : "bg-gray-50")}>
+                <p className={cx("text-sm font-semibold", dc ? "text-white" : "text-gray-900")}>How verification works</p>
+                {[
+                  "Select and upload a government ID.",
+                  "Take live selfies: front, left, and right.",
+                  "Admin reviews the submitted evidence in the admin portal.",
+                ].map((text, index) => (
+                  <div key={text} className="flex items-center gap-3">
+                    <div className={cx("flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold", dc ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-700")}>
+                      {index + 1}
+                    </div>
+                    <span className={cx("text-sm", dc ? "text-gray-300" : "text-gray-600")}>{text}</span>
                   </div>
                 ))}
               </div>
 
-              <button onClick={() => setPhase("ids")} className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2">
-                Begin Verification <ChevronRight className="w-5 h-5" />
+              <button
+                type="button"
+                onClick={() => setPhase("ids")}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 py-4 font-bold text-white"
+              >
+                Begin Verification <ChevronRight className="h-5 w-5" />
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ID type */}
       {phase === "ids" && (
         <div className="py-4">
-          <div className={"rounded-3xl border p-6 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}>
-            <div className="flex items-center gap-3 mb-6">
-              <button onClick={() => setPhase("intro")} className="p-2"><ArrowLeft className="w-5 h-5" /></button>
-              <h2 className={"text-xl font-bold " + (dc ? "text-white" : "text-gray-900")}>Select ID Type</h2>
+          <div className={cx("rounded-3xl border p-6", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
+            <div className="mb-6 flex items-center gap-3">
+              <button type="button" onClick={() => setPhase("intro")} className="rounded-full p-2 hover:bg-gray-100/10">
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h2 className={cx("text-xl font-bold", dc ? "text-white" : "text-gray-900")}>Select ID Type</h2>
             </div>
+
             <div className="space-y-2">
-              {IDS.map((t) => (
-                <button key={t.v} onClick={() => { setIdType(t.v); setPhase("idu"); }} className={"w-full flex items-center gap-4 p-4 rounded-2xl border text-left transition-colors " + (dc ? "border-gray-700 hover:border-blue-500 hover:bg-gray-700" : "border-gray-200 hover:border-blue-300 hover:bg-blue-50")}>
-                  <span className="text-2xl">{t.i}</span>
-                  <span className={"font-semibold text-sm " + (dc ? "text-white" : "text-gray-900")}>{t.l}</span>
-                  <ChevronRight className="w-4 h-4 ml-auto text-gray-400" />
+              {IDS.map((item) => (
+                <button
+                  key={item.v}
+                  type="button"
+                  onClick={() => {
+                    setIdType(item.v);
+                    setErr("");
+                    setPhase("idu");
+                  }}
+                  className={cx(
+                    "flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-colors",
+                    dc
+                      ? "border-gray-700 hover:border-blue-500 hover:bg-gray-700"
+                      : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                  )}
+                >
+                  <span className="text-2xl">{item.i}</span>
+                  <span className={cx("text-sm font-semibold", dc ? "text-white" : "text-gray-900")}>{item.l}</span>
+                  <ChevronRight className="ml-auto h-4 w-4 text-gray-400" />
                 </button>
               ))}
             </div>
@@ -365,47 +707,102 @@ export default function VerifyPage() {
         </div>
       )}
 
-      {/* ID upload */}
       {phase === "idu" && (
         <div className="py-4">
-          <div className={"rounded-3xl border p-6 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}>
-            <div className="flex items-center gap-3 mb-6">
-              <button onClick={() => setPhase("ids")} className="p-2"><ArrowLeft className="w-5 h-5" /></button>
-              <h2 className={"text-xl font-bold " + (dc ? "text-white" : "text-gray-900")}>Upload ID</h2>
+          <div className={cx("rounded-3xl border p-6", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
+            <div className="mb-6 flex items-center gap-3">
+              <button type="button" onClick={() => setPhase("ids")} className="rounded-full p-2 hover:bg-gray-100/10">
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div>
+                <h2 className={cx("text-xl font-bold", dc ? "text-white" : "text-gray-900")}>Upload ID</h2>
+                <p className={cx("text-xs", dc ? "text-gray-400" : "text-gray-500")}>{selectedIDLabel}</p>
+              </div>
             </div>
-            {err && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{err}</div>}
-            <input ref={ref1} type="file" accept="image/*" capture="environment" onChange={(e) => uploadId(e, "f")} className="hidden" />
-            <input ref={ref2} type="file" accept="image/*" capture="environment" onChange={(e) => uploadId(e, "b")} className="hidden" />
 
-            <p className={"text-sm font-semibold mb-2 " + (dc ? "text-gray-300" : "text-gray-700")}>Front of ID *</p>
+            {err && (
+              <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {err}
+              </div>
+            )}
+
+            <input ref={frontInputRef} type="file" accept="image/*" capture="environment" onChange={(event) => uploadId(event, "front")} className="hidden" />
+            <input ref={backInputRef} type="file" accept="image/*" capture="environment" onChange={(event) => uploadId(event, "back")} className="hidden" />
+
+            <p className={cx("mb-2 text-sm font-semibold", dc ? "text-gray-300" : "text-gray-700")}>Front of ID *</p>
             {idFront ? (
               <div className="relative mb-4">
-                <img src={idFront} className="w-full rounded-2xl border object-cover max-h-48" alt="front" />
-                <button onClick={() => setIdFront(null)} className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center"><X className="w-4 h-4" /></button>
+                <img src={idFront} className="max-h-56 w-full rounded-2xl border object-cover" alt="Front of ID" />
+                <button
+                  type="button"
+                  onClick={() => setIdFront(null)}
+                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white"
+                  aria-label="Remove front ID"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             ) : (
-              <button onClick={() => ref1.current?.click()} className={"w-full py-10 rounded-2xl border-2 border-dashed flex flex-col items-center gap-2 mb-4 transition-colors " + (dc ? "border-gray-600 text-gray-400 hover:border-blue-500" : "text-gray-400 hover:border-blue-400")}>
-                <Upload className="w-8 h-8" />
-                <p className="text-sm font-semibold">Tap to upload front</p>
+              <button
+                type="button"
+                onClick={() => frontInputRef.current?.click()}
+                className={cx(
+                  "mb-4 flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed py-10 transition-colors",
+                  dc ? "border-gray-600 text-gray-400 hover:border-blue-500" : "border-gray-200 text-gray-400 hover:border-blue-400"
+                )}
+              >
+                <Upload className="h-8 w-8" />
+                <span className="text-sm font-semibold">Tap to upload front</span>
               </button>
             )}
 
-            <p className={"text-sm font-semibold mb-2 " + (dc ? "text-gray-300" : "text-gray-700")}>Back of ID (optional)</p>
+            <p className={cx("mb-2 text-sm font-semibold", dc ? "text-gray-300" : "text-gray-700")}>Back of ID</p>
             {idBack ? (
               <div className="relative mb-4">
-                <img src={idBack} className="w-full rounded-2xl border object-cover max-h-48" alt="back" />
-                <button onClick={() => setIdBack(null)} className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center"><X className="w-4 h-4" /></button>
+                <img src={idBack} className="max-h-56 w-full rounded-2xl border object-cover" alt="Back of ID" />
+                <button
+                  type="button"
+                  onClick={() => setIdBack(null)}
+                  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white"
+                  aria-label="Remove back ID"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             ) : (
-              <button onClick={() => ref2.current?.click()} className={"w-full py-8 rounded-2xl border-2 border-dashed flex flex-col items-center gap-2 mb-4 " + (dc ? "border-gray-600 text-gray-500" : "text-gray-400")}>
-                <Upload className="w-6 h-6" />
-                <p className="text-xs">Upload back</p>
+              <button
+                type="button"
+                onClick={() => backInputRef.current?.click()}
+                className={cx(
+                  "mb-4 flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed py-8 transition-colors",
+                  dc ? "border-gray-600 text-gray-500 hover:border-blue-500" : "border-gray-200 text-gray-400 hover:border-blue-400"
+                )}
+              >
+                <Upload className="h-6 w-6" />
+                <span className="text-xs font-medium">Upload back if available</span>
               </button>
             )}
 
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setPhase("ids")} className={"flex-1 py-3 rounded-xl border-2 font-bold text-sm " + (dc ? "border-gray-600 text-gray-300" : "border-gray-200 text-gray-600")}>Back</button>
-              <button onClick={() => { if (!idFront) { setErr("Please upload front of ID"); return; } setPhase("prep"); }} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm">
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPhase("ids")}
+                className={cx("flex-1 rounded-xl border-2 py-3 text-sm font-bold", dc ? "border-gray-600 text-gray-300" : "border-gray-200 text-gray-600")}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!idFront) {
+                    setErr("Please upload the front of your ID.");
+                    return;
+                  }
+                  setErr("");
+                  setPhase("prep");
+                }}
+                className="flex-1 rounded-xl bg-blue-600 py-3 text-sm font-bold text-white"
+              >
                 Next: Selfie
               </button>
             </div>
@@ -413,109 +810,126 @@ export default function VerifyPage() {
         </div>
       )}
 
-      {/* Selfie prep */}
       {phase === "prep" && (
         <div className="py-4">
-          <div className={"rounded-3xl border p-6 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}>
-            <div className="flex items-center gap-3 mb-6">
-              <button onClick={() => setPhase("idu")} className="p-2"><ArrowLeft className="w-5 h-5" /></button>
-              <h2 className={"text-xl font-bold " + (dc ? "text-white" : "text-gray-900")}>Selfie Verification</h2>
+          <div className={cx("rounded-3xl border p-6", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
+            <div className="mb-6 flex items-center gap-3">
+              <button type="button" onClick={() => setPhase("idu")} className="rounded-full p-2 hover:bg-gray-100/10">
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h2 className={cx("text-xl font-bold", dc ? "text-white" : "text-gray-900")}>Live Selfie Verification</h2>
             </div>
 
-            <div className={"rounded-2xl p-5 mb-6 " + (dc ? "bg-blue-500/10" : "bg-blue-50")}>
-              <p className={"text-sm font-bold mb-3 " + (dc ? "text-white" : "text-gray-900")}>You will take 3 photos:</p>
+            <div className={cx("mb-6 rounded-2xl p-5", dc ? "bg-blue-500/10" : "bg-blue-50")}>
+              <p className={cx("mb-3 text-sm font-bold", dc ? "text-white" : "text-gray-900")}>You will complete 3 live poses:</p>
               <div className="space-y-3">
-                {POSES.map((p, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="text-2xl">{p.icon}</span>
-                    <span className={"text-sm " + (dc ? "text-gray-300" : "text-gray-700")}>{p.label}</span>
+                {SELFIE_CHALLENGES.map((challenge) => (
+                  <div key={challenge.id} className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-sm font-black text-blue-600 shadow-sm">
+                      {challenge.icon}
+                    </span>
+                    <span className={cx("text-sm", dc ? "text-gray-300" : "text-gray-700")}>{challenge.label}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className={"rounded-xl p-4 mb-6 " + (dc ? "bg-amber-500/10 border border-amber-500/20" : "bg-amber-50 border border-amber-100")}>
-              <p className={"text-xs " + (dc ? "text-amber-400" : "text-amber-700")}>
-                A 3-second countdown starts when you tap the capture button. Make sure your face is clearly visible. Remove hats and sunglasses.
+            <div className={cx("mb-6 rounded-xl border p-4", dc ? "border-amber-500/20 bg-amber-500/10" : "border-amber-100 bg-amber-50")}>
+              <p className={cx("text-xs", dc ? "text-amber-400" : "text-amber-700")}>
+                The camera screen will show a circular guide and movement prompts. Use good lighting and keep your face visible.
               </p>
             </div>
 
-            {err && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{err}</div>}
+            {err && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">{err}</div>}
 
             <button
-              onClick={() => { setPhotos([]); setPhase("cam"); }}
-              className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2"
+              type="button"
+              onClick={() => {
+                setSelfies([]);
+                setErr("");
+                setPhase("cam");
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 py-4 font-bold text-white"
             >
-              <Camera className="w-5 h-5" /> Open Camera
+              <Camera className="h-5 w-5" /> Open Camera
             </button>
           </div>
         </div>
       )}
 
-      {/* Review photos */}
       {phase === "review" && (
         <div className="py-4">
-          <div className={"rounded-3xl border p-6 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}>
-            <h2 className={"text-xl font-bold mb-4 " + (dc ? "text-white" : "text-gray-900")}>Review Your Photos</h2>
-            <p className={"text-sm mb-4 " + (dc ? "text-gray-400" : "text-gray-500")}>Make sure your face is clear in each photo.</p>
+          <div className={cx("rounded-3xl border p-6", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
+            <h2 className={cx("mb-2 text-xl font-bold", dc ? "text-white" : "text-gray-900")}>Review Verification</h2>
+            <p className={cx("mb-5 text-sm", dc ? "text-gray-400" : "text-gray-500")}>Check the ID and live selfie frames before submitting.</p>
 
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {photos.map((p, i) => (
-                <div key={i} className="text-center">
-                  <img src={p} className="w-full aspect-square rounded-xl border object-cover" alt={POSES[i]?.label} />
-                  <p className={"text-xs mt-1 " + (dc ? "text-gray-400" : "text-gray-500")}>{POSES[i]?.id}</p>
+            <div className="mb-5 grid grid-cols-3 gap-3">
+              {selfies.map((photo) => (
+                <div key={`${photo.pose}-${photo.capturedAt}`} className="text-center">
+                  <img src={photo.image} className="aspect-square w-full rounded-xl border object-cover" alt={`${photo.label} selfie`} />
+                  <p className={cx("mt-1 text-xs font-semibold", dc ? "text-gray-400" : "text-gray-500")}>{photo.label}</p>
                 </div>
               ))}
             </div>
 
+            <div className={cx("mb-6 rounded-2xl border p-4", dc ? "border-gray-700 bg-gray-700/40" : "border-gray-100 bg-gray-50")}>
+              <div className="mb-2 flex items-center gap-2">
+                <Check className="h-4 w-4 text-emerald-500" />
+                <span className={cx("text-sm font-bold", dc ? "text-white" : "text-gray-900")}>Ready for admin review</span>
+              </div>
+              <p className={cx("text-xs", dc ? "text-gray-400" : "text-gray-500")}>
+                This will submit your ID document and selfie frames to the admin verification queue.
+              </p>
+            </div>
+
             <div className="flex gap-3">
               <button
-                onClick={() => { setPhotos([]); setPhase("cam"); }}
-                className={"flex-1 py-3 rounded-xl border-2 font-bold text-sm " + (dc ? "border-gray-600 text-gray-300" : "border-gray-200 text-gray-600")}
+                type="button"
+                onClick={() => {
+                  setSelfies([]);
+                  setPhase("cam");
+                }}
+                className={cx("flex-1 rounded-xl border-2 py-3 text-sm font-bold", dc ? "border-gray-600 text-gray-300" : "border-gray-200 text-gray-600")}
               >
-                <RotateCcw className="w-4 h-4 inline mr-1" /> Retake
+                <RotateCcw className="mr-1 inline h-4 w-4" /> Retake
               </button>
-              <button
-                onClick={submit}
-                className="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-bold text-sm"
-              >
-                Submit for Review
+              <button type="button" onClick={submit} className="flex-1 rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white">
+                Submit
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Submitting */}
       {phase === "wait" && (
-        <div className="text-center py-16">
-          <div className="w-14 h-14 mx-auto border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-6" />
-          <h2 className={"text-xl font-bold mb-2 " + (dc ? "text-white" : "text-gray-900")}>Submitting...</h2>
-          <p className={"text-sm " + (dc ? "text-gray-400" : "text-gray-500")}>Uploading your verification</p>
+        <div className="py-16 text-center">
+          <div className="mx-auto mb-6 h-14 w-14 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+          <h2 className={cx("mb-2 text-xl font-bold", dc ? "text-white" : "text-gray-900")}>Submitting...</h2>
+          <p className={cx("text-sm", dc ? "text-gray-400" : "text-gray-500")}>Sending verification to admin review.</p>
         </div>
       )}
 
-      {/* Success */}
       {phase === "ok" && (
-        <div className="text-center py-8">
-          <div className={"rounded-3xl border p-8 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}>
-            <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-            <h2 className={"text-2xl font-bold mb-2 " + (dc ? "text-white" : "text-gray-900")}>Submitted!</h2>
-            <p className={"text-sm mb-6 " + (dc ? "text-gray-400" : "text-gray-500")}>Admin will review your selfie and ID within 24 hours.</p>
-            <Link href="/dashboard" className="px-8 py-3 bg-emerald-500 text-white rounded-full font-bold inline-block">Dashboard</Link>
+        <div className="py-8 text-center">
+          <div className={cx("rounded-3xl border p-8", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
+            <CheckCircle className="mx-auto mb-4 h-16 w-16 text-emerald-500" />
+            <h2 className={cx("mb-2 text-2xl font-bold", dc ? "text-white" : "text-gray-900")}>Submitted</h2>
+            <p className={cx("mb-6 text-sm", dc ? "text-gray-400" : "text-gray-500")}>Admin can now review your ID and live selfie frames.</p>
+            <Link href="/dashboard" className="inline-block rounded-full bg-emerald-500 px-8 py-3 font-bold text-white">
+              Dashboard
+            </Link>
           </div>
         </div>
       )}
 
-      {/* Failed */}
       {phase === "fail" && (
-        <div className="text-center py-8">
-          <div className={"rounded-3xl border p-8 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100 shadow-xl")}>
-            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className={"text-2xl font-bold mb-2 " + (dc ? "text-white" : "text-gray-900")}>Failed</h2>
-            <p className={"text-sm mb-6 " + (dc ? "text-gray-400" : "text-gray-500")}>{err || "Something went wrong."}</p>
-            <button onClick={retry} className="px-8 py-3 bg-rose-500 text-white rounded-full font-bold inline-flex items-center gap-2">
-              <RotateCcw className="w-4 h-4" /> Try Again
+        <div className="py-8 text-center">
+          <div className={cx("rounded-3xl border p-8", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
+            <XCircle className="mx-auto mb-4 h-16 w-16 text-red-500" />
+            <h2 className={cx("mb-2 text-2xl font-bold", dc ? "text-white" : "text-gray-900")}>Submission Failed</h2>
+            <p className={cx("mb-6 text-sm", dc ? "text-gray-400" : "text-gray-500")}>{err || "Something went wrong."}</p>
+            <button type="button" onClick={resetAll} className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-8 py-3 font-bold text-white">
+              <RotateCcw className="h-4 w-4" /> Try Again
             </button>
           </div>
         </div>
