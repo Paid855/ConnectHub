@@ -12,6 +12,7 @@ import {
   CheckCircle,
   ChevronRight,
   HelpCircle,
+  Loader2,
   RotateCcw,
   Shield,
   Sparkles,
@@ -46,8 +47,10 @@ type IDOption = {
   i: string;
 };
 
+type ChallengeId = "front" | "left" | "right" | "smile" | "blink";
+
 type SelfieChallenge = {
-  id: "front" | "left" | "right";
+  id: ChallengeId;
   label: string;
   shortLabel: string;
   helper: string;
@@ -56,13 +59,57 @@ type SelfieChallenge = {
 };
 
 type CapturedSelfie = {
-  pose: SelfieChallenge["id"];
+  pose: ChallengeId;
   label: string;
   image: string;
   capturedAt: string;
+  metrics: FaceMetrics;
+};
+
+type FacePoint = {
+  x: number;
+  y: number;
+  z?: number;
+};
+
+type BlendCategory = {
+  categoryName: string;
+  score: number;
+};
+
+type FaceLandmarkerResult = {
+  faceLandmarks?: FacePoint[][];
+  faceBlendshapes?: Array<{ categories?: BlendCategory[] }>;
+};
+
+type FaceLandmarkerInstance = {
+  detectForVideo: (video: HTMLVideoElement, timestampMs: number) => FaceLandmarkerResult;
+  close?: () => void;
+};
+
+type FaceMetrics = {
+  faceCount: number;
+  yaw: number;
+  centerScore: number;
+  smile: number;
+  blinkLeft: number;
+  blinkRight: number;
+  blinkAverage: number;
+  eyesOpenScore: number;
 };
 
 const VERIFY_ENDPOINT = "/api/auth/verify";
+
+/**
+ * If your device/browser detects LEFT and RIGHT backward, change this from 1 to -1.
+ * This only affects the liveness challenge interpretation. It does not affect the UI.
+ */
+const HEAD_TURN_SIGN = 1;
+
+const MODEL_ASSET_PATH =
+  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task";
+
+const WASM_ASSET_PATH = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
 
 const IDS: IDOption[] = [
   { v: "passport", l: "International Passport", i: "🛂" },
@@ -78,7 +125,7 @@ const SELFIE_CHALLENGES: SelfieChallenge[] = [
     id: "front",
     label: "Look straight",
     shortLabel: "Front",
-    helper: "Keep your face centered inside the circle.",
+    helper: "Keep your face centered inside the circle. Capture is automatic.",
     bubble: "none",
     icon: "🙂",
   },
@@ -86,7 +133,7 @@ const SELFIE_CHALLENGES: SelfieChallenge[] = [
     id: "left",
     label: "Turn to the left",
     shortLabel: "Left",
-    helper: "Turn your head left, not your whole phone.",
+    helper: "Turn only your head to the left. The blue ring fills when the turn is complete.",
     bubble: "left",
     icon: "←",
   },
@@ -94,14 +141,33 @@ const SELFIE_CHALLENGES: SelfieChallenge[] = [
     id: "right",
     label: "Turn to the right",
     shortLabel: "Right",
-    helper: "Turn your head right and hold still.",
+    helper: "Turn only your head to the right. Hold still when the blue ring completes.",
     bubble: "right",
     icon: "→",
+  },
+  {
+    id: "smile",
+    label: "Smile",
+    shortLabel: "Smile",
+    helper: "Smile naturally. The photo will be taken automatically.",
+    bubble: "none",
+    icon: "😊",
+  },
+  {
+    id: "blink",
+    label: "Blink your eyes",
+    shortLabel: "Blink",
+    helper: "Blink both eyes once, then open them. This helps confirm liveness.",
+    bubble: "none",
+    icon: "😉",
   },
 ];
 
 const cx = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(" ");
+
+const clamp = (value: number, min = 0, max = 1) =>
+  Math.min(max, Math.max(min, value));
 
 function stopStream(stream: MediaStream | null) {
   stream?.getTracks().forEach((track) => track.stop());
@@ -145,6 +211,132 @@ async function compressImageFile(file: File, maxSide = 1000, quality = 0.72) {
   }
 }
 
+function getBlendScore(categories: BlendCategory[] | undefined, name: string) {
+  return categories?.find((item) => item.categoryName === name)?.score || 0;
+}
+
+function averagePoint(points: FacePoint[]) {
+  return {
+    x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+    y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+  };
+}
+
+function getMetrics(result: FaceLandmarkerResult): FaceMetrics {
+  const landmarks = result.faceLandmarks || [];
+  const firstFace = landmarks[0];
+  const categories = result.faceBlendshapes?.[0]?.categories;
+
+  if (!firstFace) {
+    return {
+      faceCount: 0,
+      yaw: 0,
+      centerScore: 0,
+      smile: 0,
+      blinkLeft: 0,
+      blinkRight: 0,
+      blinkAverage: 0,
+      eyesOpenScore: 0,
+    };
+  }
+
+  // MediaPipe face-landmarker indices.
+  // 1 = nose tip, 33/263 = outer eye corners, 234/454 = cheek/jaw side points.
+  const nose = firstFace[1];
+  const leftEyeOuter = firstFace[33];
+  const rightEyeOuter = firstFace[263];
+  const leftSide = firstFace[234];
+  const rightSide = firstFace[454];
+
+  let yaw = 0;
+  let centerScore = 0;
+
+  if (nose && leftEyeOuter && rightEyeOuter && leftSide && rightSide) {
+    const eyeCenter = averagePoint([leftEyeOuter, rightEyeOuter]);
+    const faceCenter = averagePoint([leftSide, rightSide]);
+    const faceWidth = Math.max(0.001, Math.abs(rightSide.x - leftSide.x));
+
+    // Negative = left challenge, positive = right challenge. Flip HEAD_TURN_SIGN if needed.
+    yaw = ((nose.x - eyeCenter.x) / faceWidth) * HEAD_TURN_SIGN;
+
+    const horizontalCenter = 1 - Math.abs(faceCenter.x - 0.5) / 0.18;
+    const verticalCenter = 1 - Math.abs(faceCenter.y - 0.5) / 0.22;
+    centerScore = clamp(Math.min(horizontalCenter, verticalCenter));
+  }
+
+  const blinkLeft = getBlendScore(categories, "eyeBlinkLeft");
+  const blinkRight = getBlendScore(categories, "eyeBlinkRight");
+  const blinkAverage = (blinkLeft + blinkRight) / 2;
+
+  const smile = Math.max(
+    getBlendScore(categories, "mouthSmileLeft"),
+    getBlendScore(categories, "mouthSmileRight"),
+    (getBlendScore(categories, "mouthSmileLeft") + getBlendScore(categories, "mouthSmileRight")) / 2
+  );
+
+  return {
+    faceCount: landmarks.length,
+    yaw,
+    centerScore,
+    smile,
+    blinkLeft,
+    blinkRight,
+    blinkAverage,
+    eyesOpenScore: clamp(1 - blinkAverage / 0.45),
+  };
+}
+
+function getChallengeProgress(
+  challengeId: ChallengeId,
+  metrics: FaceMetrics,
+  blinkClosedSeen: boolean
+) {
+  if (metrics.faceCount !== 1) return 0;
+
+  switch (challengeId) {
+    case "front": {
+      const yawScore = 1 - Math.abs(metrics.yaw) / 0.12;
+      return clamp(Math.min(yawScore, metrics.centerScore, metrics.eyesOpenScore));
+    }
+
+    case "left":
+      return clamp((-metrics.yaw - 0.1) / 0.12);
+
+    case "right":
+      return clamp((metrics.yaw - 0.1) / 0.12);
+
+    case "smile":
+      return clamp((metrics.smile - 0.35) / 0.25);
+
+    case "blink": {
+      if (!blinkClosedSeen) {
+        return clamp((metrics.blinkAverage - 0.45) / 0.25);
+      }
+
+      // After eyes close, wait for eyes open before capturing.
+      return clamp((metrics.eyesOpenScore - 0.65) / 0.25);
+    }
+
+    default:
+      return 0;
+  }
+}
+
+function getScanText(
+  challengeId: ChallengeId,
+  progress: number,
+  metrics: FaceMetrics,
+  modelReady: boolean,
+  blinkClosedSeen: boolean
+) {
+  if (!modelReady) return "Loading face detector...";
+  if (metrics.faceCount === 0) return "Place your face inside the circle";
+  if (metrics.faceCount > 1) return "Only one face should be visible";
+  if (challengeId === "blink" && blinkClosedSeen) return "Good. Open your eyes";
+  if (progress >= 1) return "Hold still...";
+  return "Scanning...";
+}
+
 function StepDots({ current, total }: { current: number; total: number }) {
   return (
     <div className="flex items-center justify-center gap-2">
@@ -163,14 +355,17 @@ function StepDots({ current, total }: { current: number; total: number }) {
   );
 }
 
-function CameraProgressRing({ current, total }: { current: number; total: number }) {
+function CameraProgressRing({ progress }: { progress: number }) {
   const radius = 156;
   const circumference = 2 * Math.PI * radius;
-  const progress = (current + 1) / total;
-  const offset = circumference * (1 - progress);
+  const offset = circumference * (1 - clamp(progress));
 
   return (
-    <svg className="absolute -inset-5 h-[calc(100%+40px)] w-[calc(100%+40px)] rotate-[-90deg]" viewBox="0 0 360 360">
+    <svg
+      className="absolute -inset-5 h-[calc(100%+40px)] w-[calc(100%+40px)] rotate-[-90deg]"
+      viewBox="0 0 360 360"
+      aria-hidden="true"
+    >
       <circle
         cx="180"
         cy="180"
@@ -190,7 +385,7 @@ function CameraProgressRing({ current, total }: { current: number; total: number
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={offset}
-        className="text-blue-600 transition-all duration-500"
+        className="text-blue-600 transition-all duration-150"
       />
     </svg>
   );
@@ -224,35 +419,137 @@ function LiveSelfieCapture({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const timerRef = useRef<number | null>(null);
+  const landmarkerRef = useRef<FaceLandmarkerInstance | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const readySinceRef = useRef<number | null>(null);
+  const blinkClosedSeenRef = useRef(false);
+  const capturingRef = useRef(false);
+  const stepRef = useRef(0);
+  const photosRef = useRef<CapturedSelfie[]>([]);
+  const lastMetricsRef = useRef<FaceMetrics>({
+    faceCount: 0,
+    yaw: 0,
+    centerScore: 0,
+    smile: 0,
+    blinkLeft: 0,
+    blinkRight: 0,
+    blinkAverage: 0,
+    eyesOpenScore: 0,
+  });
 
   const [step, setStep] = useState(0);
   const [photos, setPhotos] = useState<CapturedSelfie[]>([]);
-  const [countdown, setCountdown] = useState<number | null>(null);
   const [cameraError, setCameraError] = useState("");
   const [flash, setFlash] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [modelReady, setModelReady] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [metrics, setMetrics] = useState<FaceMetrics>(lastMetricsRef.current);
+  const [blinkClosedSeen, setBlinkClosedSeen] = useState(false);
+  const [capturedToast, setCapturedToast] = useState(false);
 
   const currentChallenge = SELFIE_CHALLENGES[step];
-  const busy = countdown !== null;
+  const scanText = getScanText(
+    currentChallenge.id,
+    progress,
+    metrics,
+    modelReady,
+    blinkClosedSeen
+  );
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current !== null) {
-      window.clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
+
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
 
   const closeCamera = useCallback(() => {
-    clearTimer();
+    if (rafRef.current !== null) {
+      window.cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    landmarkerRef.current?.close?.();
+    landmarkerRef.current = null;
+
     stopStream(streamRef.current);
     streamRef.current = null;
-  }, [clearTimer]);
+  }, []);
+
+  const captureFrame = useCallback(
+    (challengeIndex: number) => {
+      if (capturingRef.current) return;
+
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const challenge = SELFIE_CHALLENGES[challengeIndex];
+
+      if (!video || !canvas || !challenge || video.videoWidth === 0 || video.videoHeight === 0) {
+        setCameraError("Camera is still loading. Please try again.");
+        return;
+      }
+
+      capturingRef.current = true;
+      readySinceRef.current = null;
+
+      const size = Math.min(video.videoWidth, video.videoHeight);
+      const sx = (video.videoWidth - size) / 2;
+      const sy = (video.videoHeight - size) / 2;
+
+      canvas.width = 720;
+      canvas.height = 720;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        setCameraError("Could not capture selfie.");
+        capturingRef.current = false;
+        return;
+      }
+
+      ctx.drawImage(video, sx, sy, size, size, 0, 0, canvas.width, canvas.height);
+
+      const image = canvas.toDataURL("image/jpeg", 0.78);
+      const frame: CapturedSelfie = {
+        pose: challenge.id,
+        label: challenge.shortLabel,
+        image,
+        capturedAt: new Date().toISOString(),
+        metrics: lastMetricsRef.current,
+      };
+
+      const nextPhotos = [...photosRef.current, frame];
+      photosRef.current = nextPhotos;
+      setPhotos(nextPhotos);
+
+      setFlash(true);
+      setCapturedToast(true);
+      window.setTimeout(() => setFlash(false), 140);
+      window.setTimeout(() => setCapturedToast(false), 600);
+
+      if (challengeIndex + 1 >= SELFIE_CHALLENGES.length) {
+        closeCamera();
+        window.setTimeout(() => onDone(nextPhotos), 350);
+        return;
+      }
+
+      blinkClosedSeenRef.current = false;
+      setBlinkClosedSeen(false);
+      setProgress(0);
+
+      window.setTimeout(() => {
+        setStep(challengeIndex + 1);
+        capturingRef.current = false;
+      }, 650);
+    },
+    [closeCamera, onDone]
+  );
 
   useEffect(() => {
     let mounted = true;
 
-    async function startCamera() {
+    async function start() {
       try {
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error("Camera is not available in this browser.");
@@ -278,13 +575,34 @@ function LiveSelfieCapture({
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => undefined);
         }
+
+        const { FilesetResolver, FaceLandmarker } = await import("@mediapipe/tasks-vision");
+        const vision = await FilesetResolver.forVisionTasks(WASM_ASSET_PATH);
+        const landmarker = await FaceLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: MODEL_ASSET_PATH,
+            delegate: "GPU",
+          },
+          runningMode: "VIDEO",
+          numFaces: 2,
+          outputFaceBlendshapes: true,
+          outputFacialTransformationMatrixes: false,
+        });
+
+        if (!mounted) {
+          landmarker.close?.();
+          return;
+        }
+
+        landmarkerRef.current = landmarker as FaceLandmarkerInstance;
+        setModelReady(true);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Could not open camera.";
         setCameraError(message);
       }
     }
 
-    startCamera();
+    start();
 
     return () => {
       mounted = false;
@@ -292,73 +610,64 @@ function LiveSelfieCapture({
     };
   }, [closeCamera]);
 
-  const captureCurrentFrame = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
+  useEffect(() => {
+    let lastUiUpdate = 0;
 
-    if (!video || !canvas || video.videoWidth === 0 || video.videoHeight === 0) {
-      setCameraError("Camera is still loading. Please try again.");
-      return;
-    }
+    function scanLoop(now: number) {
+      const video = videoRef.current;
+      const landmarker = landmarkerRef.current;
 
-    const size = Math.min(video.videoWidth, video.videoHeight);
-    const sx = (video.videoWidth - size) / 2;
-    const sy = (video.videoHeight - size) / 2;
-
-    canvas.width = 720;
-    canvas.height = 720;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      setCameraError("Could not capture selfie.");
-      return;
-    }
-
-    ctx.drawImage(video, sx, sy, size, size, 0, 0, canvas.width, canvas.height);
-
-    const image = canvas.toDataURL("image/jpeg", 0.78);
-    const frame: CapturedSelfie = {
-      pose: currentChallenge.id,
-      label: currentChallenge.shortLabel,
-      image,
-      capturedAt: new Date().toISOString(),
-    };
-
-    setFlash(true);
-    window.setTimeout(() => setFlash(false), 160);
-
-    const nextPhotos = [...photos, frame];
-    setPhotos(nextPhotos);
-
-    if (step + 1 >= SELFIE_CHALLENGES.length) {
-      closeCamera();
-      window.setTimeout(() => onDone(nextPhotos), 200);
-      return;
-    }
-
-    setStep((value) => value + 1);
-  }, [closeCamera, currentChallenge.id, currentChallenge.shortLabel, onDone, photos, step]);
-
-  const startCountdown = useCallback(() => {
-    if (busy || cameraError) return;
-
-    let next = 3;
-    setCountdown(next);
-    clearTimer();
-
-    timerRef.current = window.setInterval(() => {
-      next -= 1;
-
-      if (next > 0) {
-        setCountdown(next);
+      if (!video || !landmarker || video.videoWidth === 0 || video.videoHeight === 0) {
+        rafRef.current = window.requestAnimationFrame(scanLoop);
         return;
       }
 
-      clearTimer();
-      setCountdown(null);
-      captureCurrentFrame();
-    }, 800);
-  }, [busy, cameraError, captureCurrentFrame, clearTimer]);
+      const result = landmarker.detectForVideo(video, now);
+      const nextMetrics = getMetrics(result);
+      lastMetricsRef.current = nextMetrics;
+
+      const activeStep = stepRef.current;
+      const activeChallenge = SELFIE_CHALLENGES[activeStep];
+
+      if (activeChallenge.id === "blink" && nextMetrics.blinkAverage > 0.62) {
+        blinkClosedSeenRef.current = true;
+      }
+
+      const nextProgress = getChallengeProgress(
+        activeChallenge.id,
+        nextMetrics,
+        blinkClosedSeenRef.current
+      );
+
+      if (now - lastUiUpdate > 80) {
+        lastUiUpdate = now;
+        setMetrics(nextMetrics);
+        setProgress(nextProgress);
+        setBlinkClosedSeen(blinkClosedSeenRef.current);
+      }
+
+      const complete = nextProgress >= 1;
+
+      if (!complete || capturingRef.current) {
+        readySinceRef.current = null;
+      } else if (readySinceRef.current === null) {
+        readySinceRef.current = now;
+      } else if (now - readySinceRef.current >= 550) {
+        captureFrame(activeStep);
+      }
+
+      rafRef.current = window.requestAnimationFrame(scanLoop);
+    }
+
+    rafRef.current = window.requestAnimationFrame(scanLoop);
+
+    return () => {
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [captureFrame]);
 
   const cancel = () => {
     closeCamera();
@@ -395,7 +704,10 @@ function LiveSelfieCapture({
           <div className="mb-2 flex items-center gap-2 font-bold">
             <HelpCircle className="h-4 w-4" /> Selfie tips
           </div>
-          <p>Use good light, remove sunglasses or face coverings, and keep only your face inside the circle.</p>
+          <p>
+            Use good light, remove sunglasses or face coverings, and keep only your face inside the circle.
+            The app captures automatically when the blue ring is complete.
+          </p>
         </div>
       )}
 
@@ -405,7 +717,7 @@ function LiveSelfieCapture({
         </div>
 
         <div className="relative h-[min(78vw,350px)] w-[min(78vw,350px)]">
-          <CameraProgressRing current={step} total={SELFIE_CHALLENGES.length} />
+          <CameraProgressRing progress={progress} />
           <DirectionBubble side={currentChallenge.bubble} />
 
           <div className="absolute inset-0 overflow-hidden rounded-full bg-gray-200 ring-[10px] ring-white">
@@ -425,9 +737,18 @@ function LiveSelfieCapture({
               />
             )}
 
-            {countdown !== null && (
+            {!cameraError && !modelReady && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-full bg-black/35 text-white">
+                <Loader2 className="h-10 w-10 animate-spin" />
+                <span className="text-sm font-bold">Preparing detector</span>
+              </div>
+            )}
+
+            {capturedToast && (
               <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45">
-                <span className="text-7xl font-black text-white drop-shadow-lg">{countdown}</span>
+                <div className="rounded-full bg-emerald-500 px-5 py-3 text-sm font-black text-white shadow-lg">
+                  Captured
+                </div>
               </div>
             )}
           </div>
@@ -437,27 +758,42 @@ function LiveSelfieCapture({
           <div className="mb-3 text-3xl font-black tracking-tight text-gray-950 sm:text-4xl">
             {currentChallenge.label}
           </div>
-          <p className="mx-auto max-w-xs text-sm font-medium text-gray-500">{currentChallenge.helper}</p>
+          <p className="mx-auto max-w-xs text-sm font-medium text-gray-500">
+            {currentChallenge.helper}
+          </p>
         </div>
 
-        <div className="mt-8 flex w-full max-w-sm items-center gap-3">
-          <button
-            type="button"
-            onClick={cancel}
-            className="h-14 flex-1 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-700 shadow-sm"
-          >
-            Cancel
-          </button>
+        <div className="mt-7 w-full max-w-sm rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center">
+          <div className="mb-2 flex items-center justify-center gap-2 text-sm font-black text-gray-900">
+            {modelReady && metrics.faceCount === 1 && progress >= 1 ? (
+              <Check className="h-4 w-4 text-emerald-500" />
+            ) : modelReady ? (
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+            ) : (
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            )}
+            {scanText}
+          </div>
 
-          <button
-            type="button"
-            onClick={startCountdown}
-            disabled={busy || !!cameraError}
-            className="h-14 flex-[1.5] rounded-2xl bg-blue-600 text-sm font-black text-white shadow-lg shadow-blue-600/25 transition enabled:hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {busy ? "Hold still..." : "Capture"}
-          </button>
+          <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+            <div
+              className="h-full rounded-full bg-blue-600 transition-all duration-150"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
+          </div>
+
+          <p className="mt-2 text-[11px] font-medium text-gray-500">
+            Step {step + 1} of {SELFIE_CHALLENGES.length}. No capture button needed.
+          </p>
         </div>
+
+        <button
+          type="button"
+          onClick={cancel}
+          className="mt-5 h-12 w-full max-w-sm rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-700 shadow-sm"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
@@ -521,7 +857,7 @@ export default function VerifyPage() {
     }
 
     if (selfies.length !== SELFIE_CHALLENGES.length) {
-      setErr("Please complete the live selfie steps.");
+      setErr("Please complete all live selfie liveness steps.");
       setPhase("prep");
       return;
     }
@@ -549,16 +885,19 @@ export default function VerifyPage() {
           frames: selfies.length,
           challenges: SELFIE_CHALLENGES.map((challenge) => challenge.id),
 
-          // New structured live-selfie payload for admin review.
-          verificationMode: "live_selfie_challenge_v2",
+          // New structured payload for admin review and liveness audit.
+          verificationMode: "auto_live_selfie_liveness_v3",
           verificationStatus: "pending",
           sessionId,
           selfieFrames: selfies,
           liveness: {
             requiredChallenges: SELFIE_CHALLENGES.map((challenge) => challenge.id),
             completedChallenges: selfies.map((photo) => photo.pose),
+            challengeCount: SELFIE_CHALLENGES.length,
             submittedAt: new Date().toISOString(),
             userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+            note:
+              "Client-side liveness check captured front, left, right, smile, and blink challenges automatically.",
           },
         }),
       });
@@ -632,7 +971,7 @@ export default function VerifyPage() {
             <div className="bg-gradient-to-br from-blue-600 to-purple-700 p-8 text-center">
               <Shield className="mx-auto mb-3 h-12 w-12 text-white" />
               <h1 className="text-2xl font-bold text-white">Verify Your Identity</h1>
-              <p className="mt-1 text-sm text-blue-100">Complete ID upload and live selfie checks.</p>
+              <p className="mt-1 text-sm text-blue-100">Complete ID upload and automatic live selfie checks.</p>
             </div>
 
             <div className="space-y-4 p-6">
@@ -646,7 +985,7 @@ export default function VerifyPage() {
                 <p className={cx("text-sm font-semibold", dc ? "text-white" : "text-gray-900")}>How verification works</p>
                 {[
                   "Select and upload a government ID.",
-                  "Take live selfies: front, left, and right.",
+                  "Complete automatic liveness checks: front, left, right, smile, and blink.",
                   "Admin reviews the submitted evidence in the admin portal.",
                 ].map((text, index) => (
                   <div key={text} className="flex items-center gap-3">
@@ -817,11 +1156,11 @@ export default function VerifyPage() {
               <button type="button" onClick={() => setPhase("idu")} className="rounded-full p-2 hover:bg-gray-100/10">
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              <h2 className={cx("text-xl font-bold", dc ? "text-white" : "text-gray-900")}>Live Selfie Verification</h2>
+              <h2 className={cx("text-xl font-bold", dc ? "text-white" : "text-gray-900")}>Automatic Live Selfie</h2>
             </div>
 
             <div className={cx("mb-6 rounded-2xl p-5", dc ? "bg-blue-500/10" : "bg-blue-50")}>
-              <p className={cx("mb-3 text-sm font-bold", dc ? "text-white" : "text-gray-900")}>You will complete 3 live poses:</p>
+              <p className={cx("mb-3 text-sm font-bold", dc ? "text-white" : "text-gray-900")}>The system will auto-capture these checks:</p>
               <div className="space-y-3">
                 {SELFIE_CHALLENGES.map((challenge) => (
                   <div key={challenge.id} className="flex items-center gap-3">
@@ -836,7 +1175,7 @@ export default function VerifyPage() {
 
             <div className={cx("mb-6 rounded-xl border p-4", dc ? "border-amber-500/20 bg-amber-500/10" : "border-amber-100 bg-amber-50")}>
               <p className={cx("text-xs", dc ? "text-amber-400" : "text-amber-700")}>
-                The camera screen will show a circular guide and movement prompts. Use good lighting and keep your face visible.
+                The blue ring fills as the face movement is detected. When it reaches 100%, the app captures automatically and moves to the next instruction.
               </p>
             </div>
 
@@ -861,9 +1200,9 @@ export default function VerifyPage() {
         <div className="py-4">
           <div className={cx("rounded-3xl border p-6", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
             <h2 className={cx("mb-2 text-xl font-bold", dc ? "text-white" : "text-gray-900")}>Review Verification</h2>
-            <p className={cx("mb-5 text-sm", dc ? "text-gray-400" : "text-gray-500")}>Check the ID and live selfie frames before submitting.</p>
+            <p className={cx("mb-5 text-sm", dc ? "text-gray-400" : "text-gray-500")}>Check the ID and automatic live selfie frames before submitting.</p>
 
-            <div className="mb-5 grid grid-cols-3 gap-3">
+            <div className="mb-5 grid grid-cols-3 gap-3 sm:grid-cols-5">
               {selfies.map((photo) => (
                 <div key={`${photo.pose}-${photo.capturedAt}`} className="text-center">
                   <img src={photo.image} className="aspect-square w-full rounded-xl border object-cover" alt={`${photo.label} selfie`} />
@@ -878,7 +1217,7 @@ export default function VerifyPage() {
                 <span className={cx("text-sm font-bold", dc ? "text-white" : "text-gray-900")}>Ready for admin review</span>
               </div>
               <p className={cx("text-xs", dc ? "text-gray-400" : "text-gray-500")}>
-                This will submit your ID document and selfie frames to the admin verification queue.
+                This submits your ID document, automatic selfie frames, and liveness metadata to the admin verification queue.
               </p>
             </div>
 
@@ -914,7 +1253,7 @@ export default function VerifyPage() {
           <div className={cx("rounded-3xl border p-8", dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white shadow-xl")}>
             <CheckCircle className="mx-auto mb-4 h-16 w-16 text-emerald-500" />
             <h2 className={cx("mb-2 text-2xl font-bold", dc ? "text-white" : "text-gray-900")}>Submitted</h2>
-            <p className={cx("mb-6 text-sm", dc ? "text-gray-400" : "text-gray-500")}>Admin can now review your ID and live selfie frames.</p>
+            <p className={cx("mb-6 text-sm", dc ? "text-gray-400" : "text-gray-500")}>Admin can now review your ID and automatic live selfie frames.</p>
             <Link href="/dashboard" className="inline-block rounded-full bg-emerald-500 px-8 py-3 font-bold text-white">
               Dashboard
             </Link>

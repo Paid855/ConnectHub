@@ -18,7 +18,8 @@ type UserData = {
   profilePhoto: string | null; tier: string; verified: boolean;
   verificationStatus: string | null; verificationPhoto: string | null;
   idDocument: string | null; idDocumentBack: string | null;
-  idType: string | null; interests: string[]; coins: number;
+  idType: string | null;
+  verificationFrames?: string; interests: string[]; coins: number;
   createdAt: string; lastActive: string | null; banned: boolean;
   lookingFor: string | null; photos: string[];
 };
@@ -406,17 +407,61 @@ export default function AdminDashboard() {
               )}
 
               {/* DOCS TAB */}
-              {userTab === "docs" && (
+              {userTab === "docs" && (() => {
+                let parsedFrames: any[] = [];
+                let livenessInfo: any = null;
+                try {
+                  if (selectedUser.verificationFrames) {
+                    const parsed = JSON.parse(selectedUser.verificationFrames);
+                    parsedFrames = parsed.frames || [];
+                    livenessInfo = parsed.liveness || null;
+                  }
+                } catch {}
+                return (
                 <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
                   <h4 className="font-bold mb-2">Verification Documents</h4>
                   <p className="text-xs text-gray-500 mb-4">Status: <span className={"font-medium " + (selectedUser.verified ? "text-emerald-400" : selectedUser.verificationStatus === "pending" ? "text-amber-400" : selectedUser.verificationStatus === "rejected" ? "text-red-400" : "text-gray-400")}>{selectedUser.verified ? "Approved" : selectedUser.verificationStatus || "Not submitted"}</span> {selectedUser.idType && <span className="ml-2 capitalize">({selectedUser.idType.replace("_", " ")})</span>}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {selectedUser.verificationPhoto ? <div><p className="text-xs text-gray-500 mb-2">Selfie</p><img src={selectedUser.verificationPhoto} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedUser.verificationPhoto)} alt="Selfie" /></div> : <div className="bg-gray-800 rounded-xl p-8 text-center text-gray-600"><Camera className="w-8 h-8 mx-auto mb-2" /><p className="text-xs">No selfie</p></div>}
-                    {selectedUser.idDocument ? <div><p className="text-xs text-gray-500 mb-2">ID Front</p><img src={selectedUser.idDocument} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedUser.idDocument)} alt="ID" /></div> : <div className="bg-gray-800 rounded-xl p-8 text-center text-gray-600"><FileText className="w-8 h-8 mx-auto mb-2" /><p className="text-xs">No ID front</p></div>}
-                    {selectedUser.idDocumentBack ? <div><p className="text-xs text-gray-500 mb-2">ID Back</p><img src={selectedUser.idDocumentBack} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedUser.idDocumentBack)} alt="ID Back" /></div> : <div className="bg-gray-800 rounded-xl p-8 text-center text-gray-600"><FileText className="w-8 h-8 mx-auto mb-2" /><p className="text-xs">No ID back</p></div>}
+
+                  {parsedFrames.length > 0 && (
+                    <div className="mb-5">
+                      <p className="text-xs text-gray-400 font-bold mb-3 flex items-center gap-2"><Camera className="w-4 h-4" /> Liveness Selfie Frames ({parsedFrames.length})</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                        {parsedFrames.map((frame: any, idx: number) => (
+                          <div key={idx} className="text-center">
+                            <img src={frame.image} className="w-full aspect-square rounded-xl border border-gray-700 object-cover cursor-pointer hover:opacity-80 hover:ring-2 hover:ring-blue-500" onClick={() => setPhotoViewer(frame.image)} alt={frame.label} />
+                            <p className="text-[10px] text-gray-500 mt-1 font-semibold">{frame.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {parsedFrames.length === 0 && selectedUser.verificationPhoto && (
+                    <div className="mb-5">
+                      <p className="text-xs text-gray-400 font-bold mb-3">Selfie</p>
+                      <img src={selectedUser.verificationPhoto} className="w-40 rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedUser.verificationPhoto)} alt="Selfie" />
+                    </div>
+                  )}
+
+                  <p className="text-xs text-gray-400 font-bold mb-3 flex items-center gap-2"><FileText className="w-4 h-4" /> ID Documents</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    {selectedUser.idDocument ? <div><p className="text-xs text-gray-500 mb-2">Front</p><img src={selectedUser.idDocument} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedUser.idDocument)} alt="ID Front" /></div> : <div className="bg-gray-800 rounded-xl p-8 text-center text-gray-600"><FileText className="w-8 h-8 mx-auto mb-2" /><p className="text-xs">No ID front</p></div>}
+                    {selectedUser.idDocumentBack ? <div><p className="text-xs text-gray-500 mb-2">Back</p><img src={selectedUser.idDocumentBack} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedUser.idDocumentBack)} alt="ID Back" /></div> : <div className="bg-gray-800 rounded-xl p-8 text-center text-gray-600"><FileText className="w-8 h-8 mx-auto mb-2" /><p className="text-xs">No ID back</p></div>}
                   </div>
+
+                  {livenessInfo && (
+                    <div className="mt-4 p-3 bg-gray-800 rounded-xl">
+                      <p className="text-xs text-gray-400 font-bold mb-2">Liveness Metadata</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                        <div>Challenges: {livenessInfo.challengeCount || livenessInfo.requiredChallenges?.length || "?"}</div>
+                        <div>Completed: {livenessInfo.completedChallenges?.length || "?"}</div>
+                        <div className="col-span-2">Submitted: {livenessInfo.submittedAt ? new Date(livenessInfo.submittedAt).toLocaleString() : "Unknown"}</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+                );
+              })()}
 
               {/* EDIT TAB */}
               {userTab === "edit" && (

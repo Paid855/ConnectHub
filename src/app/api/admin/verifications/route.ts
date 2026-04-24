@@ -34,32 +34,15 @@ export async function POST(req: NextRequest) {
         where: { id: userId },
         data: { verified: true, verificationStatus: "approved" },
       });
-      try {
-        await prisma.user.update({ where: { id: userId }, data: { coins: { increment: 100 } } });
-      } catch {}
-      try {
-        await prisma.notification.create({
-          data: { userId, type: "verification", title: "Identity Verified!", message: "Your identity has been verified. You earned 100 bonus coins!", fromUserId: null },
-        });
-      } catch {}
+      try { await prisma.user.update({ where: { id: userId }, data: { coins: { increment: 100 } } }); } catch {}
+      try { await prisma.notification.create({ data: { userId, type: "verification", title: "Identity Verified!", message: "Your identity has been verified. You earned 100 bonus coins!", fromUserId: null } }); } catch {}
     } else if (action === "reject") {
       await prisma.user.update({
         where: { id: userId },
-        data: {
-          verified: false,
-          verificationStatus: "rejected",
-          verificationPhoto: null,
-          idDocument: null,
-        },
+        data: { verified: false, verificationStatus: "rejected", verificationPhoto: null, idDocument: null },
       });
-      try {
-        await prisma.$executeRawUnsafe('UPDATE "User" SET "idDocumentBack" = NULL, "idType" = NULL WHERE "id" = $1', userId);
-      } catch {}
-      try {
-        await prisma.notification.create({
-          data: { userId, type: "verification", title: "Verification Rejected", message: "Your verification was rejected. Please try again with clearer photos.", fromUserId: null },
-        });
-      } catch {}
+      try { await prisma.$executeRawUnsafe('UPDATE "User" SET "idDocumentBack" = NULL, "idType" = NULL, "verificationFrames" = NULL WHERE "id" = $1', userId); } catch {}
+      try { await prisma.notification.create({ data: { userId, type: "verification", title: "Verification Rejected", message: "Please try again with clearer photos.", fromUserId: null } }); } catch {}
     }
     return NextResponse.json({ success: true });
   } catch (e: any) {
