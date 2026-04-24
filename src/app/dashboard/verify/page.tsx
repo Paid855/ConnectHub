@@ -91,6 +91,8 @@ type FaceMetrics = {
   faceCount: number;
   yaw: number;
   centerScore: number;
+  faceSizeScore: number;
+  faceArea: number;
   smile: number;
   blinkLeft: number;
   blinkRight: number;
@@ -111,31 +113,35 @@ const MODEL_ASSET_PATH =
 
 const WASM_ASSET_PATH = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
 
-const AUTO_CAPTURE_HOLD_MS = 120;
+/**
+ * Strict liveness tuning.
+ * The previous version used a timer fallback, so it captured even when the user did not turn/smile/blink.
+ * This version captures ONLY when the required action is detected.
+ */
+const AUTO_CAPTURE_HOLD_MS = 260;
 
 const CAPTURE_PROGRESS_THRESHOLD: Record<ChallengeId, number> = {
-  front: 0.35,
-  left: 0.42,
-  right: 0.42,
-  smile: 0.32,
-  blink: 0.32,
+  front: 0.88,
+  left: 0.92,
+  right: 0.92,
+  smile: 0.9,
+  blink: 0.9,
 };
 
 const MIN_STEP_TIME_MS: Record<ChallengeId, number> = {
   front: 450,
-  left: 850,
-  right: 850,
-  smile: 850,
-  blink: 1050,
+  left: 600,
+  right: 600,
+  smile: 500,
+  blink: 500,
 };
 
-const MAX_STEP_WAIT_MS: Record<ChallengeId, number> = {
-  front: 1400,
-  left: 2300,
-  right: 2300,
-  smile: 2300,
-  blink: 3200,
-};
+const TURN_START_YAW = 0.055;
+const TURN_FULL_YAW = 0.17;
+const SMILE_START_SCORE = 0.22;
+const SMILE_FULL_SCORE = 0.52;
+const BLINK_CLOSED_SCORE = 0.55;
+const BLINK_OPEN_SCORE = 0.22;
 
 const IDS: IDOption[] = [
   { v: "passport", l: "International Passport", i: "🛂" },
@@ -258,6 +264,8 @@ function getMetrics(result: FaceLandmarkerResult): FaceMetrics {
       faceCount: 0,
       yaw: 0,
       centerScore: 0,
+      faceSizeScore: 0,
+      faceArea: 0,
       smile: 0,
       blinkLeft: 0,
       blinkRight: 0,
@@ -276,6 +284,23 @@ function getMetrics(result: FaceLandmarkerResult): FaceMetrics {
 
   let yaw = 0;
   let centerScore = 0;
+  let faceArea = 0;
+  let faceSizeScore = 0;
+
+  const minX = Math.min(...firstFace.map((point) => point.x));
+  const maxX = Math.max(...firstFace.map((point) => point.x));
+  const minY = Math.min(...firstFace.map((point) => point.y));
+  const maxY = Math.max(...firstFace.map((point) => point.y));
+  const faceWidthBox = Math.max(0, maxX - minX);
+  const faceHeightBox = Math.max(0, maxY - minY);
+  faceArea = faceWidthBox * faceHeightBox;
+
+  // Accept a normal mobile selfie distance. Too tiny = far away; too huge = face too close.
+  const minGoodArea = 0.095;
+  const maxGoodArea = 0.58;
+  const farScore = clamp((faceArea - 0.055) / (minGoodArea - 0.055));
+  const closeScore = clamp((0.72 - faceArea) / (0.72 - maxGoodArea));
+  faceSizeScore = clamp(Math.min(farScore, closeScore));
 
   if (nose && leftEyeOuter && rightEyeOuter && leftSide && rightSide) {
     const eyeCenter = averagePoint([leftEyeOuter, rightEyeOuter]);
@@ -304,6 +329,8 @@ function getMetrics(result: FaceLandmarkerResult): FaceMetrics {
     faceCount: landmarks.length,
     yaw,
     centerScore,
+    faceSizeScore,
+    faceArea,
     smile,
     blinkLeft,
     blinkRight,
@@ -315,38 +342,42 @@ function getMetrics(result: FaceLandmarkerResult): FaceMetrics {
 function getChallengeProgress(
   challengeId: ChallengeId,
   metrics: FaceMetrics,
-  blinkClosedSeen: boolean
+  blinkClosedSeen: boolean,
+  firstTurnSign: number | null
 ) {
   if (metrics.faceCount !== 1) return 0;
 
   switch (challengeId) {
     case "front": {
-      // Practical mobile threshold: the old version required near-perfect centering,
-      // which caused iPhone Safari to keep scanning forever.
-      const yawScore = 1 - Math.abs(metrics.yaw) / 0.28;
-      const centeredEnough = Math.max(metrics.centerScore, 0.45);
-      const eyesEnough = Math.max(metrics.eyesOpenScore, 0.55);
-      return clamp(Math.min(yawScore, centeredEnough, eyesEnough));
+      const yawScore = 1 - Math.abs(metrics.yaw) / 0.2;
+      return clamp(Math.min(yawScore, metrics.centerScore, metrics.faceSizeScore, metrics.eyesOpenScore));
     }
 
-    case "left":
-      // Lower threshold so normal head turns trigger capture.
-      return clamp((-metrics.yaw - 0.02) / 0.12);
+    case "left": {
+      // Front cameras differ on yaw sign because of mirroring.
+      // For the first turn, accept a real turn in either direction, then remember its sign.
+      const firstTurnAmount = Math.abs(metrics.yaw);
+      return clamp((firstTurnAmount - TURN_START_YAW) / (TURN_FULL_YAW - TURN_START_YAW));
+    }
 
-    case "right":
-      return clamp((metrics.yaw - 0.02) / 0.12);
+    case "right": {
+      // The second turn must be the opposite direction of the first turn.
+      // This prevents staying still or repeating the same head direction.
+      const oppositeTurnAmount = firstTurnSign ? -firstTurnSign * metrics.yaw : Math.abs(metrics.yaw);
+      return clamp((oppositeTurnAmount - TURN_START_YAW) / (TURN_FULL_YAW - TURN_START_YAW));
+    }
 
     case "smile":
-      // Blendshape scores vary a lot across devices, so keep this forgiving.
-      return clamp((metrics.smile - 0.12) / 0.2);
+      // The user must produce a clear smile; this no longer auto-passes from elapsed time.
+      return clamp((metrics.smile - SMILE_START_SCORE) / (SMILE_FULL_SCORE - SMILE_START_SCORE));
 
     case "blink": {
       if (!blinkClosedSeen) {
-        return clamp((metrics.blinkAverage - 0.2) / 0.25);
+        return clamp((metrics.blinkAverage - BLINK_OPEN_SCORE) / (BLINK_CLOSED_SCORE - BLINK_OPEN_SCORE));
       }
 
-      // After eyes close, wait for eyes open before capturing.
-      return clamp((metrics.eyesOpenScore - 0.35) / 0.25);
+      // After eyes close, require eyes to open again before capture.
+      return clamp((BLINK_CLOSED_SCORE - metrics.blinkAverage) / (BLINK_CLOSED_SCORE - BLINK_OPEN_SCORE));
     }
 
     default:
@@ -364,7 +395,12 @@ function getScanText(
   if (!modelReady) return "Loading face detector...";
   if (metrics.faceCount === 0) return "Place your face inside the circle";
   if (metrics.faceCount > 1) return "Only one face should be visible";
-  if (challengeId === "blink" && blinkClosedSeen) return "Good. Open your eyes";
+  if (challengeId === "front" && metrics.faceSizeScore < 0.45) return "Move closer or slightly back";
+  if (challengeId === "left" && progress < CAPTURE_PROGRESS_THRESHOLD.left) return "Turn your head more to the left";
+  if (challengeId === "right" && progress < CAPTURE_PROGRESS_THRESHOLD.right) return "Turn your head more to the right";
+  if (challengeId === "smile" && progress < CAPTURE_PROGRESS_THRESHOLD.smile) return "Smile wider";
+  if (challengeId === "blink" && !blinkClosedSeen) return "Blink once";
+  if (challengeId === "blink" && blinkClosedSeen && progress < CAPTURE_PROGRESS_THRESHOLD.blink) return "Good. Open your eyes";
   if (progress >= CAPTURE_PROGRESS_THRESHOLD[challengeId]) return "Hold still...";
   return "Scanning...";
 }
@@ -456,6 +492,7 @@ function LiveSelfieCapture({
   const readySinceRef = useRef<number | null>(null);
   const stepStartedAtRef = useRef(0);
   const blinkClosedSeenRef = useRef(false);
+  const firstTurnSignRef = useRef<number | null>(null);
   const capturingRef = useRef(false);
   const stepRef = useRef(0);
   const photosRef = useRef<CapturedSelfie[]>([]);
@@ -463,6 +500,8 @@ function LiveSelfieCapture({
     faceCount: 0,
     yaw: 0,
     centerScore: 0,
+    faceSizeScore: 0,
+    faceArea: 0,
     smile: 0,
     blinkLeft: 0,
     blinkRight: 0,
@@ -554,6 +593,11 @@ function LiveSelfieCapture({
         metrics: lastMetricsRef.current,
       };
 
+      if (challenge.id === "left") {
+        const sign = Math.sign(lastMetricsRef.current.yaw);
+        firstTurnSignRef.current = sign === 0 ? null : sign;
+      }
+
       const nextPhotos = [...photosRef.current, frame];
       photosRef.current = nextPhotos;
       setPhotos(nextPhotos);
@@ -593,8 +637,9 @@ function LiveSelfieCapture({
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: "user",
-            width: { ideal: 960 },
-            height: { ideal: 960 },
+            width: { ideal: 720, max: 1280 },
+            height: { ideal: 720, max: 1280 },
+            frameRate: { ideal: 24, max: 30 },
           },
           audio: false,
         });
@@ -613,16 +658,32 @@ function LiveSelfieCapture({
 
         const { FilesetResolver, FaceLandmarker } = await import("@mediapipe/tasks-vision");
         const vision = await FilesetResolver.forVisionTasks(WASM_ASSET_PATH);
-        const landmarker = await FaceLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath: MODEL_ASSET_PATH,
-            delegate: "GPU",
-          },
-          runningMode: "VIDEO",
-          numFaces: 2,
-          outputFaceBlendshapes: true,
-          outputFacialTransformationMatrixes: false,
-        });
+        let landmarker;
+        try {
+          landmarker = await FaceLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: MODEL_ASSET_PATH,
+              delegate: "GPU",
+            },
+            runningMode: "VIDEO",
+            numFaces: 2,
+            outputFaceBlendshapes: true,
+            outputFacialTransformationMatrixes: false,
+          });
+        } catch {
+          // iPhone Safari can fail silently or perform poorly with GPU delegates.
+          // CPU is slower, but more reliable for this verification flow.
+          landmarker = await FaceLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: MODEL_ASSET_PATH,
+              delegate: "CPU",
+            },
+            runningMode: "VIDEO",
+            numFaces: 2,
+            outputFaceBlendshapes: true,
+            outputFacialTransformationMatrixes: false,
+          });
+        }
 
         if (!mounted) {
           landmarker.close?.();
@@ -665,22 +726,20 @@ function LiveSelfieCapture({
       const activeStep = stepRef.current;
       const activeChallenge = SELFIE_CHALLENGES[activeStep];
 
-      if (activeChallenge.id === "blink" && nextMetrics.blinkAverage > 0.32) {
+      if (activeChallenge.id === "blink" && nextMetrics.blinkAverage >= BLINK_CLOSED_SCORE) {
         blinkClosedSeenRef.current = true;
       }
 
       const detectedProgress = getChallengeProgress(
         activeChallenge.id,
         nextMetrics,
-        blinkClosedSeenRef.current
+        blinkClosedSeenRef.current,
+        firstTurnSignRef.current
       );
 
       const stepElapsed = now - stepStartedAtRef.current;
       const faceVisible = nextMetrics.faceCount === 1;
-      const fallbackProgress = faceVisible
-        ? clamp(stepElapsed / MAX_STEP_WAIT_MS[activeChallenge.id])
-        : 0;
-      const visualProgress = clamp(Math.max(detectedProgress, fallbackProgress));
+      const visualProgress = detectedProgress;
       const threshold = CAPTURE_PROGRESS_THRESHOLD[activeChallenge.id];
       const enoughTimeOnStep = stepElapsed >= MIN_STEP_TIME_MS[activeChallenge.id];
 
@@ -691,9 +750,8 @@ function LiveSelfieCapture({
         setBlinkClosedSeen(blinkClosedSeenRef.current);
       }
 
-      // Capture must not wait for perfect ML scores. On real mobile browsers,
-      // yaw/smile/blink scores can jitter and never hit 1.0. Once a single face
-      // is visible and the challenge is mostly satisfied, capture automatically.
+      // Strict rule: no elapsed-time fallback for left/right/smile/blink.
+      // This prevents false verification where a user stays still and the app still captures.
       const complete = faceVisible && enoughTimeOnStep && visualProgress >= threshold;
 
       if (!complete || capturingRef.current) {
@@ -764,7 +822,7 @@ function LiveSelfieCapture({
           <StepDots current={step} total={SELFIE_CHALLENGES.length} />
         </div>
 
-        <div className="relative h-[min(78vw,350px)] w-[min(78vw,350px)]">
+        <div className="relative h-[min(68vw,310px)] w-[min(68vw,310px)] min-h-[240px] min-w-[240px]">
           <CameraProgressRing progress={progress} />
           <DirectionBubble side={currentChallenge.bubble} />
 
@@ -934,7 +992,7 @@ export default function VerifyPage() {
           challenges: SELFIE_CHALLENGES.map((challenge) => challenge.id),
 
           // New structured payload for admin review and liveness audit.
-          verificationMode: "auto_live_selfie_liveness_v3",
+          verificationMode: "strict_auto_live_selfie_liveness_v4",
           verificationStatus: "pending",
           sessionId,
           selfieFrames: selfies,
@@ -945,7 +1003,7 @@ export default function VerifyPage() {
             submittedAt: new Date().toISOString(),
             userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
             note:
-              "Client-side liveness check captured front, left, right, smile, and blink challenges automatically.",
+              "Strict client-side liveness check captured front, left, right, smile, and blink only after detected action thresholds were met.",
           },
         }),
       });
@@ -1223,7 +1281,7 @@ export default function VerifyPage() {
 
             <div className={cx("mb-6 rounded-xl border p-4", dc ? "border-amber-500/20 bg-amber-500/10" : "border-amber-100 bg-amber-50")}>
               <p className={cx("text-xs", dc ? "text-amber-400" : "text-amber-700")}>
-                The blue ring fills as the face movement is detected. The app captures automatically once the user is positioned correctly; it does not wait for a manual button.
+                The blue ring fills only when the required action is detected. The user must actually turn left, turn right, smile, and blink before capture.
               </p>
             </div>
 
