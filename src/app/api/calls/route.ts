@@ -2,6 +2,7 @@ import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
+import { sendPushToUser } from "@/lib/push";
 
 export async function POST(req: NextRequest) {
   const id = getUserId(req);
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
 
     const caller = await prisma.user.findUnique({ where: { id }, select: { name: true } });
     await createNotification(receiverId, "call", "Incoming Call", `${caller?.name || "Someone"} is calling you (${type || "voice"})`, id);
+  sendPushToUser(receiverId, { title: "Incoming Call 📞", body: (caller?.name || "Someone") + " is calling you", url: "/dashboard/messages", tag: "call-" + id });
 
     return NextResponse.json({ call });
   }

@@ -2,6 +2,7 @@ import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
+import { sendPushToUser } from "@/lib/push";
 
 export async function POST(req: NextRequest) {
   const id = getUserId(req);
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
   try { await prisma.gift.create({ data: { senderId: id, receiverId, type: giftType, coins: amount } }); } catch {}
 
   createNotification(receiverId, "gift", "Gift Received!", (sender.name || "Someone") + " sent you a " + giftType + "!", id);
+  sendPushToUser(receiverId, { title: "Gift Received! 🎁", body: (sender.name || "Someone") + " sent you a gift", url: "/dashboard/messages", tag: "gift-" + id });
 
   return NextResponse.json({ success: true, spent: amount, hostReceived: hostShare });
 }

@@ -45,6 +45,10 @@ model User {
   lastSeen           DateTime @default(now())
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+  hideDob            Boolean  @default(false)
+  hideEmail          Boolean  @default(false)
+  hidePhone          Boolean  @default(false)
+  verificationFrames String?
 }
 
 model Message {
@@ -191,4 +195,13 @@ model Report {
   details    String?
   status     String   @default("pending")
   createdAt  DateTime @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }

@@ -2,6 +2,7 @@ import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
+import { sendPushToUser } from "@/lib/push";
 
 export async function GET(req: NextRequest) {
   const id = getUserId(req);
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
   if (action === "accept") {
     await prisma.friend.updateMany({ where: { userId: friendId, friendId: id, status: "pending" }, data: { status: "accepted" } });
     createNotification(friendId, "friend_accepted", "Friend Accepted!", "accepted your friend request", id);
+    sendPushToUser(friendId, { title: "Friend Accepted! 🤝", body: "Your friend request was accepted", url: "/dashboard/browse", tag: "friend-accept-" + id });
     return NextResponse.json({ success: true });
   }
   if (action === "reject") {
@@ -61,5 +63,6 @@ export async function POST(req: NextRequest) {
 
   await prisma.friend.create({ data: { userId: id, friendId, status: "pending" } });
   createNotification(friendId, "friend_request", "Friend Request", "wants to be your friend", id);
+  sendPushToUser(friendId, { title: "New Friend Request 💕", body: "Someone wants to connect with you", url: "/dashboard/browse", tag: "friend-req-" + id });
   return NextResponse.json({ success: true });
 }

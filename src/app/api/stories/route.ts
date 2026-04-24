@@ -4,6 +4,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
+import { sendPushToUser } from "@/lib/push";
 
 export async function GET(req: NextRequest) {
   const id = getUserId(req);
@@ -102,6 +103,7 @@ export async function POST(req: NextRequest) {
     const content = "[STORY_REPLY]" + reply;
     await prisma.message.create({ data: { senderId: id, receiverId: story.userId, content } });
     createNotification(story.userId, "story_reply", "Story Reply", "replied to your story", id);
+    sendPushToUser(story.userId, { title: "Story Reply 💬", body: "Someone replied to your story", url: "/dashboard/feed", tag: "story-reply-" + id });
     return NextResponse.json({ sent: true });
   }
 
@@ -113,6 +115,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.message.create({ data: { senderId: id, receiverId: story.userId, content: "[STORY_REACT]❤️ Loved your story" } });
     createNotification(story.userId, "story_react", "Story Reaction", "loved your story ❤️", id);
+    sendPushToUser(story.userId, { title: "Story Reaction ❤️", body: "Someone loved your story", url: "/dashboard/feed", tag: "story-react-" + id });
     return NextResponse.json({ reacted: true });
   }
 

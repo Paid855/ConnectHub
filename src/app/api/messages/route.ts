@@ -1,5 +1,6 @@
 import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+import { sendPushToUser } from "@/lib/push";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
 
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
   const newMsg = await prisma.message.create({ data: { senderId: id, receiverId, content: content.trim() } });
   const notifBody = content.startsWith("[IMG]") ? "Sent a photo" : content.startsWith("[VOICE]") ? "Voice message" : content.substring(0, 50);
   createNotification(receiverId, "message", "New Message", notifBody, id);
+  sendPushToUser(receiverId, { title: "New Message 💬", body: notifBody, url: "/dashboard/messages", tag: "msg-" + id });
 
   return NextResponse.json({ message: newMsg });
 }

@@ -3,6 +3,7 @@ import { useState, useEffect, createContext, useContext, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import LocationDetector from "@/components/LocationDetector";
+import PushPrompt from "@/components/PushPrompt";
 import PushNotifications from "@/components/PushNotifications";
 import IncomingCall from "@/components/IncomingCall";
 import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins, Eye, Trophy, Ban, Camera, Gift } from "lucide-react";
@@ -260,7 +261,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-3 sm:p-6 lg:p-8 max-w-6xl mx-auto pb-20 lg:pb-8">{children}</div><LocationDetector /><PushNotifications />
+        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-3 sm:p-6 lg:p-8 max-w-6xl mx-auto pb-20 lg:pb-8">{children}</div><PushPrompt />
+        <LocationDetector /><PushNotifications />
         <IncomingCall /></main>
 
         {/* Mobile Bottom Navigation */}
