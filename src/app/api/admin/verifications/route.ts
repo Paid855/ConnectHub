@@ -9,10 +9,19 @@ function isAdmin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
   try {
-    const pending = await prisma.user.findMany({
-      where: { verificationStatus: "pending" },
-      orderBy: { createdAt: "desc" },
-    });
+    let pending: any[] = [];
+    try {
+      pending = await prisma.$queryRawUnsafe(
+        'SELECT * FROM "User" WHERE "verificationStatus" = $1 ORDER BY "createdAt" DESC',
+        "pending"
+      );
+    } catch {
+      const fallback = await prisma.user.findMany({
+        where: { verificationStatus: "pending" },
+        orderBy: { createdAt: "desc" },
+      });
+      pending = fallback as any[];
+    }
     const safe = pending.map((u: any) => {
       const { password, ...rest } = u;
       return rest;
