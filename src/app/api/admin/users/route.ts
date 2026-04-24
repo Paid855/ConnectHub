@@ -5,33 +5,79 @@ function isAdmin(req: NextRequest) { try { return JSON.parse(req.cookies.get("ad
 
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
-  const users = await prisma.user.findMany({ select: { id:true, name:true, email:true, username:true, phone:true, age:true, gender:true, country:true, profilePhoto:true, tier:true, verified:true, verificationStatus:true, verificationPhoto:true, coins:true, bio:true, interests:true, createdAt:true, lastSeen:true }, orderBy: { createdAt: "desc" }, take: 500 });
-  return NextResponse.json({ users, stats: { total:users.length, verified:users.filter(u=>u.verified).length, premium:users.filter(u=>["plus","premium","gold"].includes(u.tier||"")).length, banned:users.filter(u=>u.tier==="banned").length } });
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id:true, name:true, email:true, username:true, phone:true, age:true,
+      gender:true, country:true, bio:true, profilePhoto:true, tier:true,
+      verified:true, verificationStatus:true, verificationPhoto:true,
+      idDocument:true, idDocumentBack:true, idType:true, interests:true,
+      coins:true, createdAt:true, lastActive:true, banned:true,
+      lookingFor:true, city:true, photos:true
+    }
+  });
+  return NextResponse.json({ users });
 }
 
-export async function PUT(req: NextRequest) {
+export async function POST(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
-  const { userId, action, tier, field, value } = await req.json();
-  if (action === "ban") await prisma.user.update({ where: { id: userId }, data: { tier: "banned" } });
-  if (action === "unban") await prisma.user.update({ where: { id: userId }, data: { tier: "free" } });
-  if (action === "changeTier") await prisma.user.update({ where: { id: userId }, data: { tier } });
-  if (action === "verify") await prisma.user.update({ where: { id: userId }, data: { verified: true, verificationStatus: "approved" } });
-  if (action === "editField" && field && value !== undefined) {
-    const data: any = {};
-    data[field] = field === "age" || field === "coins" ? parseInt(value) : value;
-    await prisma.user.update({ where: { id: userId }, data });
+  const body = await req.json();
+  const { userId, action } = body;
+
+  if (action === "ban") {
+    await prisma.user.update({ where: { id: userId }, data: { banned: true } });
+    return NextResponse.json({ success: true });
   }
-  return NextResponse.json({ success: true });
-}
+  if (action === "unban") {
+    await prisma.user.update({ where: { id: userId }, data: { banned: false } });
+    return NextResponse.json({ success: true });
+  }
+  if (action === "delete") {
+    await prisma.notification.deleteMany({ where: { userId } }).catch(()=>{});
+    await prisma.message.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } }).catch(()=>{});
+    await prisma.friend.deleteMany({ where: { OR: [{ userId }, { friendId: userId }] } }).catch(()=>{});
+    await prisma.block.deleteMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] } }).catch(()=>{});
+    await prisma.like.deleteMany({ where: { OR: [{ likerId: userId }, { likedId: userId }] } }).catch(()=>{});
+    await prisma.user.delete({ where: { id: userId } }).catch(()=>{});
+    return NextResponse.json({ success: true });
+  }
+  if (action === "upgrade") {
+    await prisma.user.update({ where: { id: userId }, data: { tier: body.tier || "premium" } });
+    return NextResponse.json({ success: true });
+  }
+  if (action === "addCoins") {
+    const amount = parseInt(body.amount) || 0;
+    if (amount > 0) await prisma.user.update({ where: { id: userId }, data: { coins: { increment: amount } } });
+    return NextResponse.json({ success: true });
+  }
+  if (action === "setCoins") {
+    const amount = parseInt(body.amount) || 0;
+    await prisma.user.update({ where: { id: userId }, data: { coins: amount } });
+    return NextResponse.json({ success: true });
+  }
+  if (action === "editProfile") {
+    const updates: any = {};
+    if (body.name !== undefined) updates.name = body.name;
+    if (body.email !== undefined) updates.email = body.email;
+    if (body.username !== undefined) updates.username = body.username;
+    if (body.phone !== undefined) updates.phone = body.phone;
+    if (body.age !== undefined) updates.age = body.age ? parseInt(body.age) : null;
+    if (body.gender !== undefined) updates.gender = body.gender;
+    if (body.country !== undefined) updates.country = body.country;
+    if (body.city !== undefined) updates.city = body.city;
+    if (body.bio !== undefined) updates.bio = body.bio;
+    if (body.lookingFor !== undefined) updates.lookingFor = body.lookingFor;
+    if (body.tier !== undefined) updates.tier = body.tier;
+    if (body.verified !== undefined) updates.verified = body.verified;
+    if (Object.keys(updates).length > 0) {
+      await prisma.user.update({ where: { id: userId }, data: updates });
+    }
+    return NextResponse.json({ success: true });
+  }
+  if (action === "resetVerification") {
+    await prisma.user.update({ where: { id: userId }, data: { verified: false, verificationStatus: null, verificationPhoto: null, idDocument: null, idDocumentBack: null } });
+    return NextResponse.json({ success: true });
+  }
 
-export async function DELETE(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
-  const { userId } = await req.json();
-  await prisma.message.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } }).catch(()=>{});
-  await prisma.post.deleteMany({ where: { userId } }).catch(()=>{});
-  await prisma.friend.deleteMany({ where: { OR: [{ userId }, { friendId: userId }] } }).catch(()=>{});
-  await prisma.notification.deleteMany({ where: { userId } }).catch(()=>{});
-  await prisma.coinTransaction.deleteMany({ where: { userId } }).catch(()=>{});
-  await prisma.user.delete({ where: { id: userId } }).catch(()=>{});
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
