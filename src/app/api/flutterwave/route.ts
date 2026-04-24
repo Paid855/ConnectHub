@@ -42,11 +42,10 @@ export async function POST(req: NextRequest) {
     }
   } else if (type === "coins") {
     const packages: Record<string, { amount: number; coins: number }> = {
-      "50": { amount: 2, coins: 50 },
-      "150": { amount: 5, coins: 150 },
-      "500": { amount: 15, coins: 500 },
-      "1200": { amount: 30, coins: 1200 },
-      "3000": { amount: 60, coins: 3000 },
+      "100": { amount: 1.99, coins: 100 },
+      "500": { amount: 7.99, coins: 500 },
+      "1000": { amount: 12.99, coins: 1000 },
+      "5000": { amount: 49.99, coins: 5000 },
     };
     const pkg = packages[coinPackage];
     if (!pkg) return NextResponse.json({ error: "Invalid coin package" }, { status: 400 });
