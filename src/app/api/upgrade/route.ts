@@ -1,54 +1,62 @@
-import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY || "";
+const FLW_SECRET = process.env.FLW_SECRET_KEY || "";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://connecthub.love";
 
+function getUserId(req: NextRequest) {
+  try {
+    const cookie = req.cookies.get("session")?.value;
+    if (!cookie) return null;
+    return JSON.parse(cookie).id || JSON.parse(cookie).userId || null;
+  } catch { return null; }
+}
+
 export async function POST(req: NextRequest) {
-  const id = getUserId(req);
-  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+  const userId = getUserId(req);
+  if (!userId) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
   const { tier } = await req.json();
   if (tier !== "plus" && tier !== "premium") return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
 
-  const user = await prisma.user.findUnique({ where: { id }, select: { email: true, tier: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true, tier: true } });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  if (tier === "plus" && (user.tier === "plus" || user.tier === "premium" || user.tier === "gold")) {
+  if (tier === "plus" && ["plus", "premium", "gold"].includes(user.tier)) {
     return NextResponse.json({ error: "You already have this plan or higher" }, { status: 400 });
   }
-  if ((tier === "premium") && (user.tier === "premium" || user.tier === "gold")) {
+  if (tier === "premium" && ["premium", "gold"].includes(user.tier)) {
     return NextResponse.json({ error: "You already have Premium" }, { status: 400 });
   }
 
-  const amount = tier === "plus" ? 1200 : 2500;
-  const name = tier === "plus" ? "ConnectHub Plus — $12/month" : "ConnectHub Premium — $25/month";
+  const amount = tier === "plus" ? 12 : 25;
+  const description = tier === "plus" ? "ConnectHub Plus — $12/month" : "ConnectHub Premium — $25/month";
+  const txRef = `CH_sub_${userId}_${Date.now()}`;
 
   try {
-    const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    const res = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
-      headers: { "Authorization": "Bearer " + STRIPE_SECRET, "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        "mode": "payment",
-        "customer_email": user.email,
-        "line_items[0][price_data][currency]": "usd",
-        "line_items[0][price_data][product_data][name]": name,
-        "line_items[0][price_data][unit_amount]": String(amount),
-        "line_items[0][quantity]": "1",
-        "success_url": SITE_URL + "/dashboard/coins?success=true&tier=" + tier,
-        "cancel_url": SITE_URL + "/dashboard/coins?cancelled=true",
-        "metadata[userId]": id,
-        "metadata[type]": "subscription",
-        "metadata[tier]": tier,
-      }).toString()
+      headers: {
+        "Authorization": "Bearer " + FLW_SECRET,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tx_ref: txRef,
+        amount,
+        currency: "USD",
+        redirect_url: `${SITE_URL}/api/flutterwave/verify?tx_ref=${txRef}`,
+        customer: { email: user.email, name: user.name || "User" },
+        customizations: { title: "ConnectHub", description, logo: `${SITE_URL}/icon-512.png` },
+        meta: { userId, type: "subscription", tier, coins: "0", txRef },
+      }),
     });
-    const session = await res.json();
-    if (session.url) return NextResponse.json({ paymentUrl: session.url });
-    console.error("Stripe error:", session);
-    return NextResponse.json({ error: "Payment initialization failed" }, { status: 500 });
-  } catch (e) {
-    console.error("Payment error:", e);
+
+    const data = await res.json();
+    if (data.status === "success" && data.data?.link) {
+      return NextResponse.json({ url: data.data.link });
+    }
+    return NextResponse.json({ error: data.message || "Payment failed" }, { status: 500 });
+  } catch (e: any) {
     return NextResponse.json({ error: "Payment service unavailable" }, { status: 500 });
   }
 }
