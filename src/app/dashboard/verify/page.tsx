@@ -23,7 +23,7 @@ import {
 import { useUser } from "../layout";
 
 /* ------------------------------------------------------------------ */
-/*  Types & constants (same as before, thresholds adjusted below)    */
+/*  Types & constants                                                */
 /* ------------------------------------------------------------------ */
 
 type Phase =
@@ -106,7 +106,8 @@ const VERIFY_ENDPOINT = "/api/auth/verify";
 
 /**
  * If your device/browser detects LEFT and RIGHT backward,
- * change this from 1 to -1.
+ * change this from 1 to -1. It affects the internal yaw mapping,
+ * but the UI now uses fixed formulas. Leave as 1.
  */
 const HEAD_TURN_SIGN = 1;
 
@@ -115,21 +116,22 @@ const MODEL_ASSET_PATH =
 
 const WASM_ASSET_PATH = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm";
 
-const AUTO_CAPTURE_HOLD_MS = 120; // how long the progress must be held before snap
+// Increased to 500 ms – capture only after the pose is clearly held
+const AUTO_CAPTURE_HOLD_MS = 500;
 
 /* ------------------------------------------------------------------ */
 /*  TUNED THRESHOLDS – mobile‑friendly, no fallback timer            */
 /* ------------------------------------------------------------------ */
 const CAPTURE_PROGRESS_THRESHOLD: Record<ChallengeId, number> = {
-  front: 0.35,  // easy to reach when face is straight & centered
-  left: 0.42,   // slight turn required
+  front: 0.35,
+  left: 0.42,
   right: 0.42,
   smile: 0.32,
   blink: 0.32,
 };
 
 const MIN_STEP_TIME_MS: Record<ChallengeId, number> = {
-  front: 600,   // allow a tiny settling time
+  front: 600,
   left: 900,
   right: 900,
   smile: 800,
@@ -197,7 +199,7 @@ const SELFIE_CHALLENGES: SelfieChallenge[] = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Utility helpers (unchanged)                                      */
+/*  Utility helpers                                                  */
 /* ------------------------------------------------------------------ */
 const cx = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(" ");
@@ -312,7 +314,7 @@ function getMetrics(result: FaceLandmarkerResult): FaceMetrics {
 }
 
 /* ------------------------------------------------------------------ */
-/*  PROGRESS – now purely based on the required action              */
+/*  PROGRESS – fixed left/right mapping, no fallback timer           */
 /* ------------------------------------------------------------------ */
 function getChallengeProgress(
   challengeId: ChallengeId,
@@ -323,29 +325,27 @@ function getChallengeProgress(
 
   switch (challengeId) {
     case "front": {
-      // Face must be straight and reasonably centered
-      const yawScore = 1 - Math.abs(metrics.yaw) / 0.25;   // a bit more forgiving
+      const yawScore = 1 - Math.abs(metrics.yaw) / 0.25;
       const centeredEnough = Math.max(metrics.centerScore, 0.5);
       const eyesEnough = Math.max(metrics.eyesOpenScore, 0.6);
       return clamp(Math.min(yawScore, centeredEnough, eyesEnough));
     }
 
     case "left":
-      // negative yaw = head turned to user's left
-      return clamp((-metrics.yaw - 0.03) / 0.11);
+      // User turns head to *their left* → positive yaw
+      return clamp((metrics.yaw - 0.03) / 0.11);
 
     case "right":
-      return clamp((metrics.yaw - 0.03) / 0.11);
+      // User turns head to *their right* → negative yaw
+      return clamp((-metrics.yaw - 0.03) / 0.11);
 
     case "smile":
       return clamp((metrics.smile - 0.15) / 0.18);
 
     case "blink": {
       if (!blinkClosedSeen) {
-        // detect eyes closing – faster threshold for mobile
         return clamp((metrics.blinkAverage - 0.25) / 0.2);
       }
-      // after blink, eyes must open
       return clamp((metrics.eyesOpenScore - 0.4) / 0.25);
     }
 
@@ -374,7 +374,7 @@ function getScanText(
 }
 
 /* ------------------------------------------------------------------ */
-/*  UI small components (unchanged)                                  */
+/*  UI small components                                              */
 /* ------------------------------------------------------------------ */
 function StepDots({ current, total }: { current: number; total: number }) {
   return (
@@ -447,7 +447,7 @@ function DirectionBubble({ side }: { side: SelfieChallenge["bubble"] }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  THE REWRITTEN SELFIE CAPTURE – only detects, never times out     */
+/*  THE SELFIE CAPTURE – correct left/right, stable hold             */
 /* ------------------------------------------------------------------ */
 function LiveSelfieCapture({
   onDone,
@@ -580,7 +580,7 @@ function LiveSelfieCapture({
     [closeCamera, onDone]
   );
 
-  // --- Camera + ML setup (unchanged) ---
+  // --- Camera + ML setup ---
   useEffect(() => {
     let mounted = true;
     async function start() {
@@ -636,7 +636,7 @@ function LiveSelfieCapture({
     };
   }, [closeCamera]);
 
-  // --- Core detection loop (rewritten: no fallback timer) ---
+  // --- Core detection loop (no time‑based fallback, correct left/right) ---
   useEffect(() => {
     let lastUiUpdate = 0;
 
@@ -655,25 +655,21 @@ function LiveSelfieCapture({
       const activeStep = stepRef.current;
       const activeChallenge = SELFIE_CHALLENGES[activeStep];
 
-      // Update blink closed flag
       if (activeChallenge.id === "blink" && nextMetrics.blinkAverage > 0.32) {
         blinkClosedSeenRef.current = true;
       }
 
-      // Purely action‑based progress, no time‑fill
       const detectedProgress = getChallengeProgress(
         activeChallenge.id,
         nextMetrics,
         blinkClosedSeenRef.current
       );
 
-      // Visual progress = detected only
       const visualProgress = clamp(detectedProgress);
       const threshold = CAPTURE_PROGRESS_THRESHOLD[activeChallenge.id];
       const enoughTimeOnStep = (now - stepStartedAtRef.current) >= MIN_STEP_TIME_MS[activeChallenge.id];
       const faceVisible = nextMetrics.faceCount === 1;
 
-      // UI update throttle
       if (now - lastUiUpdate > 80) {
         lastUiUpdate = now;
         setMetrics(nextMetrics);
@@ -681,14 +677,15 @@ function LiveSelfieCapture({
         setBlinkClosedSeen(blinkClosedSeenRef.current);
       }
 
-      // Capture only when action is fully detected (not time‑based)
       const actionComplete = faceVisible && enoughTimeOnStep && visualProgress >= threshold;
 
+      // If the action is not complete or we're already capturing, reset the hold timer.
       if (!actionComplete || capturingRef.current) {
         readySinceRef.current = null;
       } else if (readySinceRef.current === null) {
         readySinceRef.current = now;
       } else if (now - readySinceRef.current >= AUTO_CAPTURE_HOLD_MS) {
+        // Face is visible, action stable for 500ms → capture
         captureFrame(activeStep);
       }
 
@@ -833,7 +830,7 @@ function LiveSelfieCapture({
 }
 
 /* ------------------------------------------------------------------ */
-/*  MAIN VERIFY PAGE (unchanged)                                     */
+/*  MAIN VERIFY PAGE                                                 */
 /* ------------------------------------------------------------------ */
 export default function VerifyPage() {
   const { user, reload, dark } = useUser();
