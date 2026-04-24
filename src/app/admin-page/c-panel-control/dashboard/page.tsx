@@ -85,6 +85,7 @@ export default function AdminDashboard() {
 
   const doAction = async (userId: string, action: string, extra?: any) => {
     setActionLoading(userId + action);
+    if (action === "resetVerify" && !confirm("Reset this user's verification? They will need to verify again.")) { setActionLoading(""); return; }
     if (action === "ban" && !confirm("Ban this user?")) { setActionLoading(""); return; }
     if (action === "delete" && !confirm("DELETE this user permanently?")) { setActionLoading(""); return; }
     await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, action, ...extra }) });
@@ -141,6 +142,33 @@ export default function AdminDashboard() {
     setUserTab("edit");
   };
 
+
+  const downloadImage = (dataUrl: string, filename: string) => {
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadAllVerification = (user: any) => {
+    let frames: any[] = [];
+    try { if (user.verificationFrames) { frames = JSON.parse(user.verificationFrames).frames || []; } } catch {}
+    if (frames.length > 0) {
+      frames.forEach((f: any, i: number) => {
+        setTimeout(() => downloadImage(f.image, user.name + "_selfie_" + f.label + ".jpg"), i * 300);
+      });
+    } else if (user.verificationPhoto) {
+      downloadImage(user.verificationPhoto, user.name + "_selfie.jpg");
+    }
+    if (user.idDocument) {
+      setTimeout(() => downloadImage(user.idDocument, user.name + "_id_front.jpg"), frames.length * 300 + 300);
+    }
+    if (user.idDocumentBack) {
+      setTimeout(() => downloadImage(user.idDocumentBack, user.name + "_id_back.jpg"), frames.length * 300 + 600);
+    }
+  };
   const realUsers = users.filter(u => u.email !== "admin@connecthub.com");
   const filteredUsers = realUsers.filter(u => {
     const ms = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()) || (u.username || "").toLowerCase().includes(search.toLowerCase());
@@ -443,7 +471,10 @@ export default function AdminDashboard() {
                     </div>
                   )}
 
-                  <p className="text-xs text-gray-400 font-bold mb-3 flex items-center gap-2"><FileText className="w-4 h-4" /> ID Documents</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs text-gray-400 font-bold flex items-center gap-2"><FileText className="w-4 h-4" /> ID Documents</p>
+                    <button onClick={() => downloadAllVerification(selectedUser)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-xs font-medium transition-colors"><Download className="w-3.5 h-3.5" /> Download All</button>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     {selectedUser.idDocument ? <div><p className="text-xs text-gray-500 mb-2">Front</p><img src={selectedUser.idDocument} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedUser.idDocument)} alt="ID Front" /></div> : <div className="bg-gray-800 rounded-xl p-8 text-center text-gray-600"><FileText className="w-8 h-8 mx-auto mb-2" /><p className="text-xs">No ID front</p></div>}
                     {selectedUser.idDocumentBack ? <div><p className="text-xs text-gray-500 mb-2">Back</p><img src={selectedUser.idDocumentBack} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedUser.idDocumentBack)} alt="ID Back" /></div> : <div className="bg-gray-800 rounded-xl p-8 text-center text-gray-600"><FileText className="w-8 h-8 mx-auto mb-2" /><p className="text-xs">No ID back</p></div>}
@@ -554,6 +585,9 @@ export default function AdminDashboard() {
                   {selectedVerif.idDocumentBack && <div><p className="text-xs text-gray-500 mb-2 font-medium">ID Back</p><img src={selectedVerif.idDocumentBack} className="w-full rounded-xl border border-gray-700 cursor-pointer hover:opacity-80" onClick={() => setPhotoViewer(selectedVerif.idDocumentBack)} alt="ID Back" /></div>}
                 </div>
                 <div className="flex gap-3">
+                  <button onClick={() => downloadAllVerification(selectedVerif)} disabled={actionLoading !== ""} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+                    <Download className="w-5 h-5" /> Download All
+                  </button>
                   <button onClick={() => handleVerification(selectedVerif.id, "approve")} disabled={actionLoading !== ""} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"><Check className="w-5 h-5" />Approve</button>
                   <button onClick={() => handleVerification(selectedVerif.id, "reject")} disabled={actionLoading !== ""} className="flex-1 py-3 bg-red-600 hover:bg-red-700 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"><X className="w-5 h-5" />Reject</button>
                 </div>
