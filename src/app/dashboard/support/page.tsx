@@ -17,7 +17,7 @@ const CATEGORIES = [
     { q: "What are the benefits of verification?", a: "Verified users get a blue badge, appear higher in search results, and get up to 5x more matches. Required for live streaming." },
   ]},
   { icon: Coins, title: "Coins & Payments", color: "text-amber-500", bg: "bg-amber-500/10", items: [
-    { q: "How do I buy coins?", a: "Go to Dashboard → Coins → Buy Coins. We accept cards, bank transfer, USSD, and mobile money via Paystack." },
+    { q: "How do I buy coins?", a: "Go to Dashboard → Coins → Buy Coins. We accept cards, bank transfer, USSD, and mobile money via Flutterwave." },
     { q: "I paid but didn't receive coins", a: "Coins are delivered automatically after payment. If you don't see them within 5 minutes, refresh the page. Still missing? Email support@connecthub.com with your payment reference." },
     { q: "Can I get a refund?", a: "Coin purchases are non-refundable as stated in our Terms of Service. However, if there was a technical error, contact support." },
     { q: "What can I do with coins?", a: "Send gifts to other users, upgrade to Premium or Gold, boost your profile for more visibility, and more." },

@@ -42,8 +42,8 @@ export default function CoinsPage() {
         body: JSON.stringify({ tier })
       });
       const data = await res.json();
-      if (data.paymentUrl) {
-        window.location.href = data.paymentUrl;
+      if (data.url || data.paymentUrl) {
+        window.location.href = data.url || data.paymentUrl;
       } else if (data.error) {
         setErr(data.error);
       }
@@ -54,13 +54,13 @@ export default function CoinsPage() {
   const handleBuyCoins = async (packageId: string, amount: number) => {
     setBuying(packageId); setErr("");
     try {
-      const res = await fetch("/api/stripe", {
+      const res = await fetch("/api/flutterwave", {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ packageId, amount, type:"coins" })
+        body: JSON.stringify({ type:"coins", coinPackage: packageId })
       });
       const data = await res.json();
-      if (data.paymentUrl || data.authorization_url) {
-        window.location.href = data.paymentUrl || data.authorization_url;
+      if (data.url || data.paymentUrl || data.authorization_url) {
+        window.location.href = data.url || data.paymentUrl || data.authorization_url;
       } else {
         setErr(data.error || "Payment failed");
       }
