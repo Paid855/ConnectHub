@@ -26,7 +26,13 @@ export default function FriendsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const i = setInterval(load, 15000);
+    const handleRefresh = () => load();
+    window.addEventListener("connecthub:refresh", handleRefresh);
+    return () => { clearInterval(i); window.removeEventListener("connecthub:refresh", handleRefresh); };
+  }, []);
 
   const accept = async (userId: string) => {
     await fetch("/api/friends", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ friendId: userId, action: "accept" }) });

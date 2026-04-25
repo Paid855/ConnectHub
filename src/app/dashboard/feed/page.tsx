@@ -26,7 +26,13 @@ export default function FeedPage() {
     setLoading(false);
   };
 
-  useEffect(() => { loadFeed(); const i = setInterval(loadFeed, 30000); return () => clearInterval(i); }, []);
+  useEffect(() => {
+    loadFeed();
+    const i = setInterval(loadFeed, 20000);
+    const handleRefresh = () => loadFeed();
+    window.addEventListener("connecthub:refresh", handleRefresh);
+    return () => { clearInterval(i); window.removeEventListener("connecthub:refresh", handleRefresh); };
+  }, []);
 
   const submitPost = async () => {
     if (!newPost.trim() && !previewImg && !previewVid) return;

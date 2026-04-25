@@ -40,7 +40,13 @@ export default function StoriesPage() {
     }
   };
 
-  useEffect(() => { load(); const i = setInterval(load, 30000); return () => clearInterval(i); }, []);
+  useEffect(() => {
+    load();
+    const i = setInterval(load, 20000);
+    const handleRefresh = () => load();
+    window.addEventListener("connecthub:refresh", handleRefresh);
+    return () => { clearInterval(i); window.removeEventListener("connecthub:refresh", handleRefresh); };
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;

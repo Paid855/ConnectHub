@@ -84,7 +84,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const loadNotifications = async () => { try { const res = await fetch("/api/notifications"); if (res.ok) { const d = await res.json(); setNotifCount(d.unreadCount||0); setNotifications(d.notifications||[]); } } catch {} };
   const markAllRead = async () => { await fetch("/api/notifications", { method:"PUT" }); setNotifCount(0); setNotifications(p => p.map(n => ({...n, read:true}))); };
 
-  useEffect(() => { loadUser(); if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{}); }, []);
+  useEffect(() => {
+    loadUser();
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
+    // Listen for push notifications to auto-refresh data
+    const handlePush = (event: MessageEvent) => {
+      if (event.data?.type === "PUSH_RECEIVED") {
+        loadUnread();
+        loadNotifications();
+        window.dispatchEvent(new CustomEvent("connecthub:refresh", { detail: event.data.payload }));
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", handlePush);
+    // Also listen for visibility change — refresh when user returns to tab
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadUnread();
+        loadNotifications();
+        window.dispatchEvent(new CustomEvent("connecthub:refresh"));
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      navigator.serviceWorker?.removeEventListener("message", handlePush);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
 
   const checkDailyReward = async () => {
     const today = new Date().toDateString();

@@ -87,7 +87,13 @@ export default function MessagesPage() {
     } catch {}
   }, [chatWith]);
 
-  useEffect(() => { loadConversations(); }, []);
+  useEffect(() => {
+    loadConversations();
+    const interval = setInterval(loadConversations, 8000);
+    const handleRefresh = () => loadConversations();
+    window.addEventListener("connecthub:refresh", handleRefresh);
+    return () => { clearInterval(interval); window.removeEventListener("connecthub:refresh", handleRefresh); };
+  }, []);
 
   useEffect(() => {
     if (chatWith) {
