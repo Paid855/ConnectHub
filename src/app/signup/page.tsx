@@ -109,11 +109,11 @@ export default function SignupPage() {
     "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=1200&q=80&fit=crop",
     "https://images.unsplash.com/photo-1529634597503-139d3726fed5?w=1200&q=80&fit=crop",
     "https://images.unsplash.com/photo-1545912452-8aea7e25a3d3?w=1200&q=80&fit=crop",
-    "https://images.unsplash.com/photo-1621631690498-1d5aab66dd3d?w=1200&q=80&fit=crop",
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=1200&q=80&fit=crop",
     "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=1200&q=80&fit=crop",
   ];
 
-  const totalSteps = 5;
+  const totalSteps = 4;
 
   return (
     <div className="min-h-screen flex font-sans">
@@ -409,13 +409,13 @@ export default function SignupPage() {
             )}
 
             {/* Navigation buttons */}
-            <div className="flex gap-3 mt-8">
+            {step < 5 && <div className="flex gap-3 mt-8">
               {step > 1 && (
                 <button onClick={prevStep} className="px-5 py-3.5 border-2 border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all flex items-center gap-2">
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
               )}
-              {step < totalSteps ? (
+              {step < 4 ? (
                 <button onClick={nextStep} className="flex-1 py-3.5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-xl text-sm font-bold hover:shadow-xl hover:shadow-rose-200/50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
@@ -426,13 +426,17 @@ export default function SignupPage() {
               )}
             </div>
 
+            }
+
             {/* Sign in link */}
-            <div className="text-center mt-6">
-              <p className="text-sm text-gray-400">
-                Already have an account?{" "}
-                <a href="/login" className="text-rose-500 font-semibold hover:text-rose-600 transition-colors">Sign In</a>
-              </p>
-            </div>
+            {step < 5 && (
+              <div className="text-center mt-6">
+                <p className="text-sm text-gray-400">
+                  Already have an account?{" "}
+                  <a href="/login" className="text-rose-500 font-semibold hover:text-rose-600 transition-colors">Sign In</a>
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
