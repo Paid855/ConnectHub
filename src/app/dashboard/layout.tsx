@@ -6,7 +6,7 @@ import LocationDetector from "@/components/LocationDetector";
 import PushPrompt from "@/components/PushPrompt";
 import PushNotifications from "@/components/PushNotifications";
 import IncomingCall from "@/components/IncomingCall";
-import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins, Eye, Trophy, Ban, Camera, Gift } from "lucide-react";
+import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins, Eye, Trophy, Ban, Camera, Gift, Wallet } from "lucide-react";
 
 type UserData = { id:string; name:string; email:string; username?:string; age:number|null; gender:string|null; lookingFor:string|null; bio:string|null; country:string|null; profilePhoto:string|null; tier:string; verified:boolean; verificationStatus:string; phone:string|null; isPrivate:boolean; interests:string[]; coins:number; createdAt:string; };
 const UserCtx = createContext<{ user:UserData|null; reload:()=>void; unread:number; dark:boolean; setDark:(v:boolean)=>void }>({ user:null, reload:()=>{}, unread:0, dark:false, setDark:()=>{} });
@@ -160,6 +160,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href:"/dashboard/search", label:"Search", icon:Search },
     { href:"/dashboard/blocked", label:"Blocked", icon:Ban },
     { href:"/dashboard/support", label:"Support", icon:HelpCircle },
+    { href:"/dashboard/wallet", label:"Wallet", icon:Wallet },
   ];
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900"><div className="text-center"><div className="w-12 h-12 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin mx-auto mb-4" /><p className="text-gray-400 text-sm">Loading ConnectHub...</p></div></div>;
@@ -196,7 +197,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className={"flex items-center gap-2 mt-2 pt-2 border-t " + (dc?"border-gray-600":"border-rose-100")}>
                 <Coins className="w-3.5 h-3.5 text-amber-500" />
                 <span className={"text-xs font-bold " + (dc?"text-amber-400":"text-amber-600")}>{formatCoins(user.coins)}</span>
-                <Link href="/dashboard/coins" className="ml-auto text-[10px] font-bold text-rose-500 hover:underline">+Buy</Link>
+                <Link href="/dashboard/coins" className="text-[10px] font-bold text-rose-500 hover:underline">+Buy</Link>
+                <Link href="/dashboard/wallet" className="text-[10px] font-bold text-amber-500 hover:underline">Wallet</Link>
               </div>
             </div>
           )}

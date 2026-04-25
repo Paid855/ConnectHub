@@ -7,8 +7,12 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"overview"|"withdraw"|"history">("overview");
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [method, setMethod] = useState("bank");
   const [details, setDetails] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankInstitution, setBankInstitution] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
+  const [bankCode, setBankCode] = useState("");
+  const [bankCountry, setBankCountry] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<{type:"success"|"error";text:string}|null>(null);
 
@@ -20,17 +24,18 @@ export default function WalletPage() {
   useEffect(() => { load(); }, []);
 
   const submitWithdrawal = async () => {
-    if (!withdrawAmount || !details.trim()) { setMsg({ type: "error", text: "Fill in all fields" }); return; }
+    const bankDetails = `Name: ${bankName}\nBank: ${bankInstitution}\nAccount: ${bankAccount}\nSWIFT/Routing: ${bankCode}\nCountry: ${bankCountry}`.trim();
+    if (!withdrawAmount || !bankName.trim() || !bankInstitution.trim() || !bankAccount.trim() || !bankCountry.trim()) { setMsg({ type: "error", text: "Please fill in all required bank details" }); return; }
     const amt = parseInt(withdrawAmount);
     if (isNaN(amt) || amt < (data?.minWithdrawal || 1000)) { setMsg({ type: "error", text: `Minimum ${data?.minWithdrawal || 1000} coins` }); return; }
     if (amt > (data?.availableForWithdrawal || 0)) { setMsg({ type: "error", text: "Not enough coins" }); return; }
     setSubmitting(true); setMsg(null);
     try {
-      const r = await fetch("/api/wallet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: amt, method, details }) });
+      const r = await fetch("/api/wallet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: amt, method: "bank", details: bankDetails }) });
       const d = await r.json();
       if (d.success) {
         setMsg({ type: "success", text: "Withdrawal request submitted! Admin will review within 24-48 hours." });
-        setWithdrawAmount(""); setDetails("");
+        setWithdrawAmount(""); setDetails(""); setBankName(""); setBankInstitution(""); setBankAccount(""); setBankCode(""); setBankCountry("");
         load();
       } else { setMsg({ type: "error", text: d.error || "Failed" }); }
     } catch { setMsg({ type: "error", text: "Network error" }); }
@@ -91,7 +96,8 @@ export default function WalletPage() {
             <p className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">2.</span> You receive <span className="font-bold">80%</span> of each gift's coin value (20% platform fee)</p>
             <p className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">3.</span> 100 coins = $1.00 USD</p>
             <p className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">4.</span> Minimum withdrawal: {(data?.minWithdrawal || 1000).toLocaleString()} coins ({fmt(data?.minWithdrawal || 1000)})</p>
-            <p className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">5.</span> Withdrawals are processed within 24-48 hours</p>
+            <p className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">5.</span> Withdraw to your bank account — available in 30+ countries</p>
+            <p className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">6.</span> Withdrawals are reviewed and sent within 24-48 business hours</p>
           </div>
         </div>
 
@@ -155,21 +161,35 @@ export default function WalletPage() {
             {withdrawAmount && <p className="text-xs text-gray-400 mb-4">= {fmt(parseInt(withdrawAmount) || 0)}</p>}
 
             <label className="block text-sm font-semibold text-gray-700 mb-2 mt-3">Payment Method</label>
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {[
-                { id: "bank", label: "Bank Transfer", icon: Building },
-                { id: "paypal", label: "PayPal", icon: CreditCard },
-                { id: "mobile", label: "Mobile Money", icon: DollarSign },
-              ].map(m => (
-                <button key={m.id} onClick={() => setMethod(m.id)} className={"p-3 rounded-xl text-center transition-all border-2 " + (method === m.id ? "border-rose-500 bg-rose-50 text-rose-600" : "border-gray-200 text-gray-600 hover:border-gray-300")}>
-                  <m.icon className="w-5 h-5 mx-auto mb-1" />
-                  <p className="text-[10px] font-bold">{m.label}</p>
-                </button>
-              ))}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">🏦</span>
+                <p className="text-sm font-bold text-blue-800">Bank Transfer</p>
+              </div>
+              <p className="text-xs text-blue-600">We send payments directly to your bank account. Available in 30+ countries worldwide.</p>
             </div>
 
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Details</label>
-            <textarea value={details} onChange={e => setDetails(e.target.value)} placeholder={method === "bank" ? "Bank name, account number, account name..." : method === "paypal" ? "PayPal email address..." : "Mobile money number, provider..."} className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-300 focus:border-rose-400 outline-none resize-none h-24 mb-4" />
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name (as on bank account) *</label>
+            <input type="text" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="John Doe" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-300 focus:border-rose-400 outline-none mb-3" />
+
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Bank Name *</label>
+            <input type="text" value={bankInstitution} onChange={e => setBankInstitution(e.target.value)} placeholder="Chase Bank, Barclays, GTBank..." className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-300 focus:border-rose-400 outline-none mb-3" />
+
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Account Number / IBAN *</label>
+            <input type="text" value={bankAccount} onChange={e => setBankAccount(e.target.value)} placeholder="Account number or IBAN" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-300 focus:border-rose-400 outline-none mb-3" />
+
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Routing / SWIFT Code</label>
+                <input type="text" value={bankCode} onChange={e => setBankCode(e.target.value)} placeholder="SWIFT or routing" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-300 focus:border-rose-400 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Country *</label>
+                <input type="text" value={bankCountry} onChange={e => setBankCountry(e.target.value)} placeholder="United States" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-300 focus:border-rose-400 outline-none" />
+              </div>
+            </div>
+
+            <input type="hidden" value="bank" />
 
             {msg && (
               <div className={"p-3 rounded-xl text-sm mb-4 flex items-center gap-2 " + (msg.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200")}>
@@ -206,7 +226,7 @@ export default function WalletPage() {
                       {statusIcon(w.status)} {w.status.charAt(0).toUpperCase() + w.status.slice(1)}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500">{w.method === "bank" ? "🏦" : w.method === "paypal" ? "💳" : "📱"} {w.method.charAt(0).toUpperCase() + w.method.slice(1)} • {new Date(w.createdAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-500">🏦 Bank Transfer • {new Date(w.createdAt).toLocaleDateString()}</p>
                   {w.adminNote && <p className="text-xs text-gray-400 mt-1 italic">Admin: {w.adminNote}</p>}
                 </div>
               ))
