@@ -8,16 +8,52 @@ import Link from "next/link";
 const EMOJIS = ["😀","😂","🥰","😍","😘","🤗","😊","❤️","🔥","💕","✨","💯","👋","🎉","💐","🌹"];
 const REACTION_EMOJIS = ["❤️","😂","👍","😮","😢","🔥"];
 
+function dataURItoBlob(dataURI: string): { blob: Blob; url: string } | null {
+  try {
+    const parts = dataURI.split(",");
+    if (parts.length < 2) return null;
+    const header = parts[0] || "";
+    const data = parts[1] || "";
+    if (data.length === 0) return null;
+    // Extract mime type — handle "data:audio/mp4;codecs=opus;base64" format
+    const mimeMatch = header.match(/data:([^;]+)/);
+    const mime = mimeMatch ? mimeMatch[1] : "audio/webm";
+    const binary = atob(data);
+    const array = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+    const blob = new Blob([array], { type: mime });
+    return { blob, url: URL.createObjectURL(blob) };
+  } catch (e) {
+    console.log("[Voice] Failed to convert data URI:", e);
+    return null;
+  }
+}
+
 function VoicePlayer({ src, msgId, isMine, dark }: { src: string; msgId: string; isMine: boolean; dark: boolean }) {
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [error, setError] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Check if src has actual data (not just header)
-  const hasData = src && src.length > 50;
+  // Convert data URI to Blob URL on mount — much more reliable than data URIs
+  useEffect(() => {
+    if (src && src.length > 50) {
+      const result = dataURItoBlob(src);
+      if (result) {
+        setBlobUrl(result.url);
+      } else {
+        setError(true);
+      }
+    } else {
+      setError(true);
+    }
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [src]);
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -34,64 +70,45 @@ function VoicePlayer({ src, msgId, isMine, dark }: { src: string; msgId: string;
       document.querySelectorAll("audio").forEach((a: HTMLAudioElement) => {
         if (a !== audio) { a.pause(); a.currentTime = 0; }
       });
-      // Load first for mobile compatibility
-      if (audio.readyState < 2) audio.load();
-      const playPromise = audio.play();
-      if (playPromise) {
-        playPromise.then(() => setPlaying(true)).catch((err) => {
-          console.log("[Voice] Play failed:", err);
-          // Try once more after load
-          audio.load();
-          setTimeout(() => {
-            audio.play().then(() => setPlaying(true)).catch(() => setError(true));
-          }, 200);
-        });
-      }
+      const p = audio.play();
+      if (p) p.then(() => setPlaying(true)).catch(() => {
+        // Mobile fallback — load then play
+        audio.load();
+        setTimeout(() => {
+          audio.play().then(() => setPlaying(true)).catch(() => setError(true));
+        }, 300);
+      });
     }
   };
 
   useEffect(() => {
     const audio = audioRef.current;
     if (audio === null) return;
-    const onLoaded = () => {
-      setLoaded(true);
-      if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration);
-    };
-    const onTimeUpdate = () => {
-      setCurrentTime(audio.currentTime || 0);
-      // Some browsers only report duration during playback
-      if (audio.duration && isFinite(audio.duration) && duration === 0) setDuration(audio.duration);
-    };
-    const onEnded = () => { setPlaying(false); setCurrentTime(0); };
+    const onMeta = () => { setLoaded(true); if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration); };
+    const onTime = () => { setCurrentTime(audio.currentTime || 0); if (audio.duration && isFinite(audio.duration) && duration === 0) setDuration(audio.duration); };
+    const onEnd = () => { setPlaying(false); setCurrentTime(0); };
     const onPause = () => setPlaying(false);
-    const onError = () => { setError(true); setPlaying(false); };
-    const onCanPlay = () => {
-      setLoaded(true);
-      if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration);
-    };
-    audio.addEventListener("loadedmetadata", onLoaded);
-    audio.addEventListener("canplaythrough", onCanPlay);
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("ended", onEnded);
+    const onErr = () => { setError(true); setPlaying(false); };
+    const onCan = () => { setLoaded(true); if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration); };
+    audio.addEventListener("loadedmetadata", onMeta);
+    audio.addEventListener("canplaythrough", onCan);
+    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("ended", onEnd);
     audio.addEventListener("pause", onPause);
-    audio.addEventListener("error", onError);
-    // Force load for metadata
-    audio.load();
+    audio.addEventListener("error", onErr);
     return () => {
-      audio.removeEventListener("loadedmetadata", onLoaded);
-      audio.removeEventListener("canplaythrough", onCanPlay);
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("loadedmetadata", onMeta);
+      audio.removeEventListener("canplaythrough", onCan);
+      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("ended", onEnd);
       audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("error", onError);
+      audio.removeEventListener("error", onErr);
     };
-  }, []);
+  }, [blobUrl]);
 
-  const formatTime = (s: number) => {
-    if (s === undefined || s === null || isNaN(s) || s === 0) return "0:00";
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return m + ":" + (sec < 10 ? "0" : "") + sec;
+  const fmtTime = (s: number) => {
+    if (s === undefined || isNaN(s) || s <= 0) return "0:00";
+    return Math.floor(s / 60) + ":" + (Math.floor(s % 60) < 10 ? "0" : "") + Math.floor(s % 60);
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -99,7 +116,7 @@ function VoicePlayer({ src, msgId, isMine, dark }: { src: string; msgId: string;
   if (error) {
     return (
       <div className={"flex items-center gap-2 min-w-[140px] text-xs " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))} onClick={e => e.stopPropagation()}>
-        <Mic className="w-4 h-4" /> Unable to play
+        <Mic className="w-4 h-4" /> Voice message
       </div>
     );
   }
@@ -114,11 +131,11 @@ function VoicePlayer({ src, msgId, isMine, dark }: { src: string; msgId: string;
           <div className={"h-full rounded-full transition-all duration-200 " + (isMine ? "bg-white/70" : "bg-rose-500")} style={{ width: progress + "%" }} />
         </div>
         <div className="flex justify-between mt-1">
-          <span className={"text-[10px] " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))}>{formatTime(currentTime)}</span>
-          <span className={"text-[10px] " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))}>{duration > 0 ? formatTime(duration) : (loaded ? "0:00" : "...")}</span>
+          <span className={"text-[10px] " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))}>{fmtTime(currentTime)}</span>
+          <span className={"text-[10px] " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))}>{duration > 0 ? fmtTime(duration) : (loaded ? "0:00" : "...")}</span>
         </div>
       </div>
-      {hasData && <audio ref={audioRef} src={src} preload="auto" playsInline />}
+      {blobUrl && <audio ref={audioRef} src={blobUrl} preload="auto" playsInline />}
     </div>
   );
 }
