@@ -26,6 +26,7 @@ export default function SignupPage() {
   const [dobDay, setDobDay] = useState("");
   const [dobYear, setDobYear] = useState("");
   const [customQuestion, setCustomQuestion] = useState("");
+  const [isCustomQuestion, setIsCustomQuestion] = useState(false);
   const updateDob = (m:string, d:string, y:string) => {
     if (m && d && y) set("dateOfBirth", y + "-" + m + "-" + d);
   };
@@ -71,7 +72,7 @@ export default function SignupPage() {
       return true;
     }
     if (step === 3) {
-      if (!form.securityQuestion || form.securityQuestion === "custom") { setError("Please provide a security question"); return false; }
+      if (!form.securityQuestion || (isCustomQuestion && !customQuestion.trim())) { setError("Please provide a security question"); return false; }
       if (!form.securityAnswer.trim()) { setError("Please answer your security question"); return false; }
       return true;
     }
@@ -354,7 +355,7 @@ export default function SignupPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Security Question</label>
-                    <select className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={form.securityQuestion} onChange={e=>{set("securityQuestion",e.target.value); if(e.target.value !== "custom") setCustomQuestion("");}}>
+                    <select className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={isCustomQuestion ? "custom" : form.securityQuestion} onChange={e=>{if(e.target.value === "custom"){setIsCustomQuestion(true);set("securityQuestion","");setCustomQuestion("");}else{setIsCustomQuestion(false);set("securityQuestion",e.target.value);setCustomQuestion("");}}}>
                       <option value="">Choose a question</option>
                       <option value="What is the name of your first pet?">What is the name of your first pet?</option>
                       <option value="What city were you born in?">What city were you born in?</option>
@@ -366,12 +367,12 @@ export default function SignupPage() {
                     </select>
                   </div>
 
-                  {form.securityQuestion === "custom" && (
+                  {isCustomQuestion && (
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Your Custom Question</label>
                       <div className="relative">
                         <div className="absolute left-4 top-1/2 -translate-y-1/2"><HelpCircle className="w-4 h-4 text-gray-400" /></div>
-                        <input className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Write your own security question..." value={customQuestion} onChange={e=>{setCustomQuestion(e.target.value); set("securityQuestion", e.target.value);}} />
+                        <input className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Write your own security question..." value={customQuestion} onChange={e=>{setCustomQuestion(e.target.value); set("securityQuestion", e.target.value || "");}} />
                       </div>
                     </div>
                   )}
