@@ -97,12 +97,12 @@ export default function HomePage() {
       <nav className={"fixed top-0 w-full z-50 transition-all duration-500 font-body " + (scrolled ? "glass shadow-lg shadow-rose-100/20 border-b border-rose-100/40" : "bg-transparent")}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
-            <Link href="/" className="flex items-center gap-2.5 group">
+            <a href="/" className="flex items-center gap-2.5 group">
               <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-rose-500 via-pink-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-rose-200/50 group-hover:shadow-rose-300/60 transition-all group-hover:scale-105 group-hover:rotate-3">
                 <span className="text-white text-lg sm:text-xl">💕</span>
               </div>
               <span className="text-xl sm:text-2xl font-extrabold gradient-text tracking-tight">ConnectHub</span>
-            </Link>
+            </a>
 
             <div className="hidden md:flex items-center gap-1">
               {[["Features", "#features"], ["How It Works", "#how-it-works"], ["Pricing", "#pricing"], ["Stories", "#testimonials"]].map(([name, href]) => (
@@ -175,7 +175,7 @@ export default function HomePage() {
                 Video-verified profiles. Intelligent matching. Real connections that lead to real relationships. Your next chapter starts here.
               </p>
               <div className="flex flex-col sm:flex-row gap-4" style={{ animation: "fade-up 1.2s ease-out" }}>
-                <Link href="/signup" className="group relative px-9 py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full text-base font-bold hover:shadow-2xl hover:shadow-rose-300/40 transition-all text-center hover:scale-[1.02] active:scale-[0.98] overflow-hidden">
+                <a href="/signup" className="group relative px-9 py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full text-base font-bold hover:shadow-2xl hover:shadow-rose-300/40 transition-all text-center hover:scale-[1.02] active:scale-[0.98] overflow-hidden">
                   <span className="relative z-10">Start Matching Free <span className="inline-block ml-1 group-hover:translate-x-1 transition-transform">→</span></span>
                 </Link>
                 <a href="#how-it-works" className="px-9 py-4 glass border border-rose-200/60 text-gray-700 rounded-full text-base font-bold hover:border-rose-300 hover:shadow-lg hover:shadow-rose-100/30 transition-all text-center">
