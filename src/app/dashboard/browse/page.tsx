@@ -59,9 +59,9 @@ export default function BrowsePage() {
           <input className={"bg-transparent border-none outline-none text-sm w-full " + (dc?"text-white placeholder:text-gray-500":"text-gray-900 placeholder:text-gray-400")} placeholder="Search by name..." value={search} onChange={e=>setSearch(e.target.value)} />
           {search && <button onClick={()=>setSearch("")}><X className="w-4 h-4 text-gray-400" /></button>}
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {[{k:"",l:"All",emoji:"✨"},{k:"online",l:"Online",emoji:"🟢"},{k:"verified",l:"Verified",emoji:"✓"},{k:"women",l:"Women",emoji:"👩"},{k:"men",l:"Men",emoji:"👨"}].map(f => (
-            <button key={f.k} onClick={()=>setFilter(f.k)} className={"px-4 py-2.5 rounded-xl text-sm font-medium border transition-all " + (filter===f.k?(dc?"bg-rose-500/20 border-rose-500/50 text-rose-400":"bg-rose-50 border-rose-200 text-rose-600"):(dc?"bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700":"bg-white border-gray-200 text-gray-600 hover:bg-gray-50"))}>
+            <button key={f.k} onClick={()=>setFilter(f.k)} className={"px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium border transition-all whitespace-nowrap " + (filter===f.k?(dc?"bg-rose-500/20 border-rose-500/50 text-rose-400":"bg-rose-50 border-rose-200 text-rose-600"):(dc?"bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700":"bg-white border-gray-200 text-gray-600 hover:bg-gray-50"))}>
               {f.l}
             </button>
           ))}
@@ -80,7 +80,7 @@ export default function BrowsePage() {
           <p className={"text-sm " + (dc?"text-gray-500":"text-gray-500")}>Try adjusting your filters</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filtered.map((p,i) => (
             <div key={p.id} className={"rounded-2xl border overflow-hidden hover:shadow-xl transition-all duration-300 group " + (dc?"bg-gray-800 border-gray-700 hover:border-rose-500/30":"bg-white border-gray-100 hover:border-rose-200")}>
               <Link href={"/dashboard/user?id="+p.id} className="block relative aspect-[4/5]">
@@ -104,7 +104,7 @@ export default function BrowsePage() {
                 {/* Bottom gradient */}
                 <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
                 <div className="absolute bottom-3 left-4 right-4">
-                  <h3 className="text-white font-bold text-lg">{p.name}{p.age ? ", "+p.age : ""}</h3>
+                  <h3 className="text-white font-bold text-sm sm:text-lg">{p.name}{p.age ? ", "+p.age : ""}</h3>
                   <div className="flex items-center gap-2 text-xs text-white/70">
                     {p.country && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{p.country}</span>}
                     {p.gender && <span>{p.gender}</span>}
@@ -122,7 +122,7 @@ export default function BrowsePage() {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <button onClick={()=>sendMessage(p.id)} className="flex-1 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 hover:shadow-lg hover:shadow-rose-200/30 transition-all">
+                  <button onClick={()=>sendMessage(p.id)} className="flex-1 py-2 sm:py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1 sm:gap-1.5 hover:shadow-lg hover:shadow-rose-200/30 transition-all">
                     <MessageCircle className="w-4 h-4" />Say Hi
                   </button>
                   <button onClick={()=>sendLike(p.id)} className={"w-11 h-11 border-2 rounded-xl flex items-center justify-center transition-all hover:scale-110 " + (dc?"border-gray-600 text-gray-400 hover:border-rose-500 hover:text-rose-500":"border-gray-200 text-gray-400 hover:border-rose-400 hover:text-rose-500")}>

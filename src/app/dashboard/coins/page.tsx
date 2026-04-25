@@ -94,7 +94,7 @@ export default function CoinsPage() {
               <div><h3 className={"text-lg font-bold " + (dc?"text-white":"text-gray-900")}>Free</h3><p className={"text-sm " + (dc?"text-gray-400":"text-gray-500")}>Basic features</p></div>
               <span className={"text-2xl font-bold " + (dc?"text-white":"text-gray-900")}>$0</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {["Browse profiles","Limited matches","5 messages/day","Voice & video calls","Basic search"].map(f => (
                 <div key={f} className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-emerald-500 flex-shrink-0" /><span className={dc?"text-gray-300":"text-gray-700"}>{f}</span></div>
               ))}
@@ -112,7 +112,7 @@ export default function CoinsPage() {
               <div><h3 className={"text-lg font-bold " + (dc?"text-white":"text-gray-900")}>Plus</h3><p className={"text-sm " + (dc?"text-gray-400":"text-gray-500")}>For active daters</p></div>
               <div className="text-right"><span className={"text-2xl font-bold " + (dc?"text-white":"text-gray-900")}>$12</span><span className={dc?"text-gray-400":"text-gray-500"}>/mo</span></div>
             </div>
-            <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
               {["Everything in Free","No ads anywhere","16 photo uploads","Unlimited likes","Rewind last swipe","Extended profile views","Live streaming access","Priority matching"].map(f => (
                 <div key={f} className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-blue-500 flex-shrink-0" /><span className={dc?"text-gray-300":"text-gray-700"}>{f}</span></div>
               ))}
@@ -135,7 +135,7 @@ export default function CoinsPage() {
               <div><h3 className={"text-lg font-bold " + (dc?"text-white":"text-gray-900")}>Premium</h3><p className={"text-sm " + (dc?"text-gray-400":"text-gray-500")}>The ultimate experience</p></div>
               <div className="text-right"><span className={"text-2xl font-bold " + (dc?"text-white":"text-gray-900")}>$25</span><span className={dc?"text-gray-400":"text-gray-500"}>/mo</span></div>
             </div>
-            <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
               {["Everything in Plus","See who likes you","5 Super Likes/week","Daily Top Picks","Read receipts","Higher visibility","Monthly profile boost","Priority support"].map(f => (
                 <div key={f} className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-amber-500 flex-shrink-0" /><span className={dc?"text-gray-300":"text-gray-700"}>{f}</span></div>
               ))}
@@ -159,7 +159,7 @@ export default function CoinsPage() {
             <p className={"text-3xl font-bold " + (dc?"text-white":"text-gray-900")}>{user.coins || 0}</p>
             <p className={"text-sm " + (dc?"text-gray-400":"text-gray-500")}>Your coin balance</p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {COIN_PACKAGES.map(pkg => (
               <button key={pkg.id} onClick={()=>handleBuyCoins(pkg.id, pkg.amount)} disabled={!!buying} className={"rounded-2xl border p-5 text-center transition-all hover:shadow-md " + (dc?"bg-gray-800 border-gray-700 hover:border-amber-500":"bg-white border-gray-200 hover:border-amber-400")}>
                 <div className="flex items-center justify-center gap-1 mb-2"><Coins className="w-5 h-5 text-amber-500" /><span className={"text-2xl font-bold " + (dc?"text-white":"text-gray-900")}>{pkg.coins}</span></div>

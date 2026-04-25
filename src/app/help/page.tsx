@@ -23,10 +23,17 @@ export default function HelpPage() {
   return (
     <>
       <PageHeader />
+      <style jsx global>{`@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap")`}</style>
       <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
-          <h1 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">Help Center</h1>
-          <p className="text-center text-gray-500 mb-8">Find answers to common questions</p>
+          <div className="relative bg-gradient-to-br from-rose-500 via-pink-500 to-purple-600 py-20 sm:py-24 overflow-hidden -mx-4 sm:-mx-0 mb-8">
+          <div className="absolute inset-0 opacity-10" style={{backgroundImage:"radial-gradient(circle at 2px 2px, white 1px, transparent 0)",backgroundSize:"24px 24px"}} />
+          <div className="relative max-w-4xl mx-auto px-4 text-center">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4" style={{fontFamily:"'Playfair Display',serif"}}>Help <span className="italic">Center</span></h1>
+            <p className="text-rose-100/80" style={{fontFamily:"'DM Sans',sans-serif"}}>Find answers to common questions</p>
+          </div>
+        </div>
+          
           <input className="w-full px-5 py-4 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm shadow-sm mb-8" placeholder="Search for help..." value={search} onChange={e=>setSearch(e.target.value)} />
           <div className="space-y-3 mb-12">
             {filtered.map((faq,i) => (
