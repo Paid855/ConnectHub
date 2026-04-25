@@ -84,7 +84,7 @@ export default function SettingsPage() {
     { id: "account", label: "Account", icon: Fingerprint, desc: "Data & deletion" },
   ];
 
-  const isPremium = settings.tier === "premium" || settings.tier === "plus" || settings.tier === "gold";
+  const isPremium = settings?.tier === "premium" || settings?.tier === "plus" || settings?.tier === "gold";
 
   const Toggle = ({ value, onChange, locked }: { value: boolean; onChange: (v: boolean) => void; locked?: boolean }) => {
     const isLocked = locked && !isPremium;
@@ -110,6 +110,7 @@ export default function SettingsPage() {
       <div className="flex-shrink-0 ml-3">{children}</div>
     </div>
   );
+
 
   if (!settings) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin" /></div>;
 
