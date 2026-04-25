@@ -25,6 +25,12 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+
+    // Block admin emails from regular signup
+    const blockedEmails = ["admin@connecthub.com", "admin@connecthub.love", "support@connecthub.love", "noreply@connecthub.love"];
+    if (blockedEmails.includes(cleanEmail)) {
+      return NextResponse.json({ error: "This email is reserved. Please use a different email." }, { status: 400 });
+    }
     const existing = await prisma.user.findFirst({ where: { email: cleanEmail } });
     if (existing) return NextResponse.json({ error: "Email already registered" }, { status: 400 });
 
