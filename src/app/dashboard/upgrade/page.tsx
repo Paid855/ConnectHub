@@ -14,16 +14,26 @@ export default function UpgradePage() {
   const handleUpgrade = async (plan: string) => {
     setUpgrading(plan);
     try {
-      const res = await fetch("/api/auth/upgrade", {
-        method: "POST", headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ plan })
+      const amount = plan === "gold" ? (yearly ? 39 * 12 * 0.8 : 49) : plan === "premium" ? (yearly ? 23 * 12 * 0.8 : 29) : 0;
+      if (amount === 0) { setUpgrading(""); return; }
+
+      const res = await fetch("/api/flutterwave/pay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "upgrade",
+          plan,
+          amount,
+          period: yearly ? "yearly" : "monthly"
+        })
       });
-      if (res.ok) {
-        setSuccess("Upgraded to " + plan.charAt(0).toUpperCase() + plan.slice(1) + "!");
-        reload();
-        setTimeout(() => { setSuccess(""); router.push("/dashboard/profile"); }, 2000);
+      const data = await res.json();
+      if (data.link) {
+        window.location.href = data.link;
+      } else {
+        setSuccess(""); setUpgrading("");
       }
-    } catch {} finally { setUpgrading(""); }
+    } catch { setUpgrading(""); }
   };
 
   const currentTier = user?.tier || "basic";
@@ -45,7 +55,7 @@ export default function UpgradePage() {
       ],
     },
     {
-      key: "premium", name: "Premium", price: "$29", yearlyPrice: "$23", color: "from-rose-500 to-pink-500", badge: "bg-rose-100 text-rose-600", popular: true, rank: 2,
+      key: "premium", name: "Premium", price: "$12", yearlyPrice: "$10", color: "from-rose-500 to-pink-500", badge: "bg-rose-100 text-rose-600", popular: true, rank: 2,
       features: [
         { name: "Unlimited swipes", included: true },
         { name: "Enhanced profile", included: true },
@@ -58,7 +68,7 @@ export default function UpgradePage() {
       ],
     },
     {
-      key: "gold", name: "Gold", price: "$49", yearlyPrice: "$39", color: "from-amber-500 to-orange-500", badge: "bg-amber-100 text-amber-600", rank: 3,
+      key: "gold", name: "Gold", price: "$25", yearlyPrice: "$20", color: "from-amber-500 to-orange-500", badge: "bg-amber-100 text-amber-600", rank: 3,
       features: [
         { name: "Everything in Premium", included: true },
         { name: "VIP profile badge", included: true },
@@ -133,7 +143,7 @@ export default function UpgradePage() {
       </div>
 
       <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 text-center">
-        <p className="text-sm text-blue-700"><strong>Beta Access:</strong> During beta, upgrades are free so you can test all features. When we launch publicly, Stripe payment will be enabled and upgrades will be charged automatically.</p>
+        
       </div>
     </div>
   );

@@ -84,12 +84,17 @@ export default function SettingsPage() {
     { id: "account", label: "Account", icon: Fingerprint, desc: "Data & deletion" },
   ];
 
-  const Toggle = ({ value, onChange, premium }: { value: boolean; onChange: (v: boolean) => void; premium?: boolean }) => (
-    <button onClick={() => !premium ? onChange(!value) : null} className={"relative w-11 h-6 rounded-full transition-all duration-300 flex-shrink-0 " + (premium ? "opacity-50 cursor-not-allowed " : "cursor-pointer ") + (value ? "bg-gradient-to-r from-rose-500 to-pink-500" : (dc ? "bg-gray-600" : "bg-gray-300"))}>
-      <div className={"absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 " + (value ? "translate-x-[22px]" : "translate-x-0.5")} />
-      {premium && <Crown className="w-3 h-3 text-amber-500 absolute -top-1 -right-1" />}
-    </button>
-  );
+  const isPremium = settings.tier === "premium" || settings.tier === "plus" || settings.tier === "gold";
+
+  const Toggle = ({ value, onChange, locked }: { value: boolean; onChange: (v: boolean) => void; locked?: boolean }) => {
+    const isLocked = locked && !isPremium;
+    return (
+      <button onClick={() => isLocked ? router.push("/dashboard/upgrade") : onChange(!value)} className={"relative w-11 h-6 rounded-full transition-all duration-300 flex-shrink-0 " + (isLocked ? "opacity-50 cursor-pointer " : "cursor-pointer ") + (value && !isLocked ? "bg-gradient-to-r from-rose-500 to-pink-500" : (dc ? "bg-gray-600" : "bg-gray-300"))}>
+        <div className={"absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 " + (value && !isLocked ? "translate-x-[22px]" : "translate-x-0.5")} />
+        {isLocked && <Crown className="w-3 h-3 text-amber-500 absolute -top-1 -right-1" />}
+      </button>
+    );
+  };
 
   const SettingRow = ({ icon: Icon, label, desc, children, border = true }: { icon: any; label: string; desc?: string; children: React.ReactNode; border?: boolean }) => (
     <div className={"flex items-center justify-between py-4 " + (border ? (dc ? "border-b border-gray-700/50" : "border-b border-gray-100") : "")}>
@@ -185,30 +190,40 @@ export default function SettingsPage() {
               <h2 className={"text-lg font-bold flex items-center gap-2 " + (dc ? "text-white" : "text-gray-900")}><Eye className="w-5 h-5 text-rose-500" /> Privacy Controls</h2>
               <p className={"text-xs mt-0.5 " + (dc ? "text-gray-500" : "text-gray-400")}>Control what others can see about you</p>
             </div>
+            {!isPremium && (
+              <div className="mx-6 mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-200 rounded-xl flex items-center gap-3">
+                <Crown className="w-8 h-8 text-amber-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className={"text-xs font-bold " + (dc?"text-white":"text-gray-900")}>Upgrade to unlock Privacy Controls</p>
+                  <p className={"text-[10px] " + (dc?"text-gray-400":"text-gray-500")}>Plus and Premium members can hide their online status, age, and more</p>
+                </div>
+                <a href="/dashboard/upgrade" className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-[10px] font-bold flex-shrink-0">Upgrade</a>
+              </div>
+            )}
             <div className="px-6">
               <SettingRow icon={Globe} label="Private Profile" desc="Only matched users can see your full profile">
-                <Toggle value={settings.isPrivate} onChange={v => updateSetting("isPrivate", v)} />
+                <Toggle value={settings.isPrivate} onChange={v => updateSetting("isPrivate", v)} locked />
               </SettingRow>
               <SettingRow icon={Clock} label="Hide Online Status" desc="Others won't see when you're online">
-                <Toggle value={settings.hideOnline} onChange={v => updateSetting("hideOnline", v)} />
+                <Toggle value={settings.hideOnline} onChange={v => updateSetting("hideOnline", v)} locked />
               </SettingRow>
               <SettingRow icon={Eye} label="Hide Last Seen" desc="Others won't see when you were last active">
-                <Toggle value={settings.hideLastSeen} onChange={v => updateSetting("hideLastSeen", v)} />
+                <Toggle value={settings.hideLastSeen} onChange={v => updateSetting("hideLastSeen", v)} locked />
               </SettingRow>
               <SettingRow icon={MapPin} label="Show Distance" desc="Display how far you are from others">
-                <Toggle value={settings.showDistance} onChange={v => updateSetting("showDistance", v)} />
+                <Toggle value={settings.showDistance} onChange={v => updateSetting("showDistance", v)} locked />
               </SettingRow>
 
               <div className={"py-3 text-xs font-bold uppercase tracking-wider " + (dc ? "text-gray-500" : "text-gray-400")}>Profile Details</div>
 
               <SettingRow icon={Clock} label="Hide Age" desc="Your age won't be visible on your profile">
-                <Toggle value={settings.hideDob} onChange={v => updateSetting("hideDob", v)} />
+                <Toggle value={settings.hideDob} onChange={v => updateSetting("hideDob", v)} locked />
               </SettingRow>
               <SettingRow icon={Mail} label="Hide Email" desc="Your email won't be visible to other users">
-                <Toggle value={settings.hideEmail} onChange={v => updateSetting("hideEmail", v)} />
+                <Toggle value={settings.hideEmail} onChange={v => updateSetting("hideEmail", v)} locked />
               </SettingRow>
               <SettingRow icon={Phone} label="Hide Phone" desc="Your phone number stays private">
-                <Toggle value={settings.hidePhone} onChange={v => updateSetting("hidePhone", v)} />
+                <Toggle value={settings.hidePhone} onChange={v => updateSetting("hidePhone", v)} locked />
               </SettingRow>
 
               <div className={"py-3 text-xs font-bold uppercase tracking-wider " + (dc ? "text-gray-500" : "text-gray-400")}>Messaging</div>
@@ -232,26 +247,36 @@ export default function SettingsPage() {
               <h2 className={"text-lg font-bold flex items-center gap-2 " + (dc ? "text-white" : "text-gray-900")}><Bell className="w-5 h-5 text-rose-500" /> Notification Preferences</h2>
               <p className={"text-xs mt-0.5 " + (dc ? "text-gray-500" : "text-gray-400")}>Choose how you want to be notified</p>
             </div>
+            {!isPremium && (
+              <div className="mx-6 mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-200 rounded-xl flex items-center gap-3">
+                <Crown className="w-8 h-8 text-amber-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className={"text-xs font-bold " + (dc?"text-white":"text-gray-900")}>Upgrade to customize Notifications</p>
+                  <p className={"text-[10px] " + (dc?"text-gray-400":"text-gray-500")}>Free users receive all notifications. Upgrade to control what alerts you get.</p>
+                </div>
+                <a href="/dashboard/upgrade" className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-[10px] font-bold flex-shrink-0">Upgrade</a>
+              </div>
+            )}
             <div className="px-6">
               <div className={"py-3 text-xs font-bold uppercase tracking-wider " + (dc ? "text-gray-500" : "text-gray-400")}>Channels</div>
 
               <SettingRow icon={Bell} label="Push Notifications" desc="Receive notifications on your device">
-                <Toggle value={settings.pushNotifs} onChange={v => updateSetting("pushNotifs", v)} />
+                <Toggle value={settings.pushNotifs} onChange={v => updateSetting("pushNotifs", v)} locked />
               </SettingRow>
               <SettingRow icon={Mail} label="Email Notifications" desc="Receive updates via email">
-                <Toggle value={settings.emailNotifs} onChange={v => updateSetting("emailNotifs", v)} />
+                <Toggle value={settings.emailNotifs} onChange={v => updateSetting("emailNotifs", v)} locked />
               </SettingRow>
 
               <div className={"py-3 text-xs font-bold uppercase tracking-wider " + (dc ? "text-gray-500" : "text-gray-400")}>Notification Types</div>
 
               <SettingRow icon={Heart} label="New Matches" desc="When you match with someone">
-                <Toggle value={settings.notifMatches} onChange={v => updateSetting("notifMatches", v)} />
+                <Toggle value={settings.notifMatches} onChange={v => updateSetting("notifMatches", v)} locked />
               </SettingRow>
               <SettingRow icon={MessageCircle} label="Messages" desc="When you receive a new message">
-                <Toggle value={settings.notifMessages} onChange={v => updateSetting("notifMessages", v)} />
+                <Toggle value={settings.notifMessages} onChange={v => updateSetting("notifMessages", v)} locked />
               </SettingRow>
               <SettingRow icon={Heart} label="Likes & Super Likes" desc="When someone likes your profile">
-                <Toggle value={settings.notifLikes} onChange={v => updateSetting("notifLikes", v)} />
+                <Toggle value={settings.notifLikes} onChange={v => updateSetting("notifLikes", v)} locked />
               </SettingRow>
               <SettingRow icon={Gift} label="Gifts & Coins" desc="When you receive gifts or earn coins" border={false}>
                 <Toggle value={settings.notifGifts} onChange={v => updateSetting("notifGifts", v)} />
