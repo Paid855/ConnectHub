@@ -1,61 +1,79 @@
 import nodemailer from "nodemailer";
+import { resetCodeEmail, welcomeEmail, matchEmail, likeEmail, messageEmail, giftEmail, coinsPurchasedEmail, upgradeEmail, verifiedEmail } from "./email-template";
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "mail.privateemail.com",
+  port: 465,
+  secure: true,
   auth: {
-    user: process.env.EMAIL_USER || "",
+    user: process.env.EMAIL_USER || "noreply@connecthub.love",
     pass: process.env.EMAIL_PASS || "",
   },
 });
 
+const FROM = '"ConnectHub" <noreply@connecthub.love>';
+
 export async function sendResetCode(to: string, code: string, name: string) {
   try {
-    await transporter.sendMail({
-      from: `"ConnectHub" <${process.env.EMAIL_USER}>`,
-      to,
-      subject: "ConnectHub - Password Reset Code",
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:30px;background:#fff;border-radius:16px;border:1px solid #ffe0ec;">
-          <div style="text-align:center;margin-bottom:24px;">
-            <h1 style="color:#e11d48;margin:0;font-size:28px;">ConnectHub</h1>
-            <p style="color:#888;font-size:13px;margin-top:4px;">Connecting Hearts Together</p>
-          </div>
-          <h2 style="color:#333;font-size:20px;text-align:center;">Password Reset Code</h2>
-          <p style="color:#555;font-size:14px;">Hi ${name},</p>
-          <p style="color:#555;font-size:14px;">You requested a password reset. Use this code to verify your identity:</p>
-          <div style="background:linear-gradient(135deg,#e11d48,#ec4899);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
-            <span style="color:#fff;font-size:36px;font-weight:bold;letter-spacing:8px;">${code}</span>
-          </div>
-          <p style="color:#888;font-size:12px;text-align:center;">This code expires in <strong>10 minutes</strong>.</p>
-          <p style="color:#888;font-size:12px;text-align:center;">If you didn't request this, please ignore this email.</p>
-          <hr style="border:none;border-top:1px solid #ffe0ec;margin:20px 0;" />
-          <p style="color:#aaa;font-size:11px;text-align:center;">ConnectHub — Finding meaningful connections</p>
-        </div>
-      `,
-    });
+    await transporter.sendMail({ from: FROM, to, subject: "Your Password Reset Code — ConnectHub", html: resetCodeEmail(name, code) });
     console.log("[EMAIL] Reset code sent to:", to);
     return true;
-  } catch (error) {
-    console.error("[EMAIL] Failed to send:", error);
-    return false;
-  }
+  } catch (e: any) { console.error("[EMAIL] Failed:", e?.message); return false; }
 }
 
-export async function sendGiftNotification(to: string, name: string, senderName: string, giftEmoji: string, giftName: string) {
+export async function sendWelcomeEmail(to: string, name: string) {
   try {
-    await transporter.sendMail({
-      from: `"ConnectHub" <${process.env.EMAIL_USER}>`,
-      to,
-      subject: `${senderName} sent you a ${giftEmoji} ${giftName} on ConnectHub!`,
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:30px;background:#fff;border-radius:16px;">
-          <h1 style="color:#e11d48;text-align:center;">ConnectHub</h1>
-          <div style="text-align:center;font-size:48px;margin:20px 0;">${giftEmoji}</div>
-          <h2 style="text-align:center;color:#333;">You received a ${giftName}!</h2>
-          <p style="color:#555;text-align:center;">${senderName} sent you a gift. Log in to see your updated coin balance!</p>
-        </div>
-      `,
-    });
+    await transporter.sendMail({ from: FROM, to, subject: "Welcome to ConnectHub! 💕", html: welcomeEmail(name) });
+    return true;
+  } catch { return false; }
+}
+
+export async function sendMatchEmail(to: string, name: string, matchName: string) {
+  try {
+    await transporter.sendMail({ from: FROM, to, subject: `It's a Match! You and ${matchName} liked each other 💕`, html: matchEmail(name, matchName) });
+    return true;
+  } catch { return false; }
+}
+
+export async function sendLikeEmail(to: string, name: string, likerName: string, isSuperLike = false) {
+  try {
+    await transporter.sendMail({ from: FROM, to, subject: isSuperLike ? `${likerName} Super Liked you! ⭐` : `Someone likes you on ConnectHub 💕`, html: likeEmail(name, likerName, isSuperLike) });
+    return true;
+  } catch { return false; }
+}
+
+export async function sendMessageEmail(to: string, name: string, senderName: string, preview: string) {
+  try {
+    await transporter.sendMail({ from: FROM, to, subject: `${senderName} sent you a message 💬`, html: messageEmail(name, senderName, preview) });
+    return true;
+  } catch { return false; }
+}
+
+export async function sendGiftNotification(to: string, name: string, senderName: string, giftEmoji: string, giftName: string, coinsEarned = 0) {
+  try {
+    await transporter.sendMail({ from: FROM, to, subject: `${senderName} sent you a ${giftEmoji} ${giftName}!`, html: giftEmail(name, senderName, giftEmoji, giftName, coinsEarned) });
+    return true;
+  } catch { return false; }
+}
+
+export async function sendCoinsPurchasedEmail(to: string, name: string, coins: number, amount: string) {
+  try {
+    await transporter.sendMail({ from: FROM, to, subject: `Payment Confirmed — ${coins} coins added! 💰`, html: coinsPurchasedEmail(name, coins, amount) });
+    return true;
+  } catch { return false; }
+}
+
+export async function sendUpgradeEmail(to: string, name: string, plan: string) {
+  try {
+    const planName = plan === "premium" ? "Premium" : "Plus";
+    await transporter.sendMail({ from: FROM, to, subject: `Welcome to ConnectHub ${planName}! ${plan === "premium" ? "💎" : "⭐"}`, html: upgradeEmail(name, plan) });
+    return true;
+  } catch { return false; }
+}
+
+export async function sendVerifiedEmail(to: string, name: string) {
+  try {
+    await transporter.sendMail({ from: FROM, to, subject: "You're Verified! 🛡️ — ConnectHub", html: verifiedEmail(name) });
     return true;
   } catch { return false; }
 }

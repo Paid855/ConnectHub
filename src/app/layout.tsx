@@ -7,6 +7,15 @@ export const metadata: Metadata = {
   title: "ConnectHub — Find Your Perfect Match",
   description: "Meet real people, make meaningful connections, and find love on ConnectHub.",
   metadataBase: new URL("https://connecthub.love"),
+  icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.ico", sizes: "48x48" },
+    ],
+    apple: "/apple-touch-icon.png",
+    shortcut: "/favicon.ico",
+  },
   keywords: ["dating", "dating app", "find love", "meet people", "relationships", "ConnectHub"],
   openGraph: {
     type: "website",
