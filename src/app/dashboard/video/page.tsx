@@ -36,6 +36,7 @@ export default function LiveStreamPage() {
   const [showViewerList, setShowViewerList] = useState(false);
   const [me, setMe] = useState<any>(null);
   const [invited, setInvited] = useState(false);
+  const [myActiveStream, setMyActiveStream] = useState<any>(null);
   const [inviteSending, setInviteSending] = useState<string|null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
   const [floatingGifts, setFloatingGifts] = useState<{id:number;emoji:string;anim:string;x:number}[]>([]);
@@ -53,10 +54,17 @@ export default function LiveStreamPage() {
     setLoading(false);
   },[]);
 
-  // Load user info + coins
+  // Load user info + coins + check for existing stream
   useEffect(()=>{
     (async()=>{
-      try{const r=await fetch("/api/auth/me");const d=await r.json();setMe(d.user);}catch{}
+      try{const r=await fetch("/api/auth/me");const d=await r.json();setMe(d.user);
+        // Check if user has an active stream
+        if(d.user?.id){
+          const sr=await fetch("/api/live");const sd=await sr.json();
+          const myStream=(sd.streams||[]).find((s:any)=>s.userId===d.user.id);
+          if(myStream) setMyActiveStream(myStream);
+        }
+      }catch{}
       try{const r=await fetch("/api/coins");const d=await r.json();setCoins(d.coins||0);}catch{}
     })();
     loadStreams();
@@ -97,7 +105,13 @@ export default function LiveStreamPage() {
     setErr("");
     try{
       const cr=await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start",title,category})});
-      const{stream:s}=await cr.json();
+      const data=await cr.json();
+      const s=data.stream;
+      if(data.rejoined){
+        // Already have a stream — rejoin it
+        rejoinAsHost(s);
+        return;
+      }
       setStream(s); setRole("host");
 
       const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
@@ -135,6 +149,45 @@ export default function LiveStreamPage() {
         if(el&&vt){vt.play(el,{fit:"cover",mirror:true});}
       });});
     }catch(e:any){setErr("Failed: "+(e.message||"Unknown error"));}
+  };
+
+  // ===== HOST: Rejoin own existing stream =====
+  const rejoinAsHost = async(s:any)=>{
+    setStream(s); setRole("host"); setErr("");
+    try{
+      const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
+      AgoraRTC.setLogLevel(4);
+      const c=AgoraRTC.createClient({mode:"live",codec:"vp8"});
+      await c.setClientRole("host");
+
+      const ch=`stream_${s.id}`;
+      const tk=await fetch("/api/agora",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channelName:ch,isHost:true})}).then(r=>r.json());
+      await c.join(tk.appId,ch,tk.token,tk.uid);
+
+      const[at,vt]=await AgoraRTC.createMicrophoneAndCameraTracks({encoderConfig:"high_quality"},{encoderConfig:"720p_2"});
+      setTracks({a:at,v:vt});
+      await c.publish([at,vt]);
+
+      c.on("user-published",async(user:any,type:any)=>{
+        await c.subscribe(user,type);
+        if(type==="video"){
+          const tryPlay=()=>{const el=document.getElementById("cohost-video");if(el&&user.videoTrack){user.videoTrack.play(el,{fit:"cover"});return true;}return false;};
+          if(tryPlay()){}else{let n=0;const iv=setInterval(()=>{n++;if(tryPlay()||n>20)clearInterval(iv);},200);}
+        }
+        if(type==="audio") user.audioTrack?.play();
+      });
+      c.on("user-joined",()=>toast("A viewer joined!","👋"));
+
+      setAgoraClient(c);
+      setPage("live");
+      setMyActiveStream(null);
+      toast("Rejoined your stream!","🔴");
+
+      requestAnimationFrame(()=>{requestAnimationFrame(()=>{
+        const el=document.getElementById("host-video");
+        if(el&&vt){vt.play(el,{fit:"cover",mirror:true});}
+      });});
+    }catch(e:any){setErr("Failed to rejoin: "+(e.message||"Unknown error"));}
   };
 
   // ===== VIEWER: Join stream =====
@@ -223,7 +276,7 @@ export default function LiveStreamPage() {
     }catch{}
     setAgoraClient(null);setTracks({a:null,v:null});setStream(null);setPage("list");
     setViewerCount(0);setRealViewers([]);setMsgs([]);setEnded(false);setTitle("");
-    setRole("viewer");setInvited(false);loadStreams();
+    setRole("viewer");setInvited(false);setMyActiveStream(null);loadStreams();
     try{const r=await fetch("/api/coins");const d=await r.json();setCoins(d.coins||0);}catch{}
   };
 
@@ -298,6 +351,26 @@ export default function LiveStreamPage() {
             </div>
             <button onClick={()=>setPage("setup")} className="px-5 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm shadow-lg shadow-rose-200 hover:shadow-xl transition-all flex items-center gap-2"><Video className="w-4 h-4"/> Go Live</button>
           </div>
+
+          {/* Resume active stream banner */}
+          {myActiveStream && (
+            <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 rounded-2xl p-5 mb-6 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-white/20 rounded-full animate-ping"/>
+                  <div className="relative w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"><Radio className="w-5 h-5 text-white"/></div>
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">Your stream is still live!</p>
+                  <p className="text-white/70 text-xs">{myActiveStream.title}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={()=>rejoinAsHost(myActiveStream)} className="px-4 py-2 bg-white text-rose-600 rounded-full font-bold text-xs hover:shadow-lg transition-all">Rejoin</button>
+                <button onClick={async()=>{await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})});setMyActiveStream(null);loadStreams();}} className="px-4 py-2 bg-white/20 text-white rounded-full font-bold text-xs hover:bg-white/30 border border-white/20">End</button>
+              </div>
+            </div>
+          )}
           {loading?(
             <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin"/></div>
           ):streams.length===0?(
@@ -310,7 +383,7 @@ export default function LiveStreamPage() {
           ):(
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {streams.map(s=>(
-                <button key={s.id} onClick={()=>joinLive(s)} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left group">
+                <button key={s.id} onClick={()=>s.userId===me?.id?rejoinAsHost(s):joinLive(s)} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left group">
                   <div className="aspect-video bg-gradient-to-br from-rose-400 via-pink-400 to-purple-500 relative overflow-hidden">
                     {s.host?.profilePhoto?<img src={s.host.profilePhoto} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-500"/>:<div className="w-full h-full flex items-center justify-center"><Radio className="w-16 h-16 text-white/30"/></div>}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"/>

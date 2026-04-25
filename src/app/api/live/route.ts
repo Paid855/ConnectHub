@@ -41,15 +41,35 @@ export async function POST(req: NextRequest) {
   const category = body.category || "chat";
 
   if (action === "start") {
-    // End any existing streams first
-    await prisma.liveStream.updateMany({ where: { userId: id, isLive: true }, data: { isLive: false, endedAt: new Date() } });
+    // Check if user already has a live stream — rejoin it instead of creating new
+    const existing = await prisma.liveStream.findFirst({ where: { userId: id, isLive: true } });
+    if (existing) {
+      return NextResponse.json({ stream: existing, rejoined: true });
+    }
     const stream = await prisma.liveStream.create({ data: { userId: id, title: title || "Live Stream", category, isLive: true } });
     return NextResponse.json({ stream });
+  }
+
+  if (action === "rejoin") {
+    const existing = await prisma.liveStream.findFirst({ where: { userId: id, isLive: true } });
+    if (existing) {
+      return NextResponse.json({ stream: existing });
+    }
+    return NextResponse.json({ error: "No active stream found" }, { status: 404 });
   }
 
   if (action === "end") {
     await prisma.liveStream.updateMany({ where: { userId: id, isLive: true }, data: { isLive: false, endedAt: new Date() } });
     return NextResponse.json({ success: true });
+  }
+
+  if (action === "cleanup") {
+    // End stale streams (no Agora activity for 2+ minutes) — called from client
+    const streamId = body.streamId;
+    if (streamId) {
+      await prisma.liveStream.updateMany({ where: { id: streamId, isLive: true }, data: { isLive: false, endedAt: new Date() } });
+      return NextResponse.json({ success: true });
+    }
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
