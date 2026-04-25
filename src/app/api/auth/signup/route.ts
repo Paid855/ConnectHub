@@ -57,14 +57,31 @@ export async function POST(req: NextRequest) {
     // Upload profile photo to Cloudinary if provided
     if (profilePhoto && profilePhoto.startsWith("data:image")) {
       try {
-        const cloudRes = await fetch("https://api.cloudinary.com/v1_1/" + (process.env.CLOUDINARY_CLOUD_NAME || "dpov63szx") + "/image/upload", {
+        const crypto = require("crypto");
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "dpov63szx";
+        const apiKey = process.env.CLOUDINARY_API_KEY || "";
+        const apiSecret = process.env.CLOUDINARY_API_SECRET || "";
+        const timestamp = Math.floor(Date.now() / 1000);
+        const folder = "connecthub/profiles";
+        const sigStr = "folder=" + folder + "&timestamp=" + timestamp + apiSecret;
+        const signature = crypto.createHash("sha1").update(sigStr).digest("hex");
+
+        const formData = new URLSearchParams();
+        formData.append("file", profilePhoto);
+        formData.append("folder", folder);
+        formData.append("timestamp", String(timestamp));
+        formData.append("api_key", apiKey);
+        formData.append("signature", signature);
+
+        const cloudRes = await fetch("https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ file: profilePhoto, upload_preset: "connecthub_photos", folder: "connecthub/profiles" })
+          body: formData
         });
         const cloudData = await cloudRes.json();
         if (cloudData.secure_url) {
           await prisma.user.update({ where: { id: user.id }, data: { profilePhoto: cloudData.secure_url } });
+        } else {
+          console.error("Cloudinary error:", cloudData);
         }
       } catch (e) { console.error("Photo upload error:", e); }
     }

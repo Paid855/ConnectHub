@@ -182,7 +182,7 @@ export default function SignupPage() {
             <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl flex items-center justify-center shadow-md"><span className="text-lg">💕</span></div>
             <span className="text-lg font-extrabold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">ConnectHub</span>
           </a>
-          <span className="text-xs font-bold text-gray-400">Step {step} of {totalSteps}</span>
+          {step <= 4 && <span className="text-xs font-bold text-gray-400">Step {step} of {totalSteps}</span>}
         </div>
 
         <div className="flex-1 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
@@ -194,7 +194,7 @@ export default function SignupPage() {
                   <div className={"h-1.5 flex-1 rounded-full transition-all duration-500 " + (s <= step ? "bg-gradient-to-r from-rose-500 to-pink-500" : "bg-gray-100")} />
                 </div>
               ))}
-              <span className="text-xs font-bold text-gray-400 ml-2">{step}/{totalSteps}</span>
+              {step <= 4 && <span className="text-xs font-bold text-gray-400 ml-2">{step}/{totalSteps}</span>}
             </div>
 
             {step === 5 && (
