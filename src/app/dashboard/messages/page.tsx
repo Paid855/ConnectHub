@@ -263,35 +263,38 @@ export default function MessagesPage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const recordingTimer = useRef<NodeJS.Timeout|null>(null);
   const recordingStream = useRef<MediaStream|null>(null);
+  const voiceCancelled = useRef(false);
 
   const startVoice = async () => {
     try {
+      voiceCancelled.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recordingStream.current = stream;
-      const mr = new MediaRecorder(stream);
+      const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm" });
       const chunks: Blob[] = [];
-      mr.ondataavailable = (e) => chunks.push(e.data);
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         recordingStream.current = null;
         if (recordingTimer.current) clearInterval(recordingTimer.current);
         setRecordingTime(0);
-        // Only send if not cancelled
-        if (chunks.length > 0 && mr.state !== "inactive") return;
-        const blob = new Blob(chunks, { type: "audio/webm" });
-        if (blob.size < 1000) { setRecording(false); return; }
+        setRecording(false);
+        // Don't send if cancelled
+        if (voiceCancelled.current) { voiceCancelled.current = false; return; }
+        if (chunks.length === 0) return;
+        const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+        if (blob.size < 500) return;
         const reader = new FileReader();
         reader.onload = async (ev) => {
-          if (chatWith) {
-            await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ receiverId: chatWith, content: "[VOICE]" + ev.target?.result }) });
+          if (chatWith && ev.target?.result) {
+            await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ receiverId: chatWith, content: "[VOICE]" + ev.target.result }) });
             loadMessages(chatWith);
             loadConversations();
           }
         };
         reader.readAsDataURL(blob);
-        setRecording(false);
       };
-      mr.start();
+      mr.start(100); // Collect data every 100ms for better chunks
       mediaRecorder.current = mr;
       setRecording(true);
       setRecordingTime(0);
@@ -303,17 +306,16 @@ export default function MessagesPage() {
     if (mediaRecorder.current && mediaRecorder.current.state === "recording") {
       mediaRecorder.current.stop();
     }
-    setRecording(false);
   };
 
   const cancelVoice = () => {
+    voiceCancelled.current = true;
+    if (mediaRecorder.current && mediaRecorder.current.state === "recording") {
+      try { mediaRecorder.current.stop(); } catch {}
+    }
     if (recordingStream.current) {
       recordingStream.current.getTracks().forEach(t => t.stop());
       recordingStream.current = null;
-    }
-    if (mediaRecorder.current) {
-      try { mediaRecorder.current.stop(); } catch {}
-      mediaRecorder.current = null;
     }
     if (recordingTimer.current) clearInterval(recordingTimer.current);
     setRecordingTime(0);
