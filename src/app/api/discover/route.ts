@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
 import { sendPushToUser } from "@/lib/push";
+import { sendMatchEmail, sendLikeEmail } from "@/lib/email";
 
 function getUserId(req: NextRequest) {
   try {
@@ -79,6 +80,12 @@ export async function POST(req: NextRequest) {
     sendPushToUser(id, { title: "It's a Match! 💕", body: "You have a new match! Start chatting now.", url: "/dashboard/messages", tag: "match-" + targetId });
     sendPushToUser(targetId, { title: "It's a Match! 💕", body: `${fromName} likes you too! Start chatting.`, url: "/dashboard/messages", tag: "match-" + id });
 
+    // Send match emails
+    const matchedUser = await prisma.user.findUnique({ where: { id: targetId }, select: { email: true, name: true } });
+    if (matchedUser?.email) sendMatchEmail(matchedUser.email, matchedUser.name || "there", fromName);
+    const fromUserFull = await prisma.user.findUnique({ where: { id }, select: { email: true, name: true } });
+    if (fromUserFull?.email) sendMatchEmail(fromUserFull.email, fromUserFull.name || "there", matchedUser?.name || "Someone");
+
     return NextResponse.json({ ok: true, action: type, match: true });
   }
 
@@ -86,9 +93,13 @@ export async function POST(req: NextRequest) {
   if (type === "superlike") {
     createNotification(targetId, "superlike", "Super Like! ⭐", `${fromName} Super Liked you!`, id);
     sendPushToUser(targetId, { title: "Super Like! ⭐", body: `${fromName} Super Liked you! Check them out.`, url: "/dashboard", tag: "superlike-" + id });
+    const superLikedUser = await prisma.user.findUnique({ where: { id: targetId }, select: { email: true, name: true } });
+    if (superLikedUser?.email) sendLikeEmail(superLikedUser.email, superLikedUser.name || "there", fromName, true);
   } else {
     createNotification(targetId, "like", "Someone Likes You 💕", `${fromName} liked your profile`, id);
     sendPushToUser(targetId, { title: "New Like 💕", body: "Someone liked your profile!", url: "/dashboard", tag: "like-" + id });
+    const likedUser = await prisma.user.findUnique({ where: { id: targetId }, select: { email: true, name: true } });
+    if (likedUser?.email) sendLikeEmail(likedUser.email, likedUser.name || "there", fromName, false);
   }
 
   return NextResponse.json({ ok: true, action: type, match: false });

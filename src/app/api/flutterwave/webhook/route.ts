@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendPushToUser } from "@/lib/push";
+import { sendCoinsPurchasedEmail, sendUpgradeEmail } from "@/lib/email";
 
 const FLW_SECRET = process.env.FLW_SECRET_KEY || "";
 const FLW_HASH = process.env.FLW_ENCRYPTION_KEY || "";
@@ -40,6 +41,8 @@ export async function POST(req: NextRequest) {
             await prisma.user.update({ where: { id: userId }, data: { tier } });
             try { await prisma.notification.create({ data: { userId, type: "upgrade", title: "Plan Upgraded!", message: `You are now a ${tier === "plus" ? "Plus" : "Premium"} member!`, fromUserId: null } }); } catch {}
             console.log("[FLW Webhook] Upgraded", userId, "to", tier);
+          const upgUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+          if (upgUser?.email) sendUpgradeEmail(upgUser.email, upgUser.name || "there", tier);
           sendPushToUser(userId, { title: "Plan Upgraded! ✨", body: "Welcome to ConnectHub " + (tier === "plus" ? "Plus" : "Premium") + "!", url: "/dashboard/profile", tag: "upgrade-" + Date.now() });
           }
         }
@@ -50,6 +53,8 @@ export async function POST(req: NextRequest) {
             await prisma.user.update({ where: { id: userId }, data: { coins: { increment: coins } } });
             try { await prisma.notification.create({ data: { userId, type: "coins", title: "Coins Added!", message: `${coins} coins added to your account.`, fromUserId: null } }); } catch {}
             console.log("[FLW Webhook] Added", coins, "coins to", userId);
+          const coinUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+          if (coinUser?.email) sendCoinsPurchasedEmail(coinUser.email, coinUser.name || "there", coins, "$" + (coins <= 100 ? "1.99" : coins <= 500 ? "7.99" : coins <= 1000 ? "12.99" : "49.99"));
           sendPushToUser(userId, { title: "Coins Added! 💰", body: coins + " coins have been added to your account", url: "/dashboard/coins", tag: "coins-" + Date.now() });
           }
         }

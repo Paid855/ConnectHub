@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { sendCoinsPurchasedEmail, sendUpgradeEmail } from "@/lib/email";
 
 const FLW_SECRET = process.env.FLW_SECRET_KEY || "";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://connecthub.love";
@@ -35,6 +36,8 @@ export async function GET(req: NextRequest) {
       const tier = meta.tier;
       if (tier === "plus" || tier === "premium") {
         await prisma.user.update({ where: { id: userId }, data: { tier } });
+        const subUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+        if (subUser?.email) sendUpgradeEmail(subUser.email, subUser.name || "there", tier);
         try {
           await prisma.notification.create({
             data: { userId, type: "upgrade", title: "Plan Upgraded!", message: `You are now a ${tier === "plus" ? "Plus" : "Premium"} member!`, fromUserId: null }
@@ -47,6 +50,8 @@ export async function GET(req: NextRequest) {
       const coins = parseInt(meta.coins || "0");
       if (coins > 0) {
         await prisma.user.update({ where: { id: userId }, data: { coins: { increment: coins } } });
+        const cUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+        if (cUser?.email) sendCoinsPurchasedEmail(cUser.email, cUser.name || "there", coins, "$" + (coins <= 100 ? "1.99" : coins <= 500 ? "7.99" : coins <= 1000 ? "12.99" : "49.99"));
         try {
           await prisma.notification.create({
             data: { userId, type: "coins", title: "Coins Added!", message: `${coins} coins have been added to your account.`, fromUserId: null }
