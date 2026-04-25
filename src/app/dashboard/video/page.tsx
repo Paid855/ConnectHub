@@ -99,95 +99,81 @@ export default function LiveStreamPage() {
 
   useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
 
+  // Helper: connect to Agora as host and start streaming
+  const connectAgoraAsHost = async(s:any)=>{
+    const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
+    AgoraRTC.setLogLevel(4);
+    const c=AgoraRTC.createClient({mode:"live",codec:"vp8"});
+    await c.setClientRole("host");
+
+    const ch=`stream_${s.id}`;
+    const tk=await fetch("/api/agora",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channelName:ch,isHost:true})}).then(r=>r.json());
+    if(tk.error) throw new Error(tk.error);
+    await c.join(tk.appId,ch,tk.token,tk.uid);
+
+    const[at,vt]=await AgoraRTC.createMicrophoneAndCameraTracks({encoderConfig:"high_quality"},{encoderConfig:"720p_2"});
+    setTracks({a:at,v:vt});
+    await c.publish([at,vt]);
+
+    c.on("user-published",async(user:any,type:any)=>{
+      await c.subscribe(user,type);
+      if(type==="video"){
+        const tryPlay=()=>{const el=document.getElementById("cohost-video");if(el&&user.videoTrack){user.videoTrack.play(el,{fit:"cover"});return true;}return false;};
+        if(!tryPlay()){let n=0;const iv=setInterval(()=>{n++;if(tryPlay()||n>20)clearInterval(iv);},200);}
+      }
+      if(type==="audio") user.audioTrack?.play();
+    });
+    c.on("user-joined",()=>toast("A viewer joined!","👋"));
+    c.on("user-left",()=>{});
+
+    setAgoraClient(c);
+    setStream(s); setRole("host"); setPage("live");
+
+    requestAnimationFrame(()=>{requestAnimationFrame(()=>{
+      const el=document.getElementById("host-video");
+      if(el&&vt){vt.play(el,{fit:"cover",mirror:true});}
+    });});
+
+    return { client: c, audioTrack: at, videoTrack: vt };
+  };
+
   // ===== HOST: Go live =====
   const goLive = async()=>{
     if(!title.trim()){setErr("Enter a stream title");return;}
     setErr("");
     try{
+      // First end any existing stale streams
+      await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})});
+
+      // Create fresh stream
       const cr=await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start",title,category})});
       const data=await cr.json();
-      const s=data.stream;
-      if(data.rejoined){
-        // Already have a stream — rejoin it
-        rejoinAsHost(s);
-        return;
-      }
-      setStream(s); setRole("host");
+      if(!data.stream){setErr("Failed to create stream");return;}
 
-      const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
-      AgoraRTC.setLogLevel(4);
-      const c=AgoraRTC.createClient({mode:"live",codec:"vp8"});
-      await c.setClientRole("host");
-
-      const ch=`stream_${s.id}`;
-      const tk=await fetch("/api/agora",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channelName:ch,isHost:true})}).then(r=>r.json());
-      await c.join(tk.appId,ch,tk.token,tk.uid);
-
-      const[at,vt]=await AgoraRTC.createMicrophoneAndCameraTracks({encoderConfig:"high_quality"},{encoderConfig:"720p_2"});
-      setTracks({a:at,v:vt});
-      await c.publish([at,vt]);
-
-      // Listen for co-host video
-      c.on("user-published",async(user:any,type:any)=>{
-        await c.subscribe(user,type);
-        if(type==="video"){
-          const tryPlay=()=>{const el=document.getElementById("cohost-video");if(el&&user.videoTrack){user.videoTrack.play(el,{fit:"cover"});return true;}return false;};
-          if(!tryPlay()){let n=0;const iv=setInterval(()=>{n++;if(tryPlay()||n>20)clearInterval(iv);},200);}
-        }
-        if(type==="audio") user.audioTrack?.play();
-      });
-
-      c.on("user-joined",()=>toast("A new viewer joined!","👋"));
-      c.on("user-left",()=>{});
-
-      setAgoraClient(c);
-      setPage("live");
+      await connectAgoraAsHost(data.stream);
+      setMyActiveStream(null);
       toast("You are now live!","🔴");
-
-      requestAnimationFrame(()=>{requestAnimationFrame(()=>{
-        const el=document.getElementById("host-video");
-        if(el&&vt){vt.play(el,{fit:"cover",mirror:true});}
-      });});
-    }catch(e:any){setErr("Failed: "+(e.message||"Unknown error"));}
+    }catch(e:any){
+      setErr("Failed: "+(e.message||"Allow camera & microphone access"));
+      // Clean up the stream if Agora failed
+      await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})}).catch(()=>{});
+    }
   };
 
   // ===== HOST: Rejoin own existing stream =====
   const rejoinAsHost = async(s:any)=>{
-    setStream(s); setRole("host"); setErr("");
+    setErr("");
     try{
-      const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
-      AgoraRTC.setLogLevel(4);
-      const c=AgoraRTC.createClient({mode:"live",codec:"vp8"});
-      await c.setClientRole("host");
-
-      const ch=`stream_${s.id}`;
-      const tk=await fetch("/api/agora",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channelName:ch,isHost:true})}).then(r=>r.json());
-      await c.join(tk.appId,ch,tk.token,tk.uid);
-
-      const[at,vt]=await AgoraRTC.createMicrophoneAndCameraTracks({encoderConfig:"high_quality"},{encoderConfig:"720p_2"});
-      setTracks({a:at,v:vt});
-      await c.publish([at,vt]);
-
-      c.on("user-published",async(user:any,type:any)=>{
-        await c.subscribe(user,type);
-        if(type==="video"){
-          const tryPlay=()=>{const el=document.getElementById("cohost-video");if(el&&user.videoTrack){user.videoTrack.play(el,{fit:"cover"});return true;}return false;};
-          if(tryPlay()){}else{let n=0;const iv=setInterval(()=>{n++;if(tryPlay()||n>20)clearInterval(iv);},200);}
-        }
-        if(type==="audio") user.audioTrack?.play();
-      });
-      c.on("user-joined",()=>toast("A viewer joined!","👋"));
-
-      setAgoraClient(c);
-      setPage("live");
+      await connectAgoraAsHost(s);
       setMyActiveStream(null);
       toast("Rejoined your stream!","🔴");
-
-      requestAnimationFrame(()=>{requestAnimationFrame(()=>{
-        const el=document.getElementById("host-video");
-        if(el&&vt){vt.play(el,{fit:"cover",mirror:true});}
-      });});
-    }catch(e:any){setErr("Failed to rejoin: "+(e.message||"Unknown error"));}
+    }catch(e:any){
+      // If rejoin fails, end the stale stream
+      setErr("Stream expired. Starting fresh...");
+      await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})}).catch(()=>{});
+      setMyActiveStream(null);
+      loadStreams();
+    }
   };
 
   // ===== VIEWER: Join stream =====
@@ -201,6 +187,7 @@ export default function LiveStreamPage() {
 
       const ch=`stream_${s.id}`;
       const tk=await fetch("/api/agora",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channelName:ch,isHost:false})}).then(r=>r.json());
+      if(tk.error) throw new Error(tk.error);
 
       c.on("user-published",async(user:any,type:any)=>{
         await c.subscribe(user,type);
@@ -211,10 +198,14 @@ export default function LiveStreamPage() {
         if(type==="audio") user.audioTrack?.play();
       });
 
-      c.on("user-left",()=>{
+      c.on("user-left",(user:any)=>{
+        // Check if stream is still live when host leaves
         setTimeout(async()=>{
-          try{const r=await fetch("/api/live");const d=await r.json();if(!d.streams?.find((x:any)=>x.id===s.id))setEnded(true);}catch{}
-        },1000);
+          try{const r=await fetch("/api/live");const d=await r.json();
+            const still = (d.streams||[]).find((x:any)=>x.id===s.id);
+            if(!still) setEnded(true);
+          }catch{}
+        },2000);
       });
 
       await c.join(tk.appId,ch,tk.token,tk.uid);
@@ -224,7 +215,10 @@ export default function LiveStreamPage() {
 
       // Register as viewer
       try{await fetch("/api/live/viewers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:s.id})});}catch{}
-    }catch(e:any){setErr("Failed to join: "+(e.message||"Unknown error"));}
+    }catch(e:any){
+      setErr("Failed to join: "+(e.message||"Unknown error"));
+      setStream(null); setPage("list");
+    }
   };
 
   // ===== ACCEPT CO-HOST INVITE =====
