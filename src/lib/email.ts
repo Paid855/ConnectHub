@@ -23,9 +23,11 @@ export async function sendResetCode(to: string, code: string, name: string) {
 
 export async function sendWelcomeEmail(to: string, name: string) {
   try {
-    await transporter.sendMail({ from: FROM, to, subject: "Welcome to ConnectHub! 💕", html: welcomeEmail(name) });
+    console.log("[Email] Sending welcome email to:", to);
+    const info = await transporter.sendMail({ from: FROM, to, subject: "Welcome to ConnectHub! 💕", html: welcomeEmail(name) });
+    console.log("[Email] Welcome email sent:", info.messageId);
     return true;
-  } catch { return false; }
+  } catch (e: any) { console.error("[Email] Welcome email failed:", e.message || e); return false; }
 }
 
 export async function sendMatchEmail(to: string, name: string, matchName: string) {
