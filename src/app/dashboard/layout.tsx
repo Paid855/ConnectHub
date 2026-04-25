@@ -160,6 +160,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href:"/dashboard/referral", label:"Invite", icon:Gift },
     { href:"/dashboard/search", label:"Search", icon:Search },
     { href:"/dashboard/blocked", label:"Blocked", icon:Ban },
+    { href:"/dashboard/settings", label:"Settings", icon:Shield },
     { href:"/dashboard/support", label:"Support", icon:HelpCircle },
     { href:"/dashboard/wallet", label:"Wallet", icon:Wallet },
   ];
