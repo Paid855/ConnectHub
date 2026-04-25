@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, User, Calendar, Globe, Shield, Camera, Sparkles, Check, Phone, ChevronDown, MapPin } from "lucide-react";
+import { Heart, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, User, Calendar, Globe, Shield, Camera, Sparkles, Check, Phone, ChevronDown, MapPin, HelpCircle } from "lucide-react";
 
 const COUNTRIES = ["United States","United Kingdom","Canada","Nigeria","Ghana","South Africa","India","Brazil","Germany","France","Australia","Japan","South Korea","Mexico","Italy","Spain","Netherlands","Sweden","Norway","Denmark","Turkey","Egypt","UAE","Saudi Arabia","Kenya","Tanzania","Philippines","Indonesia","Malaysia","Thailand","Vietnam","China","Russia","Poland","Ukraine","Romania","Colombia","Argentina","Chile","Peru","Morocco","Tunisia","Pakistan","Bangladesh","Sri Lanka","Singapore","New Zealand","Ireland","Portugal","Czech Republic","Hungary","Austria","Switzerland","Belgium","Finland","Greece","Israel","Jamaica","Trinidad and Tobago","Other"];
 const GENDERS = ["Man","Woman","Non-binary","Other"];
