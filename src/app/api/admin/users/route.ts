@@ -47,19 +47,39 @@ export async function POST(req: NextRequest) {
     } else if (action === "downgrade") {
       await prisma.user.update({ where: { id: userId }, data: { tier: "free" } });
     } else if (action === "resetVerify") {
-      // Clear all verification data
+      const reason = body.reason || "Your verification has been reset by our team.";
+      const fullMsg = reason + " Please re-verify your profile or contact support for more information.";
+      
+      // Clear all verification data + store reason in bio-temp via verificationStatus
       await prisma.user.update({ where: { id: userId }, data: { verified: false, verificationStatus: "reset", verificationPhoto: null, idDocument: null } });
       try { await prisma.$executeRawUnsafe('UPDATE "User" SET "idDocumentBack" = NULL, "idType" = NULL, "verificationFrames" = NULL WHERE "id" = $1', userId); } catch {}
       
-      // Get admin note if provided
-      const reason = body.reason || "Your verification has been reset by our team.";
+      // Create notification directly in DB
+      await prisma.notification.create({
+        data: {
+          userId: userId,
+          type: "verification",
+          title: "Verification Reset ⚠️",
+          message: fullMsg,
+          read: false
+        }
+      }).catch(() => {});
       
-      // Notify the user
+      // Send push notification
       try {
-        const { createNotification } = await import("@/lib/notify");
-        const { sendPushToUser } = await import("@/lib/push");
-        createNotification(userId, "verification", "Verification Reset ⚠️", reason + " Please re-verify your profile or contact support for more information.");
-        sendPushToUser(userId, { title: "Verification Reset ⚠️", body: "Your verification has been reset. Please re-verify your profile.", url: "/dashboard/verify", tag: "verify-reset" });
+        const subs = await prisma.pushSubscription.findMany({ where: { userId } });
+        if (subs.length > 0) {
+          const webpush = require("web-push");
+          webpush.setVapidDetails("mailto:support@connecthub.love", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "", process.env.VAPID_PRIVATE_KEY || "");
+          for (const sub of subs) {
+            try {
+              await webpush.sendNotification(
+                { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                JSON.stringify({ title: "Verification Reset ⚠️", body: "Please re-verify your profile.", url: "/dashboard/verify", tag: "verify-reset" })
+              );
+            } catch {}
+          }
+        }
       } catch {}
     } else if (action === "coins" && coins !== undefined) {
       if (coinsAction === "set") {

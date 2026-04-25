@@ -964,6 +964,29 @@ export default function VerifyPage() {
   }
 
   if (user.verificationStatus === "reset") {
+    const [resetLoading, setResetLoading] = React.useState(false);
+    const [resetReason, setResetReason] = React.useState("");
+
+    // Load the admin reason from notifications
+    React.useEffect(() => {
+      fetch("/api/notifications").then(r => r.json()).then(d => {
+        const resetNotif = (d.notifications || []).find((n: any) => n.type === "verification" && n.title?.includes("Reset"));
+        if (resetNotif) setResetReason(resetNotif.message || "");
+      }).catch(() => {});
+    }, []);
+
+    const handleRestart = async () => {
+      setResetLoading(true);
+      try {
+        const r = await fetch("/api/verify/reset-status", { method: "POST" });
+        const d = await r.json();
+        if (d.success) {
+          window.location.reload();
+        }
+      } catch {}
+      setResetLoading(false);
+    };
+
     return (
       <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl p-8 shadow-lg border border-orange-200 text-center">
@@ -971,15 +994,28 @@ export default function VerifyPage() {
             <span className="text-4xl">⚠️</span>
           </div>
           <h2 className="text-2xl font-extrabold text-gray-900 mb-3">Verification Reset</h2>
-          <p className="text-gray-600 text-sm mb-4">Your verification has been reset by our team. This could be due to unclear photos, document issues, or a routine review.</p>
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
-            <p className="text-xs text-orange-700 font-medium">What to do next:</p>
-            <p className="text-xs text-orange-600 mt-1">1. Ensure your ID photos are clear and readable</p>
-            <p className="text-xs text-orange-600">2. Take your selfie in good lighting</p>
-            <p className="text-xs text-orange-600">3. Complete all liveness checks carefully</p>
+          
+          {resetReason ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-left">
+              <p className="text-xs text-red-700 font-bold mb-1">Reason from ConnectHub Team:</p>
+              <p className="text-sm text-red-600">{resetReason}</p>
+            </div>
+          ) : (
+            <p className="text-gray-600 text-sm mb-4">Your verification has been reset by our team. This could be due to unclear photos, document issues, or a routine review.</p>
+          )}
+
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6 text-left">
+            <p className="text-xs text-orange-700 font-bold mb-2">📋 What to do next:</p>
+            <p className="text-xs text-orange-600 mb-1">1. Make sure your ID photos are clear and readable</p>
+            <p className="text-xs text-orange-600 mb-1">2. Take your selfie in good, natural lighting</p>
+            <p className="text-xs text-orange-600 mb-1">3. Follow all liveness check instructions carefully</p>
+            <p className="text-xs text-orange-600">4. Ensure your ID matches your profile name</p>
           </div>
-          <button onClick={() => { fetch("/api/auth/me").then(r => r.json()).then(d => { if (d.user) { fetch("/api/verify/reset-status", { method: "POST" }).catch(() => {}); window.location.reload(); } }); }} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg transition-all">Start Verification Again</button>
-          <a href="mailto:support@connecthub.love" className="block mt-3 text-xs text-gray-500 hover:text-rose-500">Need help? Contact support@connecthub.love</a>
+
+          <button onClick={handleRestart} disabled={resetLoading} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+            {resetLoading ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</> : "Start Verification Again →"}
+          </button>
+          <a href="mailto:support@connecthub.love" className="block mt-4 text-xs text-gray-500 hover:text-rose-500 underline underline-offset-4">Need help? Contact support@connecthub.love</a>
         </div>
       </div>
     );
