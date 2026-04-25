@@ -90,15 +90,22 @@ export default function LiveStreamPage() {
     const loadViewers = async()=>{
       try{const r=await fetch(`/api/live/viewers?streamId=${stream.id}`);const d=await r.json();setRealViewers(d.viewers||[]);setViewerCount(d.count||0);}catch{}
     };
+    // Ping presence so host knows we're still here
+    const pingPresence = async()=>{
+      if(role!=="host"){
+        try{await fetch("/api/live/viewers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,action:"ping"})});}catch{}
+      }
+    };
     const checkInvite = async()=>{
       if(role!=="viewer") return;
       try{const r=await fetch(`/api/live/invite?streamId=${stream.id}`);const d=await r.json();if(d.invited&&!invited) setInvited(true);}catch{}
     };
-    loadMsgs(); loadViewers();
+    loadMsgs(); loadViewers(); if(role!=="host") pingPresence();
     const i1=setInterval(loadMsgs,2000);
     const i2=setInterval(loadViewers,5000);
     const i3=setInterval(checkInvite,3000);
-    return()=>{clearInterval(i1);clearInterval(i2);clearInterval(i3);};
+    const i4=setInterval(pingPresence,8000);
+    return()=>{clearInterval(i1);clearInterval(i2);clearInterval(i3);clearInterval(i4);};
   },[page,stream,role,invited]);
 
   useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
@@ -270,7 +277,7 @@ export default function LiveStreamPage() {
       setPage("live");
       toast(`Joined ${s.host?.name||"the host"}'s stream`,"🎉");
 
-      // Register as viewer
+      // Register as viewer + start presence ping
       try{await fetch("/api/live/viewers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:s.id})});}catch{}
     }catch(e:any){
       console.error("[Live] Join failed:", e);
@@ -335,8 +342,9 @@ export default function LiveStreamPage() {
   // ===== END STREAM =====
   const leave = async()=>{
     try{
-      // Send leave message for viewers/cohosts
+      // Send leave to viewers API + chat message
       if(role!=="host" && stream){
+        await fetch("/api/live/viewers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,action:"leave"})}).catch(()=>{});
         await fetch("/api/live/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,content:`👋 ${me?.name||"A viewer"} left the stream`})}).catch(()=>{});
       }
       if(tracks.v){tracks.v.stop();tracks.v.close();}

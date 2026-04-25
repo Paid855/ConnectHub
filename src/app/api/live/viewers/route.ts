@@ -2,6 +2,9 @@ import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+// In-memory active viewer tracking (resets on deploy — fine for live presence)
+const activeViewers = new Map<string, Map<string, { name: string; photo: string | null; verified: boolean; tier: string; lastPing: number }>>();
+
 // GET - list active viewers for a stream
 export async function GET(req: NextRequest) {
   const id = getUserId(req);
@@ -9,49 +12,78 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const streamId = url.searchParams.get("streamId");
-  if (!streamId) return NextResponse.json({ viewers: [] });
+  if (!streamId) return NextResponse.json({ viewers: [], count: 0 });
 
-  // Get unique users who sent messages in this stream (active viewers)
-  const chats = await prisma.liveChat.findMany({
-    where: { streamId },
-    orderBy: { createdAt: "desc" },
-    take: 200
-  });
+  const streamViewers = activeViewers.get(streamId);
+  if (!streamViewers) return NextResponse.json({ viewers: [], count: 0 });
 
-  const userIds = [...new Set(chats.map(c => c.userId))];
-  const users = userIds.length > 0 ? await prisma.user.findMany({
-    where: { id: { in: userIds } },
-    select: { id: true, name: true, profilePhoto: true, verified: true, tier: true }
-  }) : [];
+  // Clean up stale viewers (no ping in 15 seconds)
+  const now = Date.now();
+  for (const [uid, v] of streamViewers.entries()) {
+    if (now - v.lastPing > 15000) streamViewers.delete(uid);
+  }
 
-  // Get the stream to know who the host is
+  // Get stream host to exclude from viewers
   const stream = await prisma.liveStream.findUnique({ where: { id: streamId }, select: { userId: true } });
 
-  // Filter out the host from viewers
-  const viewers = users.filter(u => u.id !== stream?.userId);
+  const viewers = Array.from(streamViewers.entries())
+    .filter(([uid]) => uid !== stream?.userId)
+    .map(([uid, v]) => ({ id: uid, name: v.name, profilePhoto: v.photo, verified: v.verified, tier: v.tier }));
 
   return NextResponse.json({ viewers, count: viewers.length });
 }
 
-// POST - register as viewer (sends join message if not already sent)
+// POST - register/ping as viewer or leave
 export async function POST(req: NextRequest) {
   const id = getUserId(req);
   if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
-  const { streamId } = await req.json();
+  const body = await req.json();
+  const streamId = body.streamId;
+  const action = body.action || "join";
+
   if (!streamId) return NextResponse.json({ error: "No stream" }, { status: 400 });
 
-  // Check if already joined
-  const existing = await prisma.liveChat.findFirst({
-    where: { streamId, userId: id, content: { contains: "joined the stream" } }
-  });
-
-  if (!existing) {
-    const user = await prisma.user.findUnique({ where: { id }, select: { name: true } });
-    await prisma.liveChat.create({
-      data: { streamId, userId: id, content: `👋 ${user?.name || "Someone"} joined the stream` }
-    });
+  if (action === "leave") {
+    const streamViewers = activeViewers.get(streamId);
+    if (streamViewers) {
+      streamViewers.delete(id);
+      if (streamViewers.size === 0) activeViewers.delete(streamId);
+    }
+    return NextResponse.json({ success: true });
   }
 
-  return NextResponse.json({ success: true });
+  // Join or ping
+  if (!activeViewers.has(streamId)) activeViewers.set(streamId, new Map());
+  const streamViewers = activeViewers.get(streamId)!;
+
+  const isNew = !streamViewers.has(id);
+
+  // Get user info if new
+  if (isNew) {
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { name: true, profilePhoto: true, verified: true, tier: true }
+    });
+
+    streamViewers.set(id, {
+      name: user?.name || "User",
+      photo: user?.profilePhoto || null,
+      verified: user?.verified || false,
+      tier: user?.tier || "free",
+      lastPing: Date.now()
+    });
+
+    // Send join message to chat
+    await prisma.liveChat.create({
+      data: { streamId, userId: id, content: `👋 ${user?.name || "Someone"} joined the stream` }
+    }).catch(() => {});
+  } else {
+    // Update last ping time
+    const existing = streamViewers.get(id)!;
+    existing.lastPing = Date.now();
+    streamViewers.set(id, existing);
+  }
+
+  return NextResponse.json({ success: true, isNew });
 }
