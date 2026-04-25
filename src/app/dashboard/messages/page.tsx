@@ -239,7 +239,7 @@ export default function MessagesPage() {
   const sendTypingSignal = useCallback(async () => {
     if (!chatWith) return;
     const now = Date.now();
-    if (now - lastTypingSent.current < 2000) return;
+    if (now - lastTypingSent.current < 1000) return;
     lastTypingSent.current = now;
     try {
       await fetch("/api/messages/typing", {
@@ -268,6 +268,11 @@ export default function MessagesPage() {
     return () => { clearInterval(interval); window.removeEventListener("connecthub:refresh", handleRefresh); };
   }, []);
 
+  // Clean up typing interval on unmount or chat change
+  useEffect(() => {
+    return () => { if (typingInterval.current) clearInterval(typingInterval.current); };
+  }, [chatWith]);
+
   useEffect(() => {
     if (chatWith) {
       loadMessages(chatWith);
@@ -286,15 +291,29 @@ export default function MessagesPage() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
+  const typingInterval = useRef<NodeJS.Timeout|null>(null);
+
   const handleInputChange = (value: string) => {
     setNewMsg(value);
-    if (value.trim()) sendTypingSignal();
+    if (value.trim()) {
+      sendTypingSignal();
+      // Keep sending typing signals every 1.5s while text exists
+      if (typingInterval.current) clearInterval(typingInterval.current);
+      typingInterval.current = setInterval(() => {
+        if (newMsg.trim()) sendTypingSignal();
+        else if (typingInterval.current) clearInterval(typingInterval.current);
+      }, 1500);
+    } else {
+      // Clear typing when input is empty
+      if (typingInterval.current) { clearInterval(typingInterval.current); typingInterval.current = null; }
+    }
   };
 
   const sendMessage = async () => {
     if (!newMsg.trim() || !chatWith) return;
     const msg = newMsg.trim();
     setNewMsg("");
+    if (typingInterval.current) { clearInterval(typingInterval.current); typingInterval.current = null; }
     await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ receiverId: chatWith, content: msg }) });
     loadMessages(chatWith);
     loadConversations();

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// In-memory typing state (resets on deploy — fine for typing indicators)
 const typingUsers = new Map<string, { userId: string; timestamp: number }>();
 
 function getUserId(req: NextRequest) {
@@ -12,7 +11,6 @@ function getUserId(req: NextRequest) {
   } catch { return null; }
 }
 
-// POST — user is typing
 export async function POST(req: NextRequest) {
   const id = getUserId(req);
   if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -23,16 +21,15 @@ export async function POST(req: NextRequest) {
   const key = `${id}:${receiverId}`;
   typingUsers.set(key, { userId: id, timestamp: Date.now() });
 
-  // Clean up old entries (older than 5 seconds)
+  // Clean up old entries (older than 10 seconds)
   const now = Date.now();
   for (const [k, v] of typingUsers.entries()) {
-    if (now - v.timestamp > 5000) typingUsers.delete(k);
+    if (now - v.timestamp > 10000) typingUsers.delete(k);
   }
 
   return NextResponse.json({ ok: true });
 }
 
-// GET — check if someone is typing to you
 export async function GET(req: NextRequest) {
   const id = getUserId(req);
   if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -43,7 +40,8 @@ export async function GET(req: NextRequest) {
   const key = `${from}:${id}`;
   const entry = typingUsers.get(key);
 
-  if (entry && Date.now() - entry.timestamp < 4000) {
+  // Typing is valid for 8 seconds (matches client send interval of 1.5s with buffer)
+  if (entry && Date.now() - entry.timestamp < 8000) {
     return NextResponse.json({ typing: true });
   }
 
