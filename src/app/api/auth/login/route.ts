@@ -10,6 +10,12 @@ export async function POST(req: NextRequest) {
 
     if (!loginId || !pwd) return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
 
+    // Block admin emails from regular login
+    const blockedEmails = ["admin@connecthub.com", "admin@connecthub.love", "support@connecthub.love", "noreply@connecthub.love"];
+    if (blockedEmails.includes(loginId)) {
+      return NextResponse.json({ error: "Please use the admin portal to login" }, { status: 400 });
+    }
+
     const user = await prisma.user.findFirst({
       where: { OR: [{ email: loginId }, { username: loginId }] },
       select: { id:true, email:true, name:true, password:true, tier:true }
