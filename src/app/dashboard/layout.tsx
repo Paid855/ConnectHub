@@ -148,6 +148,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href:"/dashboard/feed", label:"Feed", icon:Rss },
     { href:"/dashboard/friends", label:"Friends", icon:Users },
     { href:"/dashboard/messages", label:"Messages", icon:MessageCircle, badge:unread },
+    { href:"/dashboard/liked", label:"Who Likes You", icon:Heart, badge:0 },
     { href:"/dashboard/video", label:"Video", icon:Video },
     { href:"/dashboard/verify", label:"Verification", icon:Shield },
     { href:"/dashboard/profile", label:"Profile", icon:User },

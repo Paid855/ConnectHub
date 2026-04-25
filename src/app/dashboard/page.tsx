@@ -20,12 +20,37 @@ export default function DiscoverPage() {
     }).catch(() => setLoading(false));
   }, []);
 
+  const [matchPopup, setMatchPopup] = useState<any>(null);
+  const [superLikeError, setSuperLikeError] = useState("");
+
   const handleAction = async (type: string) => {
     if (!profiles[current]) return;
     setAction(type);
+    setSuperLikeError("");
+
     if (type === "like" || type === "superlike") {
-      fetch("/api/friends", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ friendId: profiles[current].id }) }).catch(()=>{});
+      try {
+        const res = await fetch("/api/discover", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetId: profiles[current].id, type }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (data.upgrade) { setSuperLikeError("Super Likes require Plus or Premium"); }
+          else if (data.limit) { setSuperLikeError(data.error); }
+          setAction(null);
+          return;
+        }
+
+        if (data.match) {
+          setMatchPopup(profiles[current]);
+          setTimeout(() => setMatchPopup(null), 4000);
+        }
+      } catch {}
     }
+
     setTimeout(() => { setAction(null); setCurrent(p => p + 1); setShowDetails(false); }, 500);
   };
 
@@ -46,6 +71,29 @@ export default function DiscoverPage() {
       </div>
     </div>
   );
+
+  // Match popup
+  const MatchPopup = () => matchPopup ? (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setMatchPopup(null)}>
+      <div className={"p-8 rounded-3xl text-center max-w-sm mx-4 shadow-2xl " + (dc ? "bg-gray-800" : "bg-white")} onClick={e => e.stopPropagation()}>
+        <div className="flex justify-center gap-4 mb-6">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-3xl shadow-xl shadow-rose-200/50 border-4 border-white">
+            {user.profilePhoto ? <img src={user.profilePhoto} className="w-full h-full rounded-full object-cover" /> : user.name?.[0] || "?"}
+          </div>
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-3xl shadow-xl shadow-purple-200/50 border-4 border-white">
+            {matchPopup.profilePhoto ? <img src={matchPopup.profilePhoto} className="w-full h-full rounded-full object-cover" /> : matchPopup.name?.[0] || "?"}
+          </div>
+        </div>
+        <p className="text-4xl mb-3 animate-heartbeat">💕</p>
+        <h2 className={"text-2xl font-extrabold mb-2 " + (dc ? "text-white" : "text-gray-900")}>It&apos;s a Match!</h2>
+        <p className={"text-sm mb-6 " + (dc ? "text-gray-400" : "text-gray-500")}>You and {matchPopup.name} liked each other</p>
+        <div className="flex gap-3">
+          <Link href={"/dashboard/messages?user=" + matchPopup.id} className="flex-1 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm hover:shadow-lg transition-all">Send Message</Link>
+          <button onClick={() => setMatchPopup(null)} className={"flex-1 py-3 rounded-full font-bold text-sm border-2 " + (dc ? "border-gray-600 text-gray-400" : "border-gray-200 text-gray-600")}>Keep Swiping</button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   const tierGrad = profile.tier==="gold"?"from-amber-400 to-orange-500":profile.tier==="premium"?"from-rose-500 to-purple-500":"from-rose-400 to-pink-500";
 
@@ -139,6 +187,15 @@ export default function DiscoverPage() {
       <p className={"text-center text-xs mt-4 " + (dc?"text-gray-600":"text-gray-400")}>
         Tap photo to see details · {current + 1} of {profiles.length}
       </p>
+      {/* Super Like error */}
+      {superLikeError && (
+        <div className={"fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full text-sm font-semibold shadow-xl " + (dc ? "bg-gray-800 text-amber-400 border border-gray-700" : "bg-white text-amber-600 border border-amber-200")}>
+          {superLikeError}
+        </div>
+      )}
+
+      {/* Match Popup */}
+      <MatchPopup />
     </div>
   );
 }

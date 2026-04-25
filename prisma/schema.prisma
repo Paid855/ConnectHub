@@ -206,3 +206,13 @@ model PushSubscription {
   auth      String
   createdAt DateTime @default(now())
 }
+
+model Like {
+  id          String   @id @default(cuid())
+  fromUserId  String
+  toUserId    String
+  type        String   @default("like")
+  createdAt   DateTime @default(now())
+
+  @@unique([fromUserId, toUserId])
+}

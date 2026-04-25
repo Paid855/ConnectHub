@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUser, TierBadge } from "../layout";
-import { Send, ArrowLeft, Phone, Video, MoreVertical, Smile, Image as ImageIcon, Mic, Trash2, Shield, Search, Check, CheckCheck } from "lucide-react";
+import { Send, ArrowLeft, X as XIcon, Phone, Video, MoreVertical, Smile, Image as ImageIcon, Mic, Trash2, Shield, Search, Check, CheckCheck } from "lucide-react";
 import Link from "next/link";
 
 const EMOJIS = ["😀","😂","🥰","😍","😘","🤗","😊","❤️","🔥","💕","✨","💯","👋","🎉","💐","🌹"];
@@ -143,15 +143,26 @@ export default function MessagesPage() {
     loadMessages(chatWith!);
   };
 
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingTimer = useRef<NodeJS.Timeout|null>(null);
+  const recordingStream = useRef<MediaStream|null>(null);
+
   const startVoice = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordingStream.current = stream;
       const mr = new MediaRecorder(stream);
       const chunks: Blob[] = [];
       mr.ondataavailable = (e) => chunks.push(e.data);
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
+        recordingStream.current = null;
+        if (recordingTimer.current) clearInterval(recordingTimer.current);
+        setRecordingTime(0);
+        // Only send if not cancelled
+        if (chunks.length > 0 && mr.state !== "inactive") return;
         const blob = new Blob(chunks, { type: "audio/webm" });
+        if (blob.size < 1000) { setRecording(false); return; }
         const reader = new FileReader();
         reader.onload = async (ev) => {
           if (chatWith) {
@@ -166,10 +177,37 @@ export default function MessagesPage() {
       mr.start();
       mediaRecorder.current = mr;
       setRecording(true);
-    } catch { alert("Microphone access denied"); }
+      setRecordingTime(0);
+      recordingTimer.current = setInterval(() => setRecordingTime(p => p + 1), 1000);
+    } catch { alert("Microphone access required to send voice messages"); }
   };
 
-  const stopVoice = () => { if (mediaRecorder.current) mediaRecorder.current.stop(); };
+  const stopVoice = () => {
+    if (mediaRecorder.current && mediaRecorder.current.state === "recording") {
+      mediaRecorder.current.stop();
+    }
+    setRecording(false);
+  };
+
+  const cancelVoice = () => {
+    if (recordingStream.current) {
+      recordingStream.current.getTracks().forEach(t => t.stop());
+      recordingStream.current = null;
+    }
+    if (mediaRecorder.current) {
+      try { mediaRecorder.current.stop(); } catch {}
+      mediaRecorder.current = null;
+    }
+    if (recordingTimer.current) clearInterval(recordingTimer.current);
+    setRecordingTime(0);
+    setRecording(false);
+  };
+
+  const formatRecordTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m + ":" + (sec < 10 ? "0" : "") + sec;
+  };
 
   const clearChat = async (userId: string) => {
     if (!confirm("Clear all messages with this person?")) return;
@@ -341,23 +379,37 @@ export default function MessagesPage() {
               placeholder="Type a message..."
               className={"flex-1 py-2.5 px-4 rounded-xl text-sm outline-none transition-colors " + (dc ? "bg-gray-700 text-white placeholder-gray-500 focus:ring-1 focus:ring-rose-500" : "bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-rose-300 focus:bg-white")}
             />
-            {newMsg.trim() ? (
+            {recording ? (
+              <button onClick={stopVoice} className="p-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl hover:shadow-lg hover:shadow-rose-200 transition-all active:scale-95 animate-pulse">
+                <Send className="w-5 h-5" />
+              </button>
+            ) : newMsg.trim() ? (
               <button onClick={sendMessage} className="p-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl hover:shadow-lg hover:shadow-rose-200 transition-all active:scale-95">
                 <Send className="w-5 h-5" />
               </button>
             ) : (
               <button
-                onMouseDown={startVoice}
-                onMouseUp={stopVoice}
-                onTouchStart={startVoice}
-                onTouchEnd={stopVoice}
-                className={"p-2.5 rounded-xl transition-all " + (recording ? "bg-rose-500 text-white animate-pulse scale-110" : (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50"))}
+                onClick={startVoice}
+                className={"p-2.5 rounded-xl transition-all " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}
               >
                 <Mic className="w-5 h-5" />
               </button>
             )}
           </div>
-          {recording && <p className="text-center text-xs text-rose-500 font-medium mt-2 animate-pulse">Recording... release to send</p>}
+          {recording && (
+            <div className={"flex items-center justify-between mt-2 px-2 py-2 rounded-xl " + (dc ? "bg-gray-700" : "bg-rose-50")}>
+              <button onClick={cancelVoice} className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50">
+                ✕ Cancel
+              </button>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <span className={"text-xs font-bold tabular-nums " + (dc ? "text-rose-400" : "text-rose-600")}>{formatRecordTime(recordingTime)}</span>
+              </div>
+              <button onClick={stopVoice} className="flex items-center gap-1.5 text-xs font-semibold text-white bg-gradient-to-r from-rose-500 to-pink-500 px-3 py-1.5 rounded-lg hover:shadow-md transition-all">
+                <Send className="w-3.5 h-3.5" /> Send
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
