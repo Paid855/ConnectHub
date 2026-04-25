@@ -838,7 +838,8 @@ function VerificationResetScreen() {
 
   useEffect(() => {
     fetch("/api/notifications").then(r => r.json()).then(d => {
-      const resetNotif = (d.notifications || []).find((n: any) => n.type === "verification" && n.title?.includes("Reset"));
+      const notifs = d.notifications || [];
+      const resetNotif = notifs.find((n: any) => n.type === "verification" && (n.title || "").includes("Reset"));
       if (resetNotif) setResetReason(resetNotif.message || "");
     }).catch(() => {});
   }, []);
@@ -846,20 +847,17 @@ function VerificationResetScreen() {
   const handleRestart = async () => {
     setResetLoading(true);
     try {
-      const r = await fetch("/api/verify/reset-status", { method: "POST" });
-      const d = await r.json();
-      if (d.success) {
-        window.location.reload();
-      }
+      await fetch("/api/verify/reset-status", { method: "POST", headers: { "Content-Type": "application/json" } });
     } catch {}
-    setResetLoading(false);
+    // Force full page reload after a short delay
+    setTimeout(() => { window.location.href = "/dashboard/verify"; }, 500);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl p-8 shadow-lg border border-orange-200 text-center">
         <div className="w-20 h-20 mx-auto bg-orange-100 rounded-full flex items-center justify-center mb-5">
-          <span className="text-4xl">⚠\ufe0f</span>
+          <svg className="w-10 h-10 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
         </div>
         <h2 className="text-2xl font-extrabold text-gray-900 mb-3">Verification Reset</h2>
         
@@ -888,6 +886,7 @@ function VerificationResetScreen() {
     </div>
   );
 }
+
 
 export default function VerifyPage() {
   const { user, reload, dark } = useUser();
