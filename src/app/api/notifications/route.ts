@@ -38,3 +38,19 @@ export async function PUT(req: NextRequest) {
   await prisma.notification.updateMany({ where: { userId: id, read: false }, data: { read: true } });
   return NextResponse.json({ success: true });
 }
+
+export async function POST(req: NextRequest) {
+  const id = getUserId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+  const { action, notificationId } = await req.json();
+
+  if (action === "read" && notificationId) {
+    await prisma.notification.update({
+      where: { id: notificationId },
+      data: { read: true }
+    }).catch(() => {});
+    return NextResponse.json({ success: true });
+  }
+
+  return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+}
