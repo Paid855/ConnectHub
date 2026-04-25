@@ -928,12 +928,13 @@ export default function AdminDashboard() {
                       {/* Action buttons for pending */}
                       {w.status === "pending" && (
                         <div className="border-t border-gray-700 p-3 bg-gray-850">
-                          <input value={withdrawalNote} onChange={e => setWithdrawalNote(e.target.value)} placeholder="Admin note (optional)..." className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white placeholder:text-gray-500 outline-none mb-2 focus:border-blue-500" />
+                          <input value={withdrawalNote} onChange={e => setWithdrawalNote(e.target.value)} placeholder="Note (required for rejection)..." className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white placeholder:text-gray-500 outline-none mb-2 focus:border-blue-500" />
                           <div className="flex gap-2">
                             <button onClick={() => handleWithdrawal(w.id, "approve", withdrawalNote)} disabled={actionLoading === w.id} className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all">
                               {actionLoading === w.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />} Approve & Mark Paid
                             </button>
-                            <button onClick={() => handleWithdrawal(w.id, "reject", withdrawalNote)} disabled={actionLoading === w.id} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all">
+                            <p className="text-[10px] text-gray-500 text-center mt-2">Coins already deducted from user. Go to Flutterwave to send payment, then click Approve.</p>
+                            <button onClick={() => { if (!withdrawalNote.trim()) { alert("Please provide a reason for rejection in the note field above."); return; } handleWithdrawal(w.id, "reject", withdrawalNote); }} disabled={actionLoading === w.id} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all">
                               <XCircle className="w-3.5 h-3.5" /> Reject & Refund
                             </button>
                           </div>

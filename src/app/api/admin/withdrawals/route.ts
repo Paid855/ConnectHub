@@ -59,6 +59,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "reject") {
+    if (!adminNote || !adminNote.trim()) {
+      return NextResponse.json({ error: "Please provide a reason for rejection" }, { status: 400 });
+    }
     // Refund coins
     await prisma.user.update({ where: { id: withdrawal.userId }, data: { coins: { increment: withdrawal.amount } } });
     await prisma.coinTransaction.create({
