@@ -48,6 +48,16 @@ model User {
   hideDob            Boolean  @default(false)
   hideEmail          Boolean  @default(false)
   hidePhone          Boolean  @default(false)
+  hideOnline         Boolean  @default(false)
+  hideLastSeen       Boolean  @default(false)
+  showDistance        Boolean  @default(true)
+  allowMessages      String   @default("everyone")
+  emailNotifs        Boolean  @default(true)
+  pushNotifs         Boolean  @default(true)
+  notifMatches       Boolean  @default(true)
+  notifMessages      Boolean  @default(true)
+  notifLikes         Boolean  @default(true)
+  notifGifts         Boolean  @default(true)
   verificationFrames String?
 }
 
