@@ -1,22 +1,31 @@
 "use client";
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Heart, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, User, Calendar, Globe, Shield, Camera, Sparkles, Check, Phone, ChevronDown, MapPin } from "lucide-react";
 
 const COUNTRIES = ["United States","United Kingdom","Canada","Nigeria","Ghana","South Africa","India","Brazil","Germany","France","Australia","Japan","South Korea","Mexico","Italy","Spain","Netherlands","Sweden","Norway","Denmark","Turkey","Egypt","UAE","Saudi Arabia","Kenya","Tanzania","Philippines","Indonesia","Malaysia","Thailand","Vietnam","China","Russia","Poland","Ukraine","Romania","Colombia","Argentina","Chile","Peru","Morocco","Tunisia","Pakistan","Bangladesh","Sri Lanka","Singapore","New Zealand","Ireland","Portugal","Czech Republic","Hungary","Austria","Switzerland","Belgium","Finland","Greece","Israel","Jamaica","Trinidad and Tobago","Other"];
 const GENDERS = ["Man","Woman","Non-binary","Other"];
 const LOOKING = ["Men","Women","Everyone"];
+const SECURITY_QS = ["What is the name of your first pet?","What city were you born in?","What is your mother's maiden name?","What was the name of your first school?","What is your favorite movie?","What street did you grow up on?"];
+const INTERESTS = ["Travel","Music","Cooking","Fitness","Photography","Art","Reading","Movies","Gaming","Dancing","Yoga","Hiking","Football","Basketball","Fashion","Coffee","Dogs","Cats","Beach","Mountains","Foodie","Netflix","Anime","Tech"];
+const INTEREST_ICONS: Record<string,string> = {Travel:"✈️",Music:"🎵",Cooking:"🍳",Fitness:"💪",Photography:"📸",Art:"🎨",Reading:"📚",Movies:"🎬",Gaming:"🎮",Dancing:"💃",Yoga:"🧘",Hiking:"🥾",Football:"⚽",Basketball:"🏀",Fashion:"👗",Coffee:"☕",Dogs:"🐕",Cats:"🐱",Beach:"🏖️",Mountains:"⛰️",Foodie:"🍕",Netflix:"📺",Anime:"🎌",Tech:"💻"};
 
 export default function SignupPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name:"", email:"", password:"", username:"", phone:"", dateOfBirth:"", gender:"", lookingFor:"", country:"", bio:"", securityQuestion:"", securityAnswer:"" });
+  const [mounted, setMounted] = useState(false);
+  const [form, setForm] = useState({ name:"",email:"",password:"",username:"",phone:"",dateOfBirth:"",gender:"",lookingFor:"",country:"",bio:"",securityQuestion:"",securityAnswer:"" });
   const [photo, setPhoto] = useState<string|null>(null);
   const [usernameStatus, setUsernameStatus] = useState<""|"checking"|"available"|"taken">("");
   const [showPwd, setShowPwd] = useState(false);
   const [confirmPwd, setConfirmPwd] = useState("");
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  const set = (k:string,v:string) => setForm(f=>({...f,[k]:v}));
 
   const checkUsername = async (u: string) => {
     if (!u || u.length < 3) { setUsernameStatus(""); return; }
@@ -29,267 +38,364 @@ export default function SignupPage() {
   };
 
   const age = form.dateOfBirth ? (() => {
-    const b = new Date(form.dateOfBirth);
-    const t = new Date();
+    const b = new Date(form.dateOfBirth); const t = new Date();
     let a = t.getFullYear() - b.getFullYear();
     if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--;
     return a;
   })() : null;
 
-  const handleSignup = async () => {
-    if (!form.securityQuestion) { setError("Please select a security question"); return; }
-    if (!form.securityAnswer.trim()) { setError("Please answer your security question"); return; }
-    setError(""); setLoading(true);
-    try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, age: age })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setStep(3); // Go to photo upload
-      } else {
-        if (data.ageRestricted) {
-          setStep(-1); // Age restricted page
-        } else {
-          setError(data.error || "Signup failed");
-        }
-      }
-    } catch { setError("Network error"); }
-    finally { setLoading(false); }
+  const toggleInterest = (t:string) => setSelectedInterests(p => p.includes(t)?p.filter(x=>x!==t):p.length<8?[...p,t]:p);
+
+  const validateStep = () => {
+    setError("");
+    if (step === 1) {
+      if (!form.name.trim()) { setError("Please enter your name"); return false; }
+      if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { setError("Please enter a valid email"); return false; }
+      if (form.password.length < 6) { setError("Password must be at least 6 characters"); return false; }
+      if (form.password !== confirmPwd) { setError("Passwords do not match"); return false; }
+      return true;
+    }
+    if (step === 2) {
+      if (!form.dateOfBirth) { setError("Please enter your date of birth"); return false; }
+      if (age !== null && age < 18) { setError("You must be 18 or older to join ConnectHub"); return false; }
+      if (!form.gender) { setError("Please select your gender"); return false; }
+      if (!form.lookingFor) { setError("Please select who you are looking for"); return false; }
+      return true;
+    }
+    if (step === 3) {
+      if (!form.securityQuestion) { setError("Please select a security question"); return false; }
+      if (!form.securityAnswer.trim()) { setError("Please answer your security question"); return false; }
+      return true;
+    }
+    return true;
   };
 
+  const nextStep = () => { if (validateStep()) setStep(s => Math.min(s+1, 4)); };
+  const prevStep = () => { setError(""); setStep(s => Math.max(s-1, 1)); };
+
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setError("Photo must be under 5MB"); return; }
+    const file = e.target.files?.[0]; if (!file) return;
+    if (file.size > 5*1024*1024) { setError("Max 5MB"); return; }
     const reader = new FileReader();
     reader.onload = ev => setPhoto(ev.target?.result as string);
     reader.readAsDataURL(file);
   };
 
-  const uploadPhoto = async () => {
-    if (!photo) { setStep(4); return; }
-    setLoading(true);
+  const handleSignup = async () => {
+    if (!validateStep()) return;
+    setLoading(true); setError("");
     try {
-      await fetch("/api/auth/profile", {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profilePhoto: photo })
+      const res = await fetch("/api/auth/signup", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, profilePhoto: photo, interests: selectedInterests }),
       });
-    } catch {}
-    setLoading(false);
-    setStep(4); // Go to upgrade prompt
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Registration failed"); setLoading(false); return; }
+      // Auto-login
+      const loginRes = await fetch("/api/auth/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ emailOrUsername:form.email, password:form.password }) });
+      if (loginRes.ok) {
+        router.push("/signup?step=welcome");
+      } else {
+        router.push("/login?registered=true");
+      }
+    } catch { setError("Network error. Please try again."); setLoading(false); }
   };
 
-  // Age restricted page (#23)
-  if (step === -1) return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 to-pink-50 p-6">
-      <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-lg border border-gray-100 text-center">
-        <div className="text-6xl mb-4">🔞</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-3">Age Restriction</h1>
-        <p className="text-gray-600 mb-4">ConnectHub is designed for adults aged 18 and above. This is to ensure the safety and well-being of all our users.</p>
-        <p className="text-gray-500 text-sm mb-6">We take age verification seriously to maintain a safe and respectful community for everyone.</p>
-        <div className="bg-rose-50 rounded-xl p-4 mb-6">
-          <p className="text-rose-700 text-sm font-medium">You must be at least 18 years old to create an account on ConnectHub.</p>
-        </div>
-        <Link href="/" className="inline-block px-8 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg">Return Home</Link>
-      </div>
-    </div>
-  );
+  const images = [
+    "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=1200&q=80&fit=crop",
+    "https://images.unsplash.com/photo-1529634597503-139d3726fed5?w=1200&q=80&fit=crop",
+    "https://images.unsplash.com/photo-1545912452-8aea7e25a3d3?w=1200&q=80&fit=crop",
+    "https://images.unsplash.com/photo-1621631690498-1d5aab66dd3d?w=1200&q=80&fit=crop",
+  ];
+
+  const totalSteps = 4;
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left visual */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-rose-500 via-pink-500 to-purple-600 relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0"><div className="absolute top-20 right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl" /><div className="absolute bottom-10 left-10 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl" /></div>
-        <div className="relative z-10 text-center px-12">
-          <div className="text-7xl mb-6">💕</div>
-          <h2 className="text-4xl font-bold text-white mb-4">Start Your Love Story</h2>
-          <p className="text-xl text-rose-100 leading-relaxed">Join millions of people finding meaningful connections on ConnectHub</p>
-          <div className="mt-12 space-y-4">
-            {[{icon:"🔒",text:"100% safe and secure"},{icon:"🌍",text:"Available in 190+ countries"},{icon:"💎",text:"50 free coins on signup"}].map((item,i) => (
-              <div key={i} className="flex items-center gap-3 bg-white/10 backdrop-blur rounded-xl px-5 py-3">
-                <span className="text-xl">{item.icon}</span>
-                <span className="text-white font-medium">{item.text}</span>
+    <div className="min-h-screen flex font-sans">
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        .font-display { font-family: 'Playfair Display', serif; }
+        .font-body { font-family: 'DM Sans', sans-serif; }
+      `}</style>
+
+      {/* Left — Image */}
+      <div className="hidden lg:flex flex-1 relative overflow-hidden">
+        <img src={images[step-1] || images[0]} alt="Love" className="absolute inset-0 w-full h-full object-cover transition-all duration-700" />
+        <div className="absolute inset-0 bg-gradient-to-r from-rose-900/80 via-pink-900/50 to-purple-900/70" />
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage:"radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize:"24px 24px" }} />
+
+        <div className={"relative z-10 flex flex-col justify-between p-12 transition-all duration-700 " + (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
+          <a href="/" className="flex items-center gap-3 group">
+            <div className="w-12 h-12 bg-white/15 backdrop-blur-xl rounded-xl flex items-center justify-center border border-white/20 group-hover:scale-105 transition-transform">
+              <span className="text-2xl">💕</span>
+            </div>
+            <span className="text-2xl font-extrabold text-white tracking-tight">ConnectHub</span>
+          </a>
+
+          <div className="max-w-md">
+            <h1 className="text-5xl font-extrabold text-white leading-tight mb-6 font-display">
+              {step===1 && <>Start Your<br/><span className="italic text-rose-200">Love Story</span></>}
+              {step===2 && <>Tell Us About<br/><span className="italic text-rose-200">Yourself</span></>}
+              {step===3 && <>Keep Your<br/><span className="italic text-rose-200">Account Safe</span></>}
+              {step===4 && <>Almost<br/><span className="italic text-rose-200">There!</span></>}
+            </h1>
+            <p className="text-lg text-rose-100/80 leading-relaxed">
+              {step===1 && "Create your free account and join thousands finding meaningful connections."}
+              {step===2 && "Help us find your perfect match by sharing a few details about you."}
+              {step===3 && "Set up a security question to protect your account."}
+              {step===4 && "Add a photo and interests to get 3x more matches!"}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {[{icon:Shield,text:"Verified Profiles"},{icon:Lock,text:"256-bit Encrypted"},{icon:Heart,text:"Real Connections"}].map((b,i) => (
+              <div key={i} className="flex items-center gap-1.5 px-3 py-2 bg-white/10 backdrop-blur rounded-full border border-white/10">
+                <b.icon className="w-3.5 h-3.5 text-white/70" />
+                <span className="text-[10px] font-medium text-white/70">{b.text}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Right form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-white overflow-y-auto">
-        <div className="w-full max-w-md">
-          <div className="flex items-center justify-between mb-6"><Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl flex items-center justify-center"><span className="text-white text-xl">💕</span></div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">ConnectHub</span>
-          </Link></div>
+      {/* Right — Form */}
+      <div className={"flex-1 flex flex-col bg-white transition-all duration-500 " + (mounted ? "opacity-100" : "opacity-0")}>
+        {/* Mobile header */}
+        <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-100">
+          <a href="/" className="flex items-center gap-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl flex items-center justify-center shadow-md"><span className="text-lg">💕</span></div>
+            <span className="text-lg font-extrabold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">ConnectHub</span>
+          </a>
+          <span className="text-xs font-bold text-gray-400">Step {step} of {totalSteps}</span>
+        </div>
 
-          {/* Progress */}
-          <div className="flex items-center gap-2 mb-8">
-            {[1,2,3,4].map(s => (
-              <div key={s} className="flex items-center gap-2 flex-1">
-                <div className={"w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold " + (step >= s ? "bg-rose-500 text-white" : "bg-gray-100 text-gray-400")}>{step > s ? "✓" : s}</div>
-                {s < 4 && <div className={"flex-1 h-1 rounded " + (step > s ? "bg-rose-500" : "bg-gray-100")} />}
+        <div className="flex-1 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
+          <div className="w-full max-w-md font-body">
+            {/* Progress */}
+            <div className="flex items-center gap-2 mb-8">
+              {[1,2,3,4].map(s => (
+                <div key={s} className="flex-1 flex items-center gap-2">
+                  <div className={"h-1.5 flex-1 rounded-full transition-all duration-500 " + (s <= step ? "bg-gradient-to-r from-rose-500 to-pink-500" : "bg-gray-100")} />
+                </div>
+              ))}
+              <span className="text-xs font-bold text-gray-400 ml-2">{step}/{totalSteps}</span>
+            </div>
+
+            {error && (
+              <div className="mb-5 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 flex items-center gap-2">
+                <span className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center text-red-500 text-xs flex-shrink-0">!</span>
+                {error}
               </div>
-            ))}
-          </div>
+            )}
 
-          {/* STEP 1: Basic info */}
-          {step === 1 && (
-            <>
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">Create Account</h1>
-              <p className="text-gray-500 text-sm mb-6">Start your journey to finding love</p>
-              {error && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                  <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="Your full name" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="you@example.com" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                  <input value={form.username} onChange={e => { const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""); setForm({...form, username: v}); checkUsername(v); }} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="choose_a_username" />
-                {usernameStatus === "checking" && <p className="text-xs text-gray-400 mt-1">Checking...</p>}
-                  {usernameStatus === "available" && <p className="text-xs text-emerald-500 mt-1">Username available ✓</p>}
-                  {usernameStatus === "taken" && <p className="text-xs text-red-500 mt-1">Username already taken</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                  <div className="relative"><input type={showPwd?"text":"password"} required minLength={6} value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm pr-14" placeholder="Minimum 6 characters" /><button type="button" onClick={()=>setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">{showPwd?"Hide":"Show"}</button></div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
-                  <input type={showPwd?"text":"password"} required value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="Re-enter password" />
-                  {confirmPwd && confirmPwd !== form.password && <p className="text-xs text-red-500 mt-1">Passwords do not match</p>}
-                  {confirmPwd && confirmPwd === form.password && <p className="text-xs text-emerald-500 mt-1">Passwords match ✓</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
-                  <input type="date" required value={form.dateOfBirth} onChange={e => setForm({...form, dateOfBirth: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split("T")[0]} />
-                  {age !== null && age < 18 && <p className="text-red-500 text-xs mt-1">You must be 18 or older</p>}
-                  {age !== null && age >= 18 && <p className="text-emerald-500 text-xs mt-1">Age: {age} years old ✓</p>}
-                </div>
-                <button onClick={() => {
-                  if (!form.name || !form.email || !form.password || !form.dateOfBirth) { setError("Please fill all required fields"); return; }
-                  if (form.password.length < 6) { setError("Password must be at least 6 characters"); return; }
-                  if (confirmPwd !== form.password) { setError("Passwords do not match"); return; }
-                  if (age !== null && age < 18) { setStep(-1); return; }
-                  setError(""); setStep(2);
-                }} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all">Continue</button>
-              </div>
-            </>
-          )}
-
-          {/* STEP 2: Profile details */}
-          {step === 2 && (
-            <>
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">About You</h1>
-              <p className="text-gray-500 text-sm mb-6">Help us find your best matches</p>
-              {error && <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">I am a</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {GENDERS.map(g => <button key={g} type="button" onClick={() => setForm({...form, gender: g})} className={"py-3 rounded-xl border text-sm font-medium transition-all " + (form.gender === g ? "bg-rose-500 text-white border-rose-500" : "border-gray-200 text-gray-700 hover:border-rose-300")}>{g}</button>)}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Looking for</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {LOOKING.map(l => <button key={l} type="button" onClick={() => setForm({...form, lookingFor: l})} className={"py-3 rounded-xl border text-sm font-medium transition-all " + (form.lookingFor === l ? "bg-rose-500 text-white border-rose-500" : "border-gray-200 text-gray-700 hover:border-rose-300")}>{l}</button>)}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                  <select value={form.country} onChange={e => setForm({...form, country: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm bg-white">
-                    <option value="">Select your country</option>
-                    {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                  <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="+1 234 567 8900" />
-                </div>
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-xl p-4">
-                  <p className="text-sm font-semibold text-purple-800 mb-1 flex items-center gap-1.5">🔒 Security Question</p>
-                  <p className="text-xs text-purple-600 mb-3">Used to verify your identity when resetting your password</p>
-                  <select value={form.securityQuestion} onChange={e => setForm({...form, securityQuestion: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-purple-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm bg-white mb-2">
-                    <option value="">Select a security question</option>
-                    <option value="What is your mother's maiden name?">What is your mother&apos;s maiden name?</option>
-                    <option value="What was the name of your first pet?">What was the name of your first pet?</option>
-                    <option value="What city were you born in?">What city were you born in?</option>
-                    <option value="What is your favorite movie?">What is your favorite movie?</option>
-                    <option value="What was your childhood nickname?">What was your childhood nickname?</option>
-                    <option value="What is the name of your best friend?">What is the name of your best friend?</option>
-                  </select>
-                  {form.securityQuestion && (
-                    <input value={form.securityAnswer} onChange={e => setForm({...form, securityAnswer: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-purple-200 outline-none focus:ring-2 focus:ring-rose-300 text-sm" placeholder="Your answer (remember this!)" />
-                  )}
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => setStep(1)} className="flex-1 py-3.5 border-2 border-gray-200 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50">Back</button>
-                  <button onClick={handleSignup} disabled={loading} className="flex-1 py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl font-bold text-sm hover:shadow-lg disabled:opacity-60 flex items-center justify-center gap-2">
-                    {loading ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating...</> : "Create Account"}
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* STEP 3: Photo upload (#11) */}
-          {step === 3 && (
-            <>
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">Add Your Photo</h1>
-              <p className="text-gray-500 text-sm mb-6">Profiles with photos get 10x more matches!</p>
-              <div className="text-center">
-                <div className="relative w-40 h-40 mx-auto mb-6">
-                  {photo ? (
-                    <img src={photo} className="w-full h-full rounded-full object-cover border-4 border-rose-200" />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center border-4 border-dashed border-rose-200">
-                      <span className="text-4xl">📷</span>
+            {/* STEP 1 — Account */}
+            {step === 1 && (
+              <div>
+                <h2 className="text-2xl font-extrabold text-gray-900 mb-1 font-display">Create Account</h2>
+                <p className="text-gray-400 text-sm mb-7">Join ConnectHub — it only takes a minute.</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><User className="w-4 h-4 text-gray-400" /></div>
+                      <input className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Your full name" value={form.name} onChange={e=>set("name",e.target.value)} />
                     </div>
-                  )}
-                  <label className="absolute bottom-0 right-0 w-12 h-12 bg-rose-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-rose-600 shadow-lg">
-                    <span className="text-white text-lg">+</span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><Mail className="w-4 h-4 text-gray-400" /></div>
+                      <input type="email" className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="you@example.com" value={form.email} onChange={e=>set("email",e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Username</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><span className="text-gray-400 text-sm font-bold">@</span></div>
+                      <input className="w-full pl-11 pr-20 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="username" value={form.username} onChange={e=>{set("username",e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""));checkUsername(e.target.value);}} />
+                      {usernameStatus && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                          {usernameStatus==="checking" && <div className="w-4 h-4 border-2 border-gray-300 border-t-rose-500 rounded-full animate-spin" />}
+                          {usernameStatus==="available" && <Check className="w-4 h-4 text-emerald-500" />}
+                          {usernameStatus==="taken" && <span className="text-xs text-red-500 font-semibold">Taken</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><Lock className="w-4 h-4 text-gray-400" /></div>
+                      <input type={showPwd?"text":"password"} className="w-full pl-11 pr-12 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Min 6 characters" value={form.password} onChange={e=>set("password",e.target.value)} />
+                      <button type="button" onClick={()=>setShowPwd(!showPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showPwd?<EyeOff className="w-4 h-4"/>:<Eye className="w-4 h-4"/>}</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><Lock className="w-4 h-4 text-gray-400" /></div>
+                      <input type="password" className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Confirm your password" value={confirmPwd} onChange={e=>setConfirmPwd(e.target.value)} />
+                      {confirmPwd && form.password === confirmPwd && <div className="absolute right-4 top-1/2 -translate-y-1/2"><Check className="w-4 h-4 text-emerald-500" /></div>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2 — Personal */}
+            {step === 2 && (
+              <div>
+                <h2 className="text-2xl font-extrabold text-gray-900 mb-1 font-display">About You</h2>
+                <p className="text-gray-400 text-sm mb-7">Help us find your perfect match.</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Date of Birth</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><Calendar className="w-4 h-4 text-gray-400" /></div>
+                      <input type="date" className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={form.dateOfBirth} onChange={e=>set("dateOfBirth",e.target.value)} max={new Date(new Date().setFullYear(new Date().getFullYear()-18)).toISOString().split("T")[0]} />
+                    </div>
+                    {age !== null && <p className={"text-xs mt-1 font-medium " + (age>=18?"text-emerald-500":"text-red-500")}>{age >= 18 ? `You are ${age} years old ✓` : "You must be 18 or older"}</p>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">I am a</label>
+                      <select className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={form.gender} onChange={e=>set("gender",e.target.value)}>
+                        <option value="">Select</option>
+                        {GENDERS.map(g=><option key={g}>{g}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Looking for</label>
+                      <select className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={form.lookingFor} onChange={e=>set("lookingFor",e.target.value)}>
+                        <option value="">Select</option>
+                        {LOOKING.map(l=><option key={l}>{l}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><Globe className="w-4 h-4 text-gray-400" /></div>
+                      <select className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all appearance-none" value={form.country} onChange={e=>set("country",e.target.value)}>
+                        <option value="">Select your country</option>
+                        {COUNTRIES.map(c=><option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Bio <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <textarea className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all resize-none h-24" placeholder="Tell people what makes you unique..." value={form.bio} onChange={e=>set("bio",e.target.value)} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3 — Security */}
+            {step === 3 && (
+              <div>
+                <h2 className="text-2xl font-extrabold text-gray-900 mb-1 font-display">Security</h2>
+                <p className="text-gray-400 text-sm mb-7">Set up a security question for password recovery.</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Security Question</label>
+                    <select className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={form.securityQuestion} onChange={e=>set("securityQuestion",e.target.value)}>
+                      <option value="">Select a question</option>
+                      {SECURITY_QS.map(q=><option key={q}>{q}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Your Answer</label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><Shield className="w-4 h-4 text-gray-400" /></div>
+                      <input className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Enter your answer" value={form.securityAnswer} onChange={e=>set("securityAnswer",e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-amber-50 border border-amber-100 p-4">
+                    <p className="text-xs text-amber-700 leading-relaxed">
+                      <span className="font-bold">Remember this!</span> You will need this answer to reset your password if you ever forget it. Choose something only you would know.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4 — Photo + Interests */}
+            {step === 4 && (
+              <div>
+                <h2 className="text-2xl font-extrabold text-gray-900 mb-1 font-display">Final Touches</h2>
+                <p className="text-gray-400 text-sm mb-7">Add a photo and interests to attract more matches!</p>
+
+                {/* Photo upload */}
+                <div className="flex items-center gap-5 mb-7">
+                  <label className="cursor-pointer group">
                     <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
+                    {photo ? (
+                      <div className="relative">
+                        <img src={photo} className="w-24 h-24 rounded-2xl object-cover shadow-lg border-2 border-rose-100" />
+                        <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-all">
+                          <Camera className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-rose-50 to-pink-50 border-2 border-dashed border-rose-200 flex flex-col items-center justify-center group-hover:border-rose-400 group-hover:bg-rose-50 transition-all">
+                        <Camera className="w-6 h-6 text-rose-400 mb-1" />
+                        <span className="text-[10px] font-semibold text-rose-400">Add Photo</span>
+                      </div>
+                    )}
                   </label>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">Profile Photo</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Profiles with photos get 10x more matches</p>
+                    <p className="text-[10px] text-gray-300 mt-1">Max 5MB · JPG, PNG</p>
+                  </div>
                 </div>
-                <p className="text-gray-400 text-xs mb-8">JPG, PNG. Max 5MB.</p>
-                <button onClick={uploadPhoto} disabled={loading} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl font-bold text-sm hover:shadow-lg disabled:opacity-60 mb-3">
-                  {loading ? "Uploading..." : photo ? "Save & Continue" : "Skip for Now"}
+
+                {/* Interests */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-semibold text-gray-700">Pick Your Interests</label>
+                    <span className={"text-xs font-bold " + (selectedInterests.length >= 5 ? "text-emerald-500" : "text-gray-400")}>{selectedInterests.length}/8</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {INTERESTS.map(t => {
+                      const sel = selectedInterests.includes(t);
+                      return (
+                        <button key={t} onClick={()=>toggleInterest(t)} className={"flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold border transition-all active:scale-95 " + (sel?"bg-gradient-to-r from-rose-500 to-pink-500 text-white border-rose-500 shadow-md shadow-rose-200/30":"bg-gray-50 text-gray-600 border-gray-200 hover:border-rose-300 hover:text-rose-500")}>
+                          <span>{INTEREST_ICONS[t]||"•"}</span> {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation buttons */}
+            <div className="flex gap-3 mt-8">
+              {step > 1 && (
+                <button onClick={prevStep} className="px-5 py-3.5 border-2 border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" /> Back
                 </button>
-              </div>
-            </>
-          )}
+              )}
+              {step < totalSteps ? (
+                <button onClick={nextStep} className="flex-1 py-3.5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-xl text-sm font-bold hover:shadow-xl hover:shadow-rose-200/50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+                  Continue <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button onClick={handleSignup} disabled={loading} className="flex-1 py-3.5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-xl text-sm font-bold hover:shadow-xl hover:shadow-rose-200/50 transition-all flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98]">
+                  {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Sparkles className="w-4 h-4" /> Create Account</>}
+                </button>
+              )}
+            </div>
 
-          {/* STEP 4: Upgrade prompt (#15) */}
-          {step === 4 && (
-            <>
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome to ConnectHub! 🎉</h1>
-              <p className="text-gray-500 text-sm mb-6">You earned 50 free coins! Upgrade for the best experience:</p>
-              <div className="space-y-4 mb-6">
-                <div className="border-2 border-rose-500 rounded-2xl p-5 relative">
-                  <span className="absolute -top-3 left-4 bg-rose-500 text-white text-xs px-3 py-1 rounded-full font-bold">RECOMMENDED</span>
-                  <h3 className="font-bold text-gray-900">Plus — $12/month</h3>
-                  <p className="text-gray-500 text-sm mb-3">No ads, unlimited likes, live streaming, rewinds</p>
-                  <button onClick={() => router.push("/dashboard/coins?upgrade=plus")} className="w-full py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl font-bold text-sm hover:shadow-lg">Upgrade to Plus</button>
-                </div>
-                <div className="border border-gray-200 rounded-2xl p-5">
-                  <h3 className="font-bold text-gray-900">Premium — $25/month</h3>
-                  <p className="text-gray-500 text-sm mb-3">Everything in Plus + see who likes you, Super Likes, Top Picks</p>
-                  <button onClick={() => router.push("/dashboard/coins?upgrade=premium")} className="w-full py-3 border-2 border-rose-500 text-rose-600 rounded-xl font-bold text-sm hover:bg-rose-50">Go Premium</button>
-                </div>
-              </div>
-              <button onClick={() => router.push("/dashboard")} className="w-full py-3 text-gray-500 text-sm font-medium hover:text-gray-700">Skip — Continue with Free Plan</button>
-            </>
-          )}
-
-          {step <= 2 && <p className="text-center text-gray-500 text-sm mt-6">Already have an account? <Link href="/login" className="text-rose-600 font-semibold hover:underline">Sign In</Link></p>}
+            {/* Sign in link */}
+            <div className="text-center mt-6">
+              <p className="text-sm text-gray-400">
+                Already have an account?{" "}
+                <a href="/login" className="text-rose-500 font-semibold hover:text-rose-600 transition-colors">Sign In</a>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

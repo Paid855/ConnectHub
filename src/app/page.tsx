@@ -55,10 +55,10 @@ export default function HomePage() {
   }, []);
 
   const testimonials = [
-    { name: "Sarah & Michael", loc: "New York, USA", quote: "We matched on ConnectHub and immediately connected over our love for hiking and Italian food. Six months later, we are inseparable and planning our future together!", status: "Married 2025", emoji: "💒" },
-    { name: "David & Priya", loc: "London, UK", quote: "The video dating feature let us build real chemistry before meeting in person. Best decision I ever made was joining ConnectHub — found my soulmate.", status: "Together 2 years", emoji: "💕" },
-    { name: "Emma & Carlos", loc: "Barcelona, Spain", quote: "ConnectHub matched us based on shared values and passions. We connected from different countries, and love brought us together across the ocean.", status: "Engaged 2026", emoji: "💍" },
-    { name: "Aisha & James", loc: "Toronto, Canada", quote: "After years of unsuccessful dating, ConnectHub's matching system finally understood what I was looking for. James appeared within a week!", status: "Together 1 year", emoji: "🌹" },
+    { name: "Sarah & Michael", loc: "New York, USA", quote: "We matched on ConnectHub and immediately connected over our love for hiking and Italian food. Six months later, we are inseparable and planning our future together!", status: "Married 2025", emoji: "💒", img: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=100&h=100&fit=crop&crop=faces" },
+    { name: "David & Priya", loc: "London, UK", quote: "The video dating feature let us build real chemistry before meeting in person. Best decision I ever made was joining ConnectHub — found my soulmate.", status: "Together 2 years", emoji: "💕", img: "https://images.unsplash.com/photo-1529634597503-139d3726fed5?w=100&h=100&fit=crop&crop=faces" },
+    { name: "Emma & Carlos", loc: "Barcelona, Spain", quote: "ConnectHub matched us based on shared values and passions. We connected from different countries, and love brought us together across the ocean.", status: "Engaged 2026", emoji: "💍", img: "https://images.unsplash.com/photo-1545912452-8aea7e25a3d3?w=100&h=100&fit=crop&crop=faces" },
+    { name: "Aisha & James", loc: "Toronto, Canada", quote: "After years of unsuccessful dating, ConnectHub's matching system finally understood what I was looking for. James appeared within a week!", status: "Together 1 year", emoji: "🌹", img: "https://images.unsplash.com/photo-1622495894321-a803e78f3892?w=100&h=100&fit=crop&crop=faces" },
   ];
 
   const s1 = useInView(); const s2 = useInView(); const s3 = useInView(); const s4 = useInView();
@@ -111,10 +111,10 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
-              <Link href="/login" className="hidden sm:inline-flex px-5 py-2.5 text-sm font-semibold text-gray-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">Sign In</Link>
-              <Link href="/signup" className="px-5 py-2.5 sm:px-7 sm:py-3 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full text-sm font-bold hover:shadow-xl hover:shadow-rose-200/50 transition-all hover:scale-[1.02] active:scale-[0.98] animate-shimmer bg-[length:200%_100%]">
+              <a href="/login" className="hidden sm:inline-flex px-5 py-2.5 text-sm font-semibold text-gray-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">Sign In</a>
+              <a href="/signup" className="px-5 py-2.5 sm:px-7 sm:py-3 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full text-sm font-bold hover:shadow-xl hover:shadow-rose-200/50 transition-all hover:scale-[1.02] active:scale-[0.98] animate-shimmer bg-[length:200%_100%]">
                 Get Started
-              </Link>
+              </a>
               <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2.5 rounded-xl hover:bg-rose-50 transition-colors">
                 <div className="w-5 flex flex-col gap-1">
                   <span className={"h-0.5 bg-gray-700 rounded-full transition-all duration-300 " + (mobileMenu ? "rotate-45 translate-y-1.5" : "")} />
@@ -132,8 +132,8 @@ export default function HomePage() {
                   <a key={name} href={href} onClick={() => setMobileMenu(false)} className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 font-medium transition-all">{name}</a>
                 ))}
                 <div className="flex gap-3 pt-4 px-2">
-                  <Link href="/login" onClick={() => setMobileMenu(false)} className="flex-1 py-3 text-center border-2 border-rose-300 text-rose-600 rounded-full font-bold hover:bg-rose-50 transition-all">Sign In</Link>
-                  <Link href="/signup" onClick={() => setMobileMenu(false)} className="flex-1 py-3 text-center bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold shadow-lg shadow-rose-200/50">Sign Up</Link>
+                  <a href="/login" onClick={() => setMobileMenu(false)} className="flex-1 py-3 text-center border-2 border-rose-300 text-rose-600 rounded-full font-bold hover:bg-rose-50 transition-all">Sign In</a>
+                  <a href="/signup" onClick={() => setMobileMenu(false)} className="flex-1 py-3 text-center bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold shadow-lg shadow-rose-200/50">Sign Up</a>
                 </div>
               </div>
             </div>
@@ -357,9 +357,9 @@ export default function HomePage() {
 
           {/* CTA after steps */}
           <div className={"text-center mt-16 reveal " + (s3.visible ? "visible" : "") + " reveal-delay-5"}>
-            <Link href="/signup" className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full font-bold hover:shadow-2xl hover:shadow-rose-300/30 transition-all hover:scale-[1.02]">
+            <a href="/signup" className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full font-bold hover:shadow-2xl hover:shadow-rose-300/30 transition-all hover:scale-[1.02]">
               Create Your Free Profile <span>→</span>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -397,7 +397,7 @@ export default function HomePage() {
                       <span className="text-5xl font-extrabold text-gray-900">{plan.price}</span>
                       <span className="text-gray-400 font-medium">{plan.period}</span>
                     </div>
-                    <Link href="/signup" className={"block w-full py-3.5 rounded-full text-center font-bold text-sm transition-all " + (plan.popular ? "bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white hover:shadow-xl hover:shadow-rose-200/50" : "border-2 border-gray-200 text-gray-700 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50")}>{plan.cta}</Link>
+                    <a href="/signup" className={"block w-full py-3.5 rounded-full text-center font-bold text-sm transition-all " + (plan.popular ? "bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white hover:shadow-xl hover:shadow-rose-200/50" : "border-2 border-gray-200 text-gray-700 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50")}>{plan.cta}</a>
                     <div className="mt-7 space-y-3">
                       {plan.features.map((f, j) => <div key={j} className="flex items-center gap-3 text-sm"><span className="w-5 h-5 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">✓</span><span className="text-gray-600">{f}</span></div>)}
                       {plan.excluded.map((f, j) => <div key={j} className="flex items-center gap-3 text-sm"><span className="w-5 h-5 bg-gray-100 text-gray-300 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">✗</span><span className="text-gray-300 line-through">{f}</span></div>)}
@@ -429,7 +429,7 @@ export default function HomePage() {
                 <div className="flex gap-0.5 mb-4">{[1, 2, 3, 4, 5].map(s => <span key={s} className="text-amber-400 text-sm">★</span>)}</div>
                 <p className="text-gray-600 text-sm leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-rose-200/40">{t.name[0]}</div>
+                  {t.img ? <img src={t.img} alt={t.name} className="w-11 h-11 rounded-full object-cover shadow-lg border-2 border-rose-100" /> : <div className="w-11 h-11 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-rose-200/40">{t.name[0]}</div>}
                   <div>
                     <p className="text-sm font-bold text-gray-900">{t.name}</p>
                     <p className="text-xs text-gray-400">{t.loc} · {t.status}</p>
@@ -450,7 +450,7 @@ export default function HomePage() {
                       <div className="flex gap-0.5 mb-4">{[1, 2, 3, 4, 5].map(s => <span key={s} className="text-amber-400 text-sm">★</span>)}</div>
                       <p className="text-gray-600 text-sm leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-sm font-bold shadow-lg">{t.name[0]}</div>
+                        {t.img ? <img src={t.img} alt={t.name} className="w-11 h-11 rounded-full object-cover shadow-lg border-2 border-rose-100" /> : <div className="w-11 h-11 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-sm font-bold shadow-lg">{t.name[0]}</div>}
                         <div>
                           <p className="text-sm font-bold text-gray-900">{t.name}</p>
                           <p className="text-xs text-gray-400">{t.loc} · {t.status}</p>
@@ -519,9 +519,9 @@ export default function HomePage() {
           <p className="text-lg sm:text-xl text-rose-100/80 mb-12 max-w-2xl mx-auto font-body">
             Join thousands of verified singles finding real love on ConnectHub. No games, no ghosting — just real connections.
           </p>
-          <Link href="/signup" className="inline-block px-14 py-5 bg-white text-rose-600 rounded-full font-extrabold text-lg hover:shadow-2xl hover:shadow-white/20 transition-all hover:scale-[1.03] active:scale-[0.98] font-body">
+          <a href="/signup" className="inline-block px-14 py-5 bg-white text-rose-600 rounded-full font-extrabold text-lg hover:shadow-2xl hover:shadow-white/20 transition-all hover:scale-[1.03] active:scale-[0.98] font-body">
             Start Free Today →
-          </Link>
+          </a>
           <p className="text-rose-200/50 text-sm mt-6 font-body">No credit card required · Free forever plan available</p>
         </div>
       </section>
