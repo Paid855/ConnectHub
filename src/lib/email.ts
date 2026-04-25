@@ -24,7 +24,17 @@ export async function sendResetCode(to: string, code: string, name: string) {
 export async function sendWelcomeEmail(to: string, name: string) {
   try {
     console.log("[Email] Sending welcome email to:", to);
-    const info = await transporter.sendMail({ from: FROM, to, subject: "Welcome to ConnectHub! 💕", html: welcomeEmail(name) });
+    const info = await transporter.sendMail({
+      from: FROM, to,
+      subject: "Welcome to ConnectHub - Your account is ready",
+      html: welcomeEmail(name),
+      text: "Hi " + name + ", welcome to ConnectHub! Your account has been created and you received 20 free coins. Start exploring at https://connecthub.love/dashboard",
+      headers: {
+        "X-Priority": "3",
+        "X-Mailer": "ConnectHub Mailer",
+        "List-Unsubscribe": "<mailto:support@connecthub.love?subject=unsubscribe>"
+      }
+    });
     console.log("[Email] Welcome email sent:", info.messageId);
     return true;
   } catch (e: any) { console.error("[Email] Welcome email failed:", e.message || e); return false; }
@@ -32,14 +42,14 @@ export async function sendWelcomeEmail(to: string, name: string) {
 
 export async function sendMatchEmail(to: string, name: string, matchName: string) {
   try {
-    await transporter.sendMail({ from: FROM, to, subject: `It's a Match! You and ${matchName} liked each other 💕`, html: matchEmail(name, matchName) });
+    await transporter.sendMail({ from: FROM, to, subject: `ConnectHub: You matched with ${matchName}`, html: matchEmail(name, matchName) });
     return true;
   } catch { return false; }
 }
 
 export async function sendLikeEmail(to: string, name: string, likerName: string, isSuperLike = false) {
   try {
-    await transporter.sendMail({ from: FROM, to, subject: isSuperLike ? `${likerName} Super Liked you! ⭐` : `Someone likes you on ConnectHub 💕`, html: likeEmail(name, likerName, isSuperLike) });
+    await transporter.sendMail({ from: FROM, to, subject: isSuperLike ? `${likerName} Super Liked you on ConnectHub` : `Someone likes your profile on ConnectHub`, html: likeEmail(name, likerName, isSuperLike) });
     return true;
   } catch { return false; }
 }
