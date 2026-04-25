@@ -1,16 +1,13 @@
-import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { createNotification } from "@/lib/notify";
-import { sendPushToUser } from "@/lib/push";
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "ConnectHub_Admin_2026_Secret";
+function isAdmin(req: NextRequest) {
+  try { return JSON.parse(req.cookies.get("admin_session")?.value || "{}").isAdmin === true; }
+  catch { return false; }
+}
 
 export async function GET(req: NextRequest) {
-  const id = getUserId(req);
-  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const user = await prisma.user.findUnique({ where: { id }, select: { role: true } });
-  if (user?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
 
   const withdrawals = await prisma.withdrawal.findMany({
     orderBy: { createdAt: "desc" },
@@ -40,10 +37,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const id = getUserId(req);
-  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const user = await prisma.user.findUnique({ where: { id }, select: { role: true } });
-  if (user?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
 
   const { withdrawalId, action, adminNote } = await req.json();
   if (!withdrawalId || !action) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -57,8 +51,10 @@ export async function POST(req: NextRequest) {
       where: { id: withdrawalId },
       data: { status: "approved", adminNote: adminNote || "Approved", processedAt: new Date() }
     });
-    createNotification(withdrawal.userId, "purchase", "Withdrawal Approved! 💰", `Your withdrawal of ${withdrawal.amount} coins ($${(withdrawal.amount * 0.01).toFixed(2)}) has been approved.`);
-    sendPushToUser(withdrawal.userId, { title: "Withdrawal Approved! 💰", body: `$${(withdrawal.amount * 0.01).toFixed(2)} is on its way`, url: "/dashboard/wallet", tag: "withdrawal" });
+    // Notify user
+    await prisma.notification.create({
+      data: { userId: withdrawal.userId, type: "purchase", title: "Withdrawal Approved!", message: `Your withdrawal of ${withdrawal.amount} coins ($${(withdrawal.amount * 0.01).toFixed(2)}) has been approved and sent.`, read: false }
+    }).catch(() => {});
     return NextResponse.json({ success: true, status: "approved" });
   }
 
@@ -66,13 +62,16 @@ export async function POST(req: NextRequest) {
     // Refund coins
     await prisma.user.update({ where: { id: withdrawal.userId }, data: { coins: { increment: withdrawal.amount } } });
     await prisma.coinTransaction.create({
-      data: { userId: withdrawal.userId, amount: withdrawal.amount, type: "refund", description: "Withdrawal rejected — coins refunded" }
-    });
+      data: { userId: withdrawal.userId, amount: withdrawal.amount, type: "refund", description: "Withdrawal rejected - coins refunded" }
+    }).catch(() => {});
     await prisma.withdrawal.update({
       where: { id: withdrawalId },
       data: { status: "rejected", adminNote: adminNote || "Rejected", processedAt: new Date() }
     });
-    createNotification(withdrawal.userId, "purchase", "Withdrawal Update", `Your withdrawal was not approved. ${withdrawal.amount} coins have been refunded. ${adminNote ? "Note: " + adminNote : ""}`);
+    // Notify user
+    await prisma.notification.create({
+      data: { userId: withdrawal.userId, type: "purchase", title: "Withdrawal Update", message: `Your withdrawal was not approved. ${withdrawal.amount} coins have been refunded. ${adminNote ? "Note: " + adminNote : ""}`, read: false }
+    }).catch(() => {});
     return NextResponse.json({ success: true, status: "rejected" });
   }
 
