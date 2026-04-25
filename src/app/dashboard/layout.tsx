@@ -82,7 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     } catch { router.push("/login"); } finally { setLoading(false); }
   };
   const loadUnread = async () => { try { const res = await fetch("/api/messages"); if (res.ok) { const d = await res.json(); setUnread((d.conversations||[]).reduce((s:number,c:any)=>s+(c.unreadCount||0),0)); } } catch {} };
-  const loadNotifications = async () => { if (Date.now() - lastReadTime.current < 3000) return; try { const res = await fetch("/api/notifications"); if (res.ok) { const d = await res.json(); setNotifCount(d.unreadCount||0); setNotifications(d.notifications||[]); } } catch {} };
+  const loadNotifications = async () => { if (Date.now() - lastReadTime.current < 8000) return; try { const res = await fetch("/api/notifications"); if (res.ok) { const d = await res.json(); setNotifCount(d.unreadCount||0); setNotifications(d.notifications||[]); } } catch {} };
   const markAllRead = async () => { lastReadTime.current=Date.now(); await fetch("/api/notifications", { method:"PUT" }); setNotifCount(0); setNotifications(p => p.map(n => ({...n, read:true}))); };
 
   useEffect(() => {
@@ -92,7 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const handlePush = (event: MessageEvent) => {
       if (event.data?.type === "PUSH_RECEIVED") {
         loadUnread();
-        loadNotifications();
+        if (Date.now() - lastReadTime.current > 8000) loadNotifications();
         window.dispatchEvent(new CustomEvent("connecthub:refresh", { detail: event.data.payload }));
       }
     };
@@ -101,7 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         loadUnread();
-        loadNotifications();
+        if (Date.now() - lastReadTime.current > 8000) loadNotifications();
         window.dispatchEvent(new CustomEvent("connecthub:refresh"));
       }
     };
