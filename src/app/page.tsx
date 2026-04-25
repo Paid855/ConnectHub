@@ -177,7 +177,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4" style={{ animation: "fade-up 1.2s ease-out" }}>
                 <a href="/signup" className="group relative px-9 py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full text-base font-bold hover:shadow-2xl hover:shadow-rose-300/40 transition-all text-center hover:scale-[1.02] active:scale-[0.98] overflow-hidden">
                   <span className="relative z-10">Start Matching Free <span className="inline-block ml-1 group-hover:translate-x-1 transition-transform">→</span></span>
-                </Link>
+                </a>
                 <a href="#how-it-works" className="px-9 py-4 glass border border-rose-200/60 text-gray-700 rounded-full text-base font-bold hover:border-rose-300 hover:shadow-lg hover:shadow-rose-100/30 transition-all text-center">
                   See How It Works
                 </a>
