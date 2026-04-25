@@ -12,55 +12,97 @@ function VoicePlayer({ src, msgId, isMine, dark }: { src: string; msgId: string;
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [error, setError] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Check if src has actual data (not just header)
+  const hasData = src && src.length > 50;
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    if (error) return;
     const audio = audioRef.current;
-    if (!audio) return;
+    if (audio === null) return;
 
     if (playing) {
       audio.pause();
       setPlaying(false);
     } else {
-      // Stop all other audio players first
-      document.querySelectorAll("audio").forEach((a) => { a.pause(); a.currentTime = 0; });
-      audio.play().then(() => setPlaying(true)).catch(() => {
-        // Retry with user interaction workaround for mobile
-        audio.load();
-        audio.play().then(() => setPlaying(true)).catch(() => {});
+      // Stop all other playing audio
+      document.querySelectorAll("audio").forEach((a: HTMLAudioElement) => {
+        if (a !== audio) { a.pause(); a.currentTime = 0; }
       });
+      // Load first for mobile compatibility
+      if (audio.readyState < 2) audio.load();
+      const playPromise = audio.play();
+      if (playPromise) {
+        playPromise.then(() => setPlaying(true)).catch((err) => {
+          console.log("[Voice] Play failed:", err);
+          // Try once more after load
+          audio.load();
+          setTimeout(() => {
+            audio.play().then(() => setPlaying(true)).catch(() => setError(true));
+          }, 200);
+        });
+      }
     }
   };
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-    const onLoaded = () => setDuration(audio.duration || 0);
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime || 0);
+    if (audio === null) return;
+    const onLoaded = () => {
+      setLoaded(true);
+      if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration);
+    };
+    const onTimeUpdate = () => {
+      setCurrentTime(audio.currentTime || 0);
+      // Some browsers only report duration during playback
+      if (audio.duration && isFinite(audio.duration) && duration === 0) setDuration(audio.duration);
+    };
     const onEnded = () => { setPlaying(false); setCurrentTime(0); };
     const onPause = () => setPlaying(false);
+    const onError = () => { setError(true); setPlaying(false); };
+    const onCanPlay = () => {
+      setLoaded(true);
+      if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration);
+    };
     audio.addEventListener("loadedmetadata", onLoaded);
+    audio.addEventListener("canplaythrough", onCanPlay);
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("ended", onEnded);
     audio.addEventListener("pause", onPause);
+    audio.addEventListener("error", onError);
+    // Force load for metadata
+    audio.load();
     return () => {
       audio.removeEventListener("loadedmetadata", onLoaded);
+      audio.removeEventListener("canplaythrough", onCanPlay);
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("ended", onEnded);
       audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("error", onError);
     };
   }, []);
 
   const formatTime = (s: number) => {
-    if (!s || isNaN(s)) return "0:00";
+    if (s === undefined || s === null || isNaN(s) || s === 0) return "0:00";
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
     return m + ":" + (sec < 10 ? "0" : "") + sec;
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  if (error) {
+    return (
+      <div className={"flex items-center gap-2 min-w-[140px] text-xs " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))} onClick={e => e.stopPropagation()}>
+        <Mic className="w-4 h-4" /> Unable to play
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2.5 min-w-[180px] max-w-[260px]" onClick={e => e.stopPropagation()}>
@@ -69,14 +111,14 @@ function VoicePlayer({ src, msgId, isMine, dark }: { src: string; msgId: string;
       </button>
       <div className="flex-1 min-w-0">
         <div className={"w-full h-1.5 rounded-full overflow-hidden " + (isMine ? "bg-white/20" : (dark ? "bg-gray-600" : "bg-rose-200/50"))}>
-          <div className={"h-full rounded-full transition-all " + (isMine ? "bg-white/70" : "bg-rose-500")} style={{ width: progress + "%" }} />
+          <div className={"h-full rounded-full transition-all duration-200 " + (isMine ? "bg-white/70" : "bg-rose-500")} style={{ width: progress + "%" }} />
         </div>
         <div className="flex justify-between mt-1">
           <span className={"text-[10px] " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))}>{formatTime(currentTime)}</span>
-          <span className={"text-[10px] " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))}>{formatTime(duration)}</span>
+          <span className={"text-[10px] " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))}>{duration > 0 ? formatTime(duration) : (loaded ? "0:00" : "...")}</span>
         </div>
       </div>
-      <audio ref={audioRef} src={src} preload="metadata" />
+      {hasData && <audio ref={audioRef} src={src} preload="auto" playsInline />}
     </div>
   );
 }
@@ -270,7 +312,15 @@ export default function MessagesPage() {
       voiceCancelled.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recordingStream.current = stream;
-      const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm" });
+      // Pick best supported format — prefer mp4 for iOS compatibility
+      const mimeType = [
+        "audio/mp4",
+        "audio/aac",
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+      ].find(t => MediaRecorder.isTypeSupported(t)) || "";
+      const mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       const chunks: Blob[] = [];
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       mr.onstop = async () => {
@@ -281,9 +331,10 @@ export default function MessagesPage() {
         setRecording(false);
         // Don't send if cancelled
         if (voiceCancelled.current) { voiceCancelled.current = false; return; }
-        if (chunks.length === 0) return;
+        if (chunks.length === 0) { console.log("[Voice] No chunks recorded"); return; }
         const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
-        if (blob.size < 500) return;
+        console.log("[Voice] Blob size:", blob.size, "chunks:", chunks.length, "type:", blob.type);
+        if (blob.size < 2000) { console.log("[Voice] Recording too short, discarding"); return; }
         const reader = new FileReader();
         reader.onload = async (ev) => {
           if (chatWith && ev.target?.result) {
