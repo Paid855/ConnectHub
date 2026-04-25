@@ -849,8 +849,8 @@ function VerificationResetScreen() {
     try {
       await fetch("/api/verify/reset-status", { method: "POST", headers: { "Content-Type": "application/json" } });
     } catch {}
-    // Force full page reload after a short delay
-    setTimeout(() => { window.location.href = "/dashboard/verify"; }, 500);
+    // Redirect with restart param to bypass reset screen
+    window.location.href = "/dashboard/verify?restart=1";
   };
 
   return (
@@ -1019,7 +1019,11 @@ export default function VerifyPage() {
     );
   }
 
-  if (user.verificationStatus === "reset") {
+  // If user clicked "Start Again" — skip reset screen even if status is still "reset"
+  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const isRestart = searchParams?.get("restart") === "1";
+
+  if (user.verificationStatus === "reset" && !isRestart) {
     return <VerificationResetScreen />;
   }
 
