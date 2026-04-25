@@ -142,24 +142,24 @@ export default function HomePage() {
       </nav>
 
       {/* ═══ HERO ═══ */}
-      <section className="relative min-h-screen flex items-center overflow-hidden">
+      <section className="relative min-h-[90vh] sm:min-h-screen flex items-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-rose-50 via-white to-pink-50/60" />
         <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-gradient-to-br from-rose-200/30 to-pink-200/20 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-purple-200/20 to-pink-100/20 rounded-full blur-3xl animate-float-slow" />
         <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-amber-100/20 rounded-full blur-3xl" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-28 sm:py-36">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div className="font-body">
               <div className="inline-flex items-center gap-2.5 px-5 py-2.5 bg-white/80 backdrop-blur border border-rose-100 text-rose-700 rounded-full text-sm font-semibold mb-8 shadow-sm" style={{ animation: "fade-up 0.6s ease-out" }}>
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                 <span>2,847 people found love this week</span>
               </div>
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 leading-[1.05] mb-7 tracking-tight" style={{ animation: "fade-up 0.8s ease-out" }}>
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-gray-900 leading-[1.05] mb-6 sm:mb-7 tracking-tight" style={{ animation: "fade-up 0.8s ease-out" }}>
                 Where Love<br />
                 <span className="font-display italic gradient-text">Finds You</span>
               </h1>
-              <p className="text-lg sm:text-xl text-gray-500 mb-10 max-w-lg leading-relaxed" style={{ animation: "fade-up 1s ease-out" }}>
+              <p className="text-base sm:text-lg lg:text-xl text-gray-500 mb-8 sm:mb-10 max-w-lg leading-relaxed" style={{ animation: "fade-up 1s ease-out" }}>
                 Video-verified profiles. Intelligent matching. Real connections that lead to real relationships. Your next chapter starts here.
               </p>
               <div className="flex flex-col sm:flex-row gap-4" style={{ animation: "fade-up 1.2s ease-out" }}>
@@ -185,13 +185,49 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Hero visual */}
+            {/* Mobile hero card */}
+            <div className="lg:hidden relative mx-auto max-w-xs mt-4" style={{ animation: "scale-in 1s ease-out 0.3s both" }}>
+              <div className="relative aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl shadow-rose-300/30">
+                <img src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=500&q=80&fit=crop&crop=faces" alt="Match" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute bottom-6 left-6 right-6">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-white/60 text-[10px] font-medium tracking-widest uppercase mb-0.5">Your Match</p>
+                      <p className="text-white font-bold text-xl font-display">Sarah, 26</p>
+                      <p className="text-white/70 text-xs mt-0.5 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> Online now
+                      </p>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button className="w-10 h-10 bg-white/15 backdrop-blur rounded-xl flex items-center justify-center text-white border border-white/10">✕</button>
+                      <button className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-rose-500/30">♥</button>
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 mt-3 flex-wrap">
+                    {["Travel ✈️", "Music 🎵", "Coffee ☕"].map(t => (
+                      <span key={t} className="px-2.5 py-1 bg-white/15 text-white text-[10px] rounded-full font-medium border border-white/10">{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Mini floating notification */}
+              <div className="absolute -top-3 -right-2 bg-white rounded-2xl px-4 py-2.5 shadow-xl border border-rose-100 flex items-center gap-2" style={{ animation: "fade-up 1.5s ease-out" }}>
+                <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-pink-400 rounded-full flex items-center justify-center text-white text-sm">💕</div>
+                <div>
+                  <p className="text-xs font-bold text-gray-900">New Match!</p>
+                  <p className="text-[10px] text-gray-400">Just now</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop hero visual */}
             <div className="relative hidden lg:block" style={{ animation: "scale-in 1s ease-out 0.3s both" }}>
               <div className="relative w-full h-[600px]">
                 {/* Main card */}
-                <div className="absolute inset-4 bg-gradient-to-br from-rose-400 via-pink-500 to-purple-600 rounded-[2.5rem] shadow-2xl shadow-rose-300/30 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "24px 24px" }} />
+                <div className="absolute inset-4 rounded-[2.5rem] shadow-2xl shadow-rose-300/30 overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&q=80&fit=crop&crop=faces" alt="Match" className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
                   <div className="absolute bottom-8 left-8 right-8 space-y-4">
                     <div className="flex items-end justify-between">
                       <div>
