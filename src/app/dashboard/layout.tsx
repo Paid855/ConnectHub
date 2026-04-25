@@ -303,10 +303,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ].map(item => {
               const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
               return (
-                <Link key={item.href} href={item.href} className={"flex flex-col items-center gap-0.5 px-2 py-1 " + (active ? "text-rose-500" : (dc ? "text-gray-500" : "text-gray-400"))}>
-                  <item.icon className={"w-5 h-5 " + (active ? "text-rose-500" : "")} />
+                <Link key={item.href} href={item.href} className={"relative flex flex-col items-center gap-0.5 px-3 py-1 " + (active ? "text-rose-500" : (dc ? "text-gray-500" : "text-gray-400"))}>
+                  <div className="relative">
+                    <item.icon className={"w-5 h-5 " + (active ? "text-rose-500" : "")} />
+                    {item.href==="/dashboard/messages" && unread>0 && <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">{unread > 9 ? "9+" : unread}</span>}
+                  </div>
                   <span className="text-[10px] font-medium">{item.label}</span>
-                  {item.href==="/dashboard/messages" && unread>0 && <span className="absolute -top-1 right-0 w-4 h-4 bg-rose-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">{unread}</span>}
                 </Link>
               );
             })}

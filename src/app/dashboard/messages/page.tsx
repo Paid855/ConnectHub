@@ -2,11 +2,84 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUser, TierBadge } from "../layout";
-import { Send, ArrowLeft, X as XIcon, Phone, Video, MoreVertical, Smile, Image as ImageIcon, Mic, Trash2, Shield, Search, Check, CheckCheck } from "lucide-react";
+import { Send, ArrowLeft, Play, Pause, Square, X as XIcon, Phone, Video, MoreVertical, Smile, Image as ImageIcon, Mic, Trash2, Shield, Search, Check, CheckCheck } from "lucide-react";
 import Link from "next/link";
 
 const EMOJIS = ["😀","😂","🥰","😍","😘","🤗","😊","❤️","🔥","💕","✨","💯","👋","🎉","💐","🌹"];
 const REACTION_EMOJIS = ["❤️","😂","👍","😮","😢","🔥"];
+
+function VoicePlayer({ src, msgId, isMine, dark }: { src: string; msgId: string; isMine: boolean; dark: boolean }) {
+  const [playing, setPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+    } else {
+      // Stop all other audio players first
+      document.querySelectorAll("audio").forEach((a) => { a.pause(); a.currentTime = 0; });
+      audio.play().then(() => setPlaying(true)).catch(() => {
+        // Retry with user interaction workaround for mobile
+        audio.load();
+        audio.play().then(() => setPlaying(true)).catch(() => {});
+      });
+    }
+  };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onLoaded = () => setDuration(audio.duration || 0);
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime || 0);
+    const onEnded = () => { setPlaying(false); setCurrentTime(0); };
+    const onPause = () => setPlaying(false);
+    audio.addEventListener("loadedmetadata", onLoaded);
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    return () => {
+      audio.removeEventListener("loadedmetadata", onLoaded);
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+    };
+  }, []);
+
+  const formatTime = (s: number) => {
+    if (!s || isNaN(s)) return "0:00";
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ":" + (sec < 10 ? "0" : "") + sec;
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div className="flex items-center gap-2.5 min-w-[180px] max-w-[260px]" onClick={e => e.stopPropagation()}>
+      <button onClickCapture={togglePlay} className={"w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-90 " + (isMine ? "bg-white/20 hover:bg-white/30" : (dark ? "bg-gray-700 hover:bg-gray-600" : "bg-rose-100 hover:bg-rose-200"))}>
+        {playing ? <Pause className={"w-4 h-4 " + (isMine ? "text-white" : "text-rose-500")} /> : <Play className={"w-4 h-4 ml-0.5 " + (isMine ? "text-white" : "text-rose-500")} />}
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className={"w-full h-1.5 rounded-full overflow-hidden " + (isMine ? "bg-white/20" : (dark ? "bg-gray-600" : "bg-rose-200/50"))}>
+          <div className={"h-full rounded-full transition-all " + (isMine ? "bg-white/70" : "bg-rose-500")} style={{ width: progress + "%" }} />
+        </div>
+        <div className="flex justify-between mt-1">
+          <span className={"text-[10px] " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))}>{formatTime(currentTime)}</span>
+          <span className={"text-[10px] " + (isMine ? "text-white/50" : (dark ? "text-gray-500" : "text-gray-400"))}>{formatTime(duration)}</span>
+        </div>
+      </div>
+      <audio ref={audioRef} src={src} preload="metadata" />
+    </div>
+  );
+}
 
 export default function MessagesPage() {
   const { user, dark } = useUser();
@@ -346,13 +419,7 @@ export default function MessagesPage() {
                       <img src={msg.content.replace("[GIF]", "")} alt="GIF" className="max-w-[220px] rounded-xl" loading="lazy" />
                     )}
                     {voiceSrc && (
-                      <div className="flex items-center gap-2 min-w-[140px]">
-                        <button onClick={(e) => { e.stopPropagation(); const a = document.getElementById("voice-" + msg.id) as HTMLAudioElement; a?.paused ? a?.play() : a?.pause(); }} className={"w-8 h-8 rounded-full flex items-center justify-center " + (isMine ? "bg-white/20" : (dc ? "bg-gray-700" : "bg-rose-100"))}>
-                          <Mic className={"w-4 h-4 " + (isMine ? "text-white" : "text-rose-500")} />
-                        </button>
-                        <div className="flex-1 flex items-center gap-0.5">{[...Array(12)].map((_, i) => <div key={i} className={"w-1 rounded-full " + (isMine ? "bg-white/40" : (dc ? "bg-gray-600" : "bg-rose-200"))} style={{ height: Math.random() * 16 + 4 }} />)}</div>
-                        <audio id={"voice-" + msg.id} src={voiceSrc} />
-                      </div>
+                      <VoicePlayer src={voiceSrc} msgId={msg.id} isMine={isMine} dark={dc} />
                     )}
                     {!isDeleted && (
                       <div className={"flex items-center gap-1 mt-0.5 " + (isMine ? "justify-end" : "justify-start")}>
