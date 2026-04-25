@@ -180,13 +180,16 @@ export default function LiveStreamPage() {
   const joinLive = async(s:any)=>{
     setStream(s); setRole("viewer"); setErr("");
     try{
+      console.log("[Live] Step 1: Importing Agora SDK...");
       const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
       AgoraRTC.setLogLevel(4);
+      console.log("[Live] Step 2: Creating client...");
       const c=AgoraRTC.createClient({mode:"live",codec:"vp8"});
       await c.setClientRole("audience");
-
+      console.log("[Live] Step 3: Getting token...");
       const ch=`stream_${s.id}`;
       const tk=await fetch("/api/agora",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channelName:ch,isHost:false})}).then(r=>r.json());
+      console.log("[Live] Step 4: Token response:", JSON.stringify(tk).substring(0,100));
       if(tk.error) throw new Error(tk.error);
 
       c.on("user-published",async(user:any,type:any)=>{
@@ -208,7 +211,9 @@ export default function LiveStreamPage() {
         },2000);
       });
 
+      console.log("[Live] Step 5: Joining channel:", ch);
       await c.join(tk.appId,ch,tk.token,tk.uid);
+      console.log("[Live] Step 6: Joined successfully!");
       setAgoraClient(c);
       setPage("live");
       toast(`Joined ${s.host?.name||"the host"}'s stream`,"🎉");
@@ -218,6 +223,7 @@ export default function LiveStreamPage() {
     }catch(e:any){
       console.error("[Live] Join failed:", e);
       const msg = e.message || "Unknown error";
+      alert("JOIN ERROR: " + msg);
       setErr("Failed to join: " + msg);
       setStream(null); setPage("list");
     }
