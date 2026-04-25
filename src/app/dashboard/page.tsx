@@ -61,7 +61,7 @@ export default function DiscoverPage() {
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin"/></div>;
 
   if (!profile) return (
-    <div className={"rounded-3xl border p-12 text-center max-w-md mx-auto mt-10 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
+    <div className={"rounded-3xl border p-8 sm:p-12 text-center max-w-md mx-auto mt-6 sm:mt-10 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-lg")}>
       <div className="w-20 h-20 mx-auto bg-gradient-to-br from-rose-100 to-pink-100 rounded-full flex items-center justify-center mb-5"><Heart className="w-10 h-10 text-rose-500" /></div>
       <h2 className={"text-2xl font-extrabold mb-2 " + (dc?"text-white":"text-gray-900")}>All Caught Up!</h2>
       <p className={"text-sm mb-6 " + (dc?"text-gray-400":"text-gray-500")}>You have seen everyone for now. Check back later for new profiles!</p>
@@ -75,7 +75,7 @@ export default function DiscoverPage() {
   // Match popup
   const MatchPopup = () => matchPopup ? (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setMatchPopup(null)}>
-      <div className={"p-8 rounded-3xl text-center max-w-sm mx-4 shadow-2xl " + (dc ? "bg-gray-800" : "bg-white")} onClick={e => e.stopPropagation()}>
+      <div className={"p-8 rounded-3xl text-center max-w-sm mx-4 w-[92%] shadow-2xl " + (dc ? "bg-gray-800" : "bg-white")} onClick={e => e.stopPropagation()}>
         <div className="flex justify-center gap-4 mb-6">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-3xl shadow-xl shadow-rose-200/50 border-4 border-white">
             {user.profilePhoto ? <img src={user.profilePhoto} className="w-full h-full rounded-full object-cover" /> : user.name?.[0] || "?"}
@@ -111,7 +111,7 @@ export default function DiscoverPage() {
       </div>
 
       {/* Main card */}
-      <div className={"relative rounded-3xl overflow-hidden shadow-2xl border " + (dc?"border-gray-700 shadow-black/50":"border-gray-100 shadow-rose-100/50") + " " + (action==="like"?"translate-x-20 rotate-6 opacity-0":action==="pass"?"-translate-x-20 -rotate-6 opacity-0":"") + " transition-all duration-500"}>
+      <div className={"relative rounded-3xl overflow-hidden shadow-2xl border mx-auto max-w-sm sm:max-w-md " + (dc?"border-gray-700 shadow-black/50":"border-gray-100 shadow-rose-100/50") + " " + (action==="like"?"translate-x-20 rotate-6 opacity-0":action==="pass"?"-translate-x-20 -rotate-6 opacity-0":"") + " transition-all duration-500"}>
         {/* Photo */}
         <div className="relative aspect-[3/4]" onClick={()=>setShowDetails(!showDetails)}>
           {profile.profilePhoto ? (
@@ -169,13 +169,13 @@ export default function DiscoverPage() {
 
       {/* Action buttons */}
       <div className="flex items-center justify-center gap-4 mt-6">
-        <button onClick={()=>handleAction("pass")} className={"w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all hover:scale-110 " + (dc?"border-gray-600 text-gray-400 hover:border-red-500 hover:text-red-500 bg-gray-800":"border-gray-200 text-gray-400 hover:border-red-400 hover:text-red-500 bg-white shadow-lg")}>
+        <button onClick={()=>handleAction("pass")} className={"w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center border-2 transition-all hover:scale-110 " + (dc?"border-gray-600 text-gray-400 hover:border-red-500 hover:text-red-500 bg-gray-800":"border-gray-200 text-gray-400 hover:border-red-400 hover:text-red-500 bg-white shadow-lg")}>
           <X className="w-7 h-7" />
         </button>
-        <button onClick={()=>handleAction("superlike")} className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-blue-200/50 hover:scale-110 transition-all">
+        <button onClick={()=>handleAction("superlike")} className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-blue-200/50 hover:scale-110 transition-all">
           <Star className="w-6 h-6" />
         </button>
-        <button onClick={()=>handleAction("like")} className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 text-white flex items-center justify-center shadow-xl shadow-rose-200/50 hover:scale-110 transition-all">
+        <button onClick={()=>handleAction("like")} className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 text-white flex items-center justify-center shadow-xl shadow-rose-200/50 hover:scale-110 transition-all">
           <Heart className="w-8 h-8" />
         </button>
         <Link href={"/dashboard/messages"} className={"w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all hover:scale-110 " + (dc?"border-gray-600 text-gray-400 hover:border-purple-500 hover:text-purple-400 bg-gray-800":"border-gray-200 text-gray-400 hover:border-purple-400 hover:text-purple-500 bg-white shadow-lg")}>

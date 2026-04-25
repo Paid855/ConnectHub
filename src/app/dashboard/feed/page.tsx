@@ -216,7 +216,7 @@ export default function FeedPage() {
           {/* Your Story */}
           <div className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer" onClick={() => storyFileRef.current?.click()}>
             <div className="relative">
-              <div className={"w-[68px] h-[68px] rounded-full flex items-center justify-center " + (myStories.length > 0 ? "p-[3px] bg-gradient-to-br from-rose-500 via-pink-500 to-purple-500" : (dc ? "p-[3px] bg-gray-600" : "p-[3px] bg-gray-200"))}>
+              <div className={"w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-full flex items-center justify-center " + (myStories.length > 0 ? "p-[3px] bg-gradient-to-br from-rose-500 via-pink-500 to-purple-500" : (dc ? "p-[3px] bg-gray-600" : "p-[3px] bg-gray-200"))}>
                 <div className={"w-full h-full rounded-full overflow-hidden " + (dc ? "bg-gray-800" : "bg-white")}>
                   {user.profilePhoto ? <img src={user.profilePhoto} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-rose-300 to-pink-300 flex items-center justify-center text-white font-bold text-lg">{user.name?.[0]}</div>}
                 </div>
@@ -225,7 +225,7 @@ export default function FeedPage() {
                 {uploadingStory ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus className="w-3.5 h-3.5 text-white" />}
               </div>
             </div>
-            <span className={"text-[10px] font-medium w-16 text-center truncate " + (dc ? "text-gray-400" : "text-gray-500")}>Your Story</span>
+            <span className={"text-[10px] font-medium w-14 sm:w-16 text-center truncate " + (dc ? "text-gray-400" : "text-gray-500")}>Your Story</span>
           </div>
           <input ref={storyFileRef} type="file" accept="image/*,video/*" onChange={uploadStory} className="hidden" />
 
@@ -234,12 +234,12 @@ export default function FeedPage() {
             const allViewed = group.stories.every(s => s.viewedByMe);
             return (
               <div key={group.user.id} className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer" onClick={() => openStory(group)}>
-                <div className={"w-[68px] h-[68px] rounded-full p-[3px] " + (allViewed ? (dc ? "bg-gray-600" : "bg-gray-200") : "bg-gradient-to-br from-rose-500 via-pink-500 to-purple-500")}>
+                <div className={"w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-full p-[3px] " + (allViewed ? (dc ? "bg-gray-600" : "bg-gray-200") : "bg-gradient-to-br from-rose-500 via-pink-500 to-purple-500")}>
                   <div className={"w-full h-full rounded-full overflow-hidden " + (dc ? "bg-gray-800" : "bg-white")}>
                     {group.user.profilePhoto ? <img src={group.user.profilePhoto} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-rose-300 to-pink-300 flex items-center justify-center text-white font-bold text-lg">{group.user.name?.[0]}</div>}
                   </div>
                 </div>
-                <span className={"text-[10px] font-medium w-16 text-center truncate " + (dc ? "text-gray-400" : "text-gray-500")}>{group.user.name?.split(" ")[0]}</span>
+                <span className={"text-[10px] font-medium w-14 sm:w-16 text-center truncate " + (dc ? "text-gray-400" : "text-gray-500")}>{group.user.name?.split(" ")[0]}</span>
               </div>
             );
           })}

@@ -82,7 +82,7 @@ export default function WhoLikedMePage() {
       )}
 
       {/* Likes grid */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {likes.map((like: any, i: number) => {
           const u = like.user;
           if (!u) return null;
@@ -98,7 +98,7 @@ export default function WhoLikedMePage() {
               )}
 
               {/* Profile photo */}
-              <div className="relative aspect-[3/4]">
+              <div className="relative aspect-[3/4] min-h-[160px]">
                 {blurred ? (
                   <div className="w-full h-full bg-gradient-to-br from-rose-200 to-pink-200 flex items-center justify-center">
                     <div className="text-center">

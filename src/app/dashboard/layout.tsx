@@ -212,7 +212,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </aside>
 
         {/* Mobile header */}
-        <div className={"lg:hidden fixed top-0 left-0 right-0 z-40 backdrop-blur-lg border-b px-4 h-14 flex items-center justify-between " + (dc?"bg-gray-800/95 border-gray-700":"bg-white/95 border-gray-100")}>
+        <div className={"lg:hidden fixed top-0 left-0 right-0 z-40 backdrop-blur-lg border-b px-4 h-14 flex items-center justify-between safe-area-top " + (dc?"bg-gray-800/95 border-gray-700":"bg-white/95 border-gray-100")}>
           <button onClick={() => setSideOpen(!sideOpen)} className="p-2"><Menu className={"w-5 h-5 " + (dc?"text-gray-400":"text-gray-600")} /></button>
           <Link href="/dashboard"><img src="/logo.png" alt="ConnectHub" className="h-9 w-auto" /></Link>
           <div className="flex items-center gap-1">
@@ -287,7 +287,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-3 sm:p-6 lg:p-8 max-w-6xl mx-auto pb-20 lg:pb-8">{children}</div><PushPrompt />
+        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-2 sm:p-4 md:p-6 lg:p-8 max-w-6xl mx-auto pb-24 lg:pb-8">{children}</div><PushPrompt />
         <LocationDetector /><PushNotifications />
         <IncomingCall /></main>
 

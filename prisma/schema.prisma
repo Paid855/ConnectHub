@@ -216,3 +216,13 @@ model Like {
 
   @@unique([fromUserId, toUserId])
 }
+
+model Reaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId, emoji])
+}

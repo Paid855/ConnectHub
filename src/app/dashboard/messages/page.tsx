@@ -6,6 +6,7 @@ import { Send, ArrowLeft, X as XIcon, Phone, Video, MoreVertical, Smile, Image a
 import Link from "next/link";
 
 const EMOJIS = ["😀","😂","🥰","😍","😘","🤗","😊","❤️","🔥","💕","✨","💯","👋","🎉","💐","🌹"];
+const REACTION_EMOJIS = ["❤️","😂","👍","😮","😢","🔥"];
 
 export default function MessagesPage() {
   const { user, dark } = useUser();
@@ -24,6 +25,12 @@ export default function MessagesPage() {
   const [recording, setRecording] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [showConvMenu, setShowConvMenu] = useState<string|null>(null);
+  const [reactions, setReactions] = useState<Record<string, {emoji:string;count:number;mine:boolean}[]>>({});
+  const [showReactions, setShowReactions] = useState<string|null>(null);
+  const [showGif, setShowGif] = useState(false);
+  const [gifQuery, setGifQuery] = useState("");
+  const [gifs, setGifs] = useState<string[]>([]);
+  const [gifLoading, setGifLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const mediaRecorder = useRef<MediaRecorder|null>(null);
   const typingTimeout = useRef<NodeJS.Timeout|null>(null);
@@ -49,6 +56,40 @@ export default function MessagesPage() {
       setChatUser(data.otherUser || null);
       if ((data.messages || []).length > prev) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     } catch {}
+  };
+
+  // Load reactions for visible messages
+  const loadReactions = async (msgs: any[]) => {
+    if (!msgs.length) return;
+    const ids = msgs.map((m:any) => m.id).join(",");
+    try {
+      const res = await fetch("/api/messages/react?ids=" + ids);
+      if (res.ok) { const d = await res.json(); setReactions(d.reactions || {}); }
+    } catch {}
+  };
+
+  const toggleReaction = async (messageId: string, emoji: string) => {
+    await fetch("/api/messages/react", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ messageId, emoji }) });
+    setShowReactions(null);
+    loadReactions(messages);
+  };
+
+  // GIF search
+  const searchGifs = async (q: string) => {
+    setGifLoading(true);
+    try {
+      const res = await fetch("https://api.giphy.com/v1/gifs/" + (q ? "search" : "trending") + "?api_key=dc6zaTOxFJmzC&q=" + encodeURIComponent(q) + "&limit=20&rating=pg");
+      const d = await res.json();
+      setGifs((d.data || []).map((g:any) => g.images?.fixed_height?.url || g.images?.original?.url).filter(Boolean));
+    } catch { setGifs([]); }
+    setGifLoading(false);
+  };
+
+  const sendGif = async (url: string) => {
+    if (!chatWith) return;
+    setShowGif(false); setGifQuery(""); setGifs([]);
+    await fetch("/api/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ receiverId: chatWith, content: "[GIF]" + url }) });
+    loadMessages(chatWith); loadConversations();
   };
 
   // Mark messages as read when opening a chat
@@ -107,6 +148,9 @@ export default function MessagesPage() {
       return () => { clearInterval(msgInterval); clearInterval(typingInterval); };
     }
   }, [chatWith]);
+
+  // Load reactions when messages change
+  useEffect(() => { if (messages.length) loadReactions(messages); }, [messages.length]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
@@ -278,7 +322,8 @@ export default function MessagesPage() {
             const isDeleted = msg.content?.startsWith("[DELETED]");
             const isImage = msg.content?.startsWith("[IMG]");
             const isVoice = msg.content?.startsWith("[VOICE]");
-            const content = isDeleted ? "This message was deleted" : isImage || isVoice ? null : msg.content;
+            const isGif = msg.content?.startsWith("[GIF]");
+            const content = isDeleted ? "This message was deleted" : isImage || isVoice || isGif ? null : msg.content;
             const imgSrc = isImage ? msg.content.replace("[IMG]", "") : null;
             const voiceSrc = isVoice ? msg.content.replace("[VOICE]", "") : null;
             const showDate = i === 0 || new Date(msg.createdAt).toDateString() !== new Date(messages[i - 1]?.createdAt).toDateString();
@@ -292,11 +337,14 @@ export default function MessagesPage() {
                     </span>
                   </div>
                 )}
-                <div className={"flex " + (isMine ? "justify-end" : "justify-start")} onClick={() => !isDeleted && setShowMenu(showMenu === msg.id ? null : msg.id)}>
+                <div className={"flex " + (isMine ? "justify-end" : "justify-start")} onClick={() => { if (!isDeleted) { setShowMenu(showMenu === msg.id ? null : msg.id); if (showReactions && showReactions !== msg.id) setShowReactions(null); } }}>
                   <div className={"relative max-w-[75%] rounded-2xl px-3.5 py-2 " + (isDeleted ? (dc ? "bg-gray-800 border border-gray-700" : "bg-gray-100 border border-gray-200") : isMine ? "bg-gradient-to-br from-rose-500 to-pink-500 text-white" : (dc ? "bg-gray-800 text-white" : "bg-white text-gray-800 shadow-sm border border-gray-100"))}>
                     {isDeleted && <p className={"text-xs italic " + (dc ? "text-gray-500" : "text-gray-400")}>🚫 This message was deleted</p>}
                     {content && <p className="text-[14px] leading-relaxed whitespace-pre-wrap break-words">{content}</p>}
                     {imgSrc && <img src={imgSrc} alt="" className="max-w-full rounded-xl max-h-60 object-cover" />}
+                    {msg.content?.startsWith("[GIF]") && (
+                      <img src={msg.content.replace("[GIF]", "")} alt="GIF" className="max-w-[220px] rounded-xl" loading="lazy" />
+                    )}
                     {voiceSrc && (
                       <div className="flex items-center gap-2 min-w-[140px]">
                         <button onClick={(e) => { e.stopPropagation(); const a = document.getElementById("voice-" + msg.id) as HTMLAudioElement; a?.paused ? a?.play() : a?.pause(); }} className={"w-8 h-8 rounded-full flex items-center justify-center " + (isMine ? "bg-white/20" : (dc ? "bg-gray-700" : "bg-rose-100"))}>
@@ -322,8 +370,32 @@ export default function MessagesPage() {
                     )}
 
                     {/* Message actions menu */}
+                    {/* Reactions display */}
+                    {reactions[msg.id]?.length > 0 && (
+                      <div className={"flex flex-wrap gap-1 mt-1 " + (isMine ? "justify-end" : "justify-start")}>
+                        {reactions[msg.id].map((r,ri) => (
+                          <button key={ri} onClick={(e) => { e.stopPropagation(); toggleReaction(msg.id, r.emoji); }} className={"inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs transition-all " + (r.mine ? (dc ? "bg-rose-500/20 border border-rose-500/30" : "bg-rose-100 border border-rose-200") : (dc ? "bg-gray-700 border border-gray-600" : "bg-gray-100 border border-gray-200"))}>
+                            <span>{r.emoji}</span>
+                            {r.count > 1 && <span className={r.mine ? "text-rose-500 font-bold" : (dc ? "text-gray-400" : "text-gray-500")}>{r.count}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Reaction picker */}
+                    {showReactions === msg.id && (
+                      <div className={"absolute z-30 " + (isMine ? "right-0" : "left-0") + " bottom-full mb-1 flex gap-1 px-2 py-1.5 rounded-full shadow-xl border " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
+                        {REACTION_EMOJIS.map(e => (
+                          <button key={e} onClick={(e2) => { e2.stopPropagation(); toggleReaction(msg.id, e); }} className="w-8 h-8 flex items-center justify-center text-lg hover:scale-125 transition-transform rounded-full hover:bg-gray-100">{e}</button>
+                        ))}
+                      </div>
+                    )}
+
                     {showMenu === msg.id && !isDeleted && (
                       <div className={"absolute z-20 " + (isMine ? "right-0" : "left-0") + " top-full mt-1 rounded-xl shadow-xl border overflow-hidden min-w-[160px] " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
+                        <button onClick={(e) => { e.stopPropagation(); setShowMenu(null); setShowReactions(msg.id); }} className={"w-full flex items-center gap-2 px-4 py-2.5 text-sm " + (dc ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-50")}>
+                          😊 React
+                        </button>
                         <button onClick={(e) => { e.stopPropagation(); deleteMessage(msg.id, false); }} className={"w-full flex items-center gap-2 px-4 py-2.5 text-sm " + (dc ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-50")}>
                           <Trash2 className="w-3.5 h-3.5" /> Delete for me
                         </button>
@@ -364,9 +436,33 @@ export default function MessagesPage() {
               ))}
             </div>
           )}
+          {showGif && (
+            <div className={"mb-3 rounded-xl overflow-hidden border " + (dc ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}>
+              <div className="p-2">
+                <input value={gifQuery} onChange={e => { setGifQuery(e.target.value); searchGifs(e.target.value); }} placeholder="Search GIFs..." className={"w-full px-3 py-2 rounded-lg text-sm outline-none " + (dc ? "bg-gray-600 text-white placeholder-gray-400" : "bg-gray-50 text-gray-800 placeholder-gray-400")} autoFocus />
+              </div>
+              <div className="grid grid-cols-2 gap-1 p-2 max-h-52 overflow-y-auto">
+                {gifLoading ? (
+                  <div className="col-span-2 flex justify-center py-6"><div className="w-6 h-6 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" /></div>
+                ) : gifs.length === 0 ? (
+                  <div className={"col-span-2 text-center py-6 text-xs " + (dc ? "text-gray-500" : "text-gray-400")}>No GIFs found</div>
+                ) : gifs.map((url, i) => (
+                  <button key={i} onClick={() => sendGif(url)} className="rounded-lg overflow-hidden hover:opacity-80 transition-opacity">
+                    <img src={url} alt="GIF" className="w-full h-24 object-cover" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+              <div className={"px-3 py-1.5 text-center border-t " + (dc ? "border-gray-600" : "border-gray-100")}>
+                <span className={"text-[9px] font-medium " + (dc ? "text-gray-500" : "text-gray-400")}>Powered by GIPHY</span>
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <button onClick={() => setShowEmoji(!showEmoji)} className={"p-2 rounded-lg transition-colors " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}>
               <Smile className="w-5 h-5" />
+            </button>
+            <button onClick={() => { setShowGif(!showGif); if (!showGif && !gifs.length) searchGifs(""); }} className={"p-2 rounded-lg transition-colors text-xs font-bold " + (showGif ? (dc ? "bg-purple-500/20 text-purple-400" : "bg-purple-50 text-purple-500") : (dc ? "text-gray-400 hover:text-purple-400 hover:bg-gray-700" : "text-gray-400 hover:text-purple-500 hover:bg-purple-50"))}>
+              GIF
             </button>
             <label className={"p-2 rounded-lg cursor-pointer transition-colors " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}>
               <ImageIcon className="w-5 h-5" />
@@ -466,7 +562,7 @@ export default function MessagesPage() {
                           {conv.lastMessage?.read ? <CheckCheck className="w-3 h-3 text-sky-400 inline" /> : <Check className="w-3 h-3 text-gray-400 inline" />}
                         </span>
                       )}
-                      {conv.lastMessage?.content?.startsWith("[DELETED]") ? "🚫 Message deleted" : conv.lastMessage?.content?.startsWith("[IMG]") ? "📷 Photo" : conv.lastMessage?.content?.startsWith("[VOICE]") ? "🎤 Voice message" : conv.lastMessage?.content?.substring(0, 40) || "Start chatting"}
+                      {conv.lastMessage?.content?.startsWith("[DELETED]") ? "🚫 Message deleted" : conv.lastMessage?.content?.startsWith("[IMG]") ? "📷 Photo" : conv.lastMessage?.content?.startsWith("[VOICE]") ? "🎤 Voice message" : conv.lastMessage?.content?.startsWith("[GIF]") ? "GIF 🎞️" : conv.lastMessage?.content?.substring(0, 40) || "Start chatting"}
                     </p>
                     {conv.unreadCount > 0 && <span className="w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">{conv.unreadCount}</span>}
                   </div>
