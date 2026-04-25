@@ -47,8 +47,20 @@ export async function POST(req: NextRequest) {
     } else if (action === "downgrade") {
       await prisma.user.update({ where: { id: userId }, data: { tier: "free" } });
     } else if (action === "resetVerify") {
-      await prisma.user.update({ where: { id: userId }, data: { verified: false, verificationStatus: null, verificationPhoto: null, idDocument: null } });
+      // Clear all verification data
+      await prisma.user.update({ where: { id: userId }, data: { verified: false, verificationStatus: "reset", verificationPhoto: null, idDocument: null } });
       try { await prisma.$executeRawUnsafe('UPDATE "User" SET "idDocumentBack" = NULL, "idType" = NULL, "verificationFrames" = NULL WHERE "id" = $1', userId); } catch {}
+      
+      // Get admin note if provided
+      const reason = body.reason || "Your verification has been reset by our team.";
+      
+      // Notify the user
+      try {
+        const { createNotification } = await import("@/lib/notify");
+        const { sendPushToUser } = await import("@/lib/push");
+        createNotification(userId, "verification", "Verification Reset ⚠️", reason + " Please re-verify your profile or contact support for more information.");
+        sendPushToUser(userId, { title: "Verification Reset ⚠️", body: "Your verification has been reset. Please re-verify your profile.", url: "/dashboard/verify", tag: "verify-reset" });
+      } catch {}
     } else if (action === "coins" && coins !== undefined) {
       if (coinsAction === "set") {
         await prisma.user.update({ where: { id: userId }, data: { coins: Number(coins) } });

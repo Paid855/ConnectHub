@@ -8,7 +8,7 @@ import {
   RefreshCw, Settings, Lock,
   UserCheck, FileText,
   Activity, Eye, EyeOff, Save,
-  ArrowLeft, CheckCircle, XCircle, Download, RotateCcw
+  ArrowLeft, CheckCircle, XCircle, Download, RotateCcw, Wallet, DollarSign, Send, Clock
 } from "lucide-react";
 
 type UserData = {
@@ -25,7 +25,7 @@ type UserData = {
   photos: string[] | null;
 };
 
-type Tab = "overview" | "users" | "verifications" | "reports" | "settings";
+type Tab = "overview" | "users" | "verifications" | "reports" | "withdrawals" | "settings";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -34,6 +34,10 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [verifications, setVerifications] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [withdrawalStats, setWithdrawalStats] = useState<any>({});
+  const [withdrawalNote, setWithdrawalNote] = useState("");
+  const [resetReason, setResetReason] = useState("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterTier, setFilterTier] = useState("all");
@@ -41,6 +45,22 @@ export default function AdminDashboard() {
   const [selectedVerif, setSelectedVerif] = useState<any | null>(null);
   const [photoViewer, setPhotoViewer] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState("");
+
+  const handleWithdrawal = async (withdrawalId: string, action: "approve" | "reject", note: string) => {
+    if (action === "reject" && !confirm("Reject this withdrawal? Coins will be refunded to user.")) return;
+    setActionLoading(withdrawalId);
+    try {
+      await fetch("/api/admin/withdrawals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ withdrawalId, action, adminNote: note || (action === "approve" ? "Approved and sent" : "Rejected") })
+      });
+      const r = await fetch("/api/admin/withdrawals").then(r => r.ok ? r.json() : null);
+      if (r) { setWithdrawals(r.withdrawals || []); setWithdrawalStats(r.stats || {}); }
+      setWithdrawalNote("");
+    } catch {}
+    setActionLoading("");
+  };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userTab, setUserTab] = useState<"info" | "photos" | "docs" | "edit">("info");
 
@@ -73,14 +93,16 @@ export default function AdminDashboard() {
   }, []);
 
   const loadAll = async () => {
-    const [u, v, rp] = await Promise.allSettled([
+    const [u, v, rp, wd] = await Promise.allSettled([
       fetch("/api/admin/users").then(r => r.ok ? r.json() : null),
       fetch("/api/admin/verifications").then(r => r.ok ? r.json() : null),
       fetch("/api/admin/reports").then(r => r.ok ? r.json() : null),
+      fetch("/api/admin/withdrawals").then(r => r.ok ? r.json() : null),
     ]);
     if (u.status === "fulfilled" && u.value) setUsers(u.value.users || []);
     if (v.status === "fulfilled" && v.value) setVerifications(v.value.verifications || v.value.pending || []);
     if (rp.status === "fulfilled" && rp.value) setReports(rp.value.reports || []);
+    if (wd.status === "fulfilled" && wd.value) { setWithdrawals(wd.value.withdrawals || []); setWithdrawalStats(wd.value.stats || {}); }
   };
 
   const handleLogout = async () => {
@@ -285,6 +307,7 @@ export default function AdminDashboard() {
     { id: "users", label: "Users", icon: Users, badge: stats.total },
     { id: "verifications", label: "Verify", icon: Shield, badge: stats.pendingVerif },
     { id: "reports", label: "Reports", icon: AlertTriangle, badge: stats.reports },
+    { id: "withdrawals", label: "Withdrawals", icon: Wallet, badge: withdrawalStats.pending || 0 },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -352,6 +375,7 @@ export default function AdminDashboard() {
                 {tab === "users" && `${stats.total} registered users`}
                 {tab === "verifications" && `${stats.pendingVerif} pending`}
                 {tab === "reports" && `${stats.reports} reports`}
+                {tab === "withdrawals" && `${withdrawalStats.pending || 0} pending`}
                 {tab === "settings" && "Account settings"}
               </p>
             </div>
@@ -371,6 +395,7 @@ export default function AdminDashboard() {
                   { label: "Gold", value: stats.gold, icon: Gem, color: "bg-yellow-500/10 text-yellow-400", border: "border-yellow-500/20" },
                   { label: "Banned", value: stats.banned, icon: Ban, color: "bg-red-500/10 text-red-400", border: "border-red-500/20" },
                   { label: "Reports", value: stats.reports, icon: AlertTriangle, color: "bg-orange-500/10 text-orange-400", border: "border-orange-500/20" },
+                  { label: "Withdrawals", value: withdrawalStats.pending || 0, icon: Wallet, color: "bg-green-500/10 text-green-400", border: "border-green-500/20" },
                 ].map((s, i) => (
                   <div key={i} className={"bg-gray-900 rounded-2xl p-5 border " + s.border}>
                     <div className={"w-10 h-10 rounded-xl flex items-center justify-center mb-3 " + s.color}><s.icon className="w-5 h-5" /></div>
@@ -518,7 +543,10 @@ export default function AdminDashboard() {
                         <button onClick={() => handleUserAction(selectedUser.id, "makeGold")} disabled={actionLoading !== ""} className="p-2.5 bg-yellow-600 hover:bg-yellow-700 rounded-xl text-xs font-medium disabled:opacity-50 flex items-center justify-center gap-1.5"><Gem className="w-3.5 h-3.5" /> Gold</button>
                         <button onClick={() => handleUserAction(selectedUser.id, "downgrade")} disabled={actionLoading !== ""} className="p-2.5 bg-gray-700 hover:bg-gray-600 rounded-xl text-xs font-medium disabled:opacity-50 flex items-center justify-center gap-1.5">Free</button>
                         <button onClick={() => handleUserAction(selectedUser.id, selectedUser.banned ? "unban" : "ban")} disabled={actionLoading !== ""} className={"p-2.5 rounded-xl text-xs font-medium disabled:opacity-50 flex items-center justify-center gap-1.5 " + (selectedUser.banned ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700")}><Ban className="w-3.5 h-3.5" /> {selectedUser.banned ? "Unban" : "Ban"}</button>
-                        <button onClick={() => handleUserAction(selectedUser.id, "resetVerify")} disabled={actionLoading !== ""} className="p-2.5 bg-orange-600 hover:bg-orange-700 rounded-xl text-xs font-medium disabled:opacity-50 flex items-center justify-center gap-1.5"><RotateCcw className="w-3.5 h-3.5" /> Reset Verify</button>
+                        <div className="col-span-2 space-y-2">
+                          <input value={resetReason} onChange={e => setResetReason(e.target.value)} placeholder="Reason for reset (shown to user)..." className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white placeholder:text-gray-500 outline-none focus:border-orange-500" />
+                          <button onClick={async () => { if (!confirm("Reset verification? User will be notified and must re-verify.")) return; setActionLoading("reset"); await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: selectedUser.id, action: "resetVerify", reason: resetReason || "Your verification has been reset by our team. Please re-verify your profile." }) }); const r = await fetch("/api/admin/users").then(r => r.ok ? r.json() : null); if (r?.users) { setUsers(r.users); const u = r.users.find((u:any) => u.id === selectedUser.id); if (u) setSelectedUser(u); } setActionLoading(""); setResetReason(""); }} disabled={actionLoading !== ""} className="w-full p-2.5 bg-orange-600 hover:bg-orange-700 rounded-xl text-xs font-medium disabled:opacity-50 flex items-center justify-center gap-1.5"><RotateCcw className="w-3.5 h-3.5" /> Reset Verify & Notify User</button>
+                        </div>
                         <button onClick={() => handleUserAction(selectedUser.id, "delete")} disabled={actionLoading !== ""} className="p-2.5 bg-red-900 hover:bg-red-800 rounded-xl text-xs font-medium disabled:opacity-50 flex items-center justify-center gap-1.5 text-red-300"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
                       </div>
                     </div>
@@ -811,6 +839,113 @@ export default function AdminDashboard() {
           )}
 
           {/* ========== SETTINGS ========== */}
+          {tab === "withdrawals" && (
+            <div className="space-y-4">
+              {/* Withdrawal Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                  <Clock className="w-5 h-5 text-amber-400 mb-2" />
+                  <p className="text-2xl font-extrabold text-white">{withdrawalStats.pending || 0}</p>
+                  <p className="text-xs text-gray-400">Pending</p>
+                </div>
+                <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                  <DollarSign className="w-5 h-5 text-amber-400 mb-2" />
+                  <p className="text-2xl font-extrabold text-white">{((withdrawalStats.totalPendingCoins || 0) * 0.01).toFixed(2)}</p>
+                  <p className="text-xs text-gray-400">Pending USD</p>
+                </div>
+                <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                  <CheckCircle className="w-5 h-5 text-green-400 mb-2" />
+                  <p className="text-2xl font-extrabold text-white">{withdrawalStats.approved || 0}</p>
+                  <p className="text-xs text-gray-400">Approved</p>
+                </div>
+                <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                  <XCircle className="w-5 h-5 text-red-400 mb-2" />
+                  <p className="text-2xl font-extrabold text-white">{withdrawalStats.rejected || 0}</p>
+                  <p className="text-xs text-gray-400">Rejected</p>
+                </div>
+              </div>
+
+              {/* How to pay info */}
+              <div className="bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-700/30 rounded-xl p-4">
+                <h4 className="text-sm font-bold text-blue-300 mb-2">💡 How to process withdrawals</h4>
+                <div className="text-xs text-blue-200/70 space-y-1">
+                  <p>1. Review the user's bank details below</p>
+                  <p>2. Go to <span className="font-bold text-blue-300">Flutterwave Dashboard → Transfers → Send Money</span></p>
+                  <p>3. Enter the user's bank details and send the amount</p>
+                  <p>4. Come back here and click <span className="font-bold text-green-300">Approve</span> to notify the user</p>
+                </div>
+              </div>
+
+              {/* Withdrawal list */}
+              {withdrawals.length === 0 ? (
+                <div className="bg-gray-800 rounded-xl p-12 text-center border border-gray-700">
+                  <Wallet className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                  <h3 className="font-bold text-lg text-gray-300">No Withdrawal Requests</h3>
+                  <p className="text-gray-500 text-sm mt-1">When users request withdrawals, they will appear here</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {withdrawals.map((w: any) => (
+                    <div key={w.id} className={"bg-gray-800 rounded-xl border overflow-hidden " + (w.status === "pending" ? "border-amber-500/30" : w.status === "approved" || w.status === "completed" ? "border-green-500/30" : "border-red-500/30")}>
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm overflow-hidden flex-shrink-0">
+                              {w.user?.profilePhoto ? <img src={w.user.profilePhoto} alt="" className="w-full h-full object-cover" /> : (w.user?.name?.[0] || "?")}
+                            </div>
+                            <div>
+                              <p className="font-bold text-white text-sm">{w.user?.name || "User"}</p>
+                              <p className="text-xs text-gray-400">{w.user?.email}</p>
+                            </div>
+                          </div>
+                          <span className={"text-xs font-bold px-3 py-1 rounded-full " + (w.status === "pending" ? "bg-amber-500/20 text-amber-400" : w.status === "approved" || w.status === "completed" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400")}>
+                            {w.status.toUpperCase()}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div className="bg-gray-900 rounded-lg p-3">
+                            <p className="text-xs text-gray-500 mb-1">Coins</p>
+                            <p className="text-lg font-extrabold text-amber-400">{w.amount.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-gray-900 rounded-lg p-3">
+                            <p className="text-xs text-gray-500 mb-1">USD Amount</p>
+                            <p className="text-lg font-extrabold text-green-400">${w.usdAmount || (w.amount * 0.01).toFixed(2)}</p>
+                          </div>
+                        </div>
+
+                        {/* Bank details */}
+                        <div className="bg-gray-900 rounded-lg p-3 mb-3">
+                          <p className="text-xs text-gray-500 mb-2 font-medium">🏦 Bank Details</p>
+                          <pre className="text-xs text-gray-300 whitespace-pre-wrap font-sans">{w.details || "No details provided"}</pre>
+                        </div>
+
+                        <p className="text-xs text-gray-500">Requested: {new Date(w.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                        {w.processedAt && <p className="text-xs text-gray-500">Processed: {new Date(w.processedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>}
+                        {w.adminNote && <p className="text-xs text-gray-400 mt-1 italic">Note: {w.adminNote}</p>}
+                      </div>
+
+                      {/* Action buttons for pending */}
+                      {w.status === "pending" && (
+                        <div className="border-t border-gray-700 p-3 bg-gray-850">
+                          <input value={withdrawalNote} onChange={e => setWithdrawalNote(e.target.value)} placeholder="Admin note (optional)..." className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-xs text-white placeholder:text-gray-500 outline-none mb-2 focus:border-blue-500" />
+                          <div className="flex gap-2">
+                            <button onClick={() => handleWithdrawal(w.id, "approve", withdrawalNote)} disabled={actionLoading === w.id} className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all">
+                              {actionLoading === w.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />} Approve & Mark Paid
+                            </button>
+                            <button onClick={() => handleWithdrawal(w.id, "reject", withdrawalNote)} disabled={actionLoading === w.id} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all">
+                              <XCircle className="w-3.5 h-3.5" /> Reject & Refund
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {tab === "settings" && (
             <div className="max-w-lg space-y-6">
               <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">

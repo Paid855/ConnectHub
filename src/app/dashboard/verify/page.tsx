@@ -963,6 +963,28 @@ export default function VerifyPage() {
     );
   }
 
+  if (user.verificationStatus === "reset") {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 shadow-lg border border-orange-200 text-center">
+          <div className="w-20 h-20 mx-auto bg-orange-100 rounded-full flex items-center justify-center mb-5">
+            <span className="text-4xl">⚠️</span>
+          </div>
+          <h2 className="text-2xl font-extrabold text-gray-900 mb-3">Verification Reset</h2>
+          <p className="text-gray-600 text-sm mb-4">Your verification has been reset by our team. This could be due to unclear photos, document issues, or a routine review.</p>
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
+            <p className="text-xs text-orange-700 font-medium">What to do next:</p>
+            <p className="text-xs text-orange-600 mt-1">1. Ensure your ID photos are clear and readable</p>
+            <p className="text-xs text-orange-600">2. Take your selfie in good lighting</p>
+            <p className="text-xs text-orange-600">3. Complete all liveness checks carefully</p>
+          </div>
+          <button onClick={() => { fetch("/api/auth/me").then(r => r.json()).then(d => { if (d.user) { fetch("/api/verify/reset-status", { method: "POST" }).catch(() => {}); window.location.reload(); } }); }} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg transition-all">Start Verification Again</button>
+          <a href="mailto:support@connecthub.love" className="block mt-3 text-xs text-gray-500 hover:text-rose-500">Need help? Contact support@connecthub.love</a>
+        </div>
+      </div>
+    );
+  }
+
   if (user.verificationStatus === "pending") {
     return (
       <div className="mx-auto max-w-md py-16 text-center">
