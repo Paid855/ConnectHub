@@ -56,6 +56,14 @@ export async function POST(req: NextRequest) {
 
     await prisma.coinTransaction.create({ data: { userId: user.id, amount: 20, type: "welcome_bonus", description: "Welcome to ConnectHub!" } }).catch(() => {});
 
+    // Send welcome email
+    try { await sendWelcomeEmail(cleanEmail, name.trim()); } catch (e) { console.error("Welcome email error:", e); }
+
+    // Create welcome notification
+    await prisma.notification.create({
+      data: { userId: user.id, type: "purchase", title: "Welcome to ConnectHub! 🎉", message: "You received 20 free coins as a welcome gift. Start exploring and find your perfect match!", read: false }
+    }).catch(() => {});
+
     const session = JSON.stringify({ id: user.id, email: cleanEmail, name: name.trim() });
     const res = NextResponse.json({ success: true, userId: user.id, step: "upload_photo" });
     res.cookies.set("session", session, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60*60*24*7 });

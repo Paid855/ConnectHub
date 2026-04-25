@@ -91,13 +91,17 @@ export default function SignupPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Registration failed"); setLoading(false); return; }
-      // Auto-login
-      const loginRes = await fetch("/api/auth/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ emailOrUsername:form.email, password:form.password }) });
-      if (loginRes.ok) {
-        router.push("/signup?step=welcome");
-      } else {
-        router.push("/login?registered=true");
+
+      // Upload photo if provided
+      if (photo && data.userId) {
+        try {
+          await fetch("/api/profile/photo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ photo }) });
+        } catch {}
       }
+
+      // Signup API already sets session cookie — go to welcome
+      setStep(5);
+      setLoading(false);
     } catch { setError("Network error. Please try again."); setLoading(false); }
   };
 
@@ -106,9 +110,10 @@ export default function SignupPage() {
     "https://images.unsplash.com/photo-1529634597503-139d3726fed5?w=1200&q=80&fit=crop",
     "https://images.unsplash.com/photo-1545912452-8aea7e25a3d3?w=1200&q=80&fit=crop",
     "https://images.unsplash.com/photo-1621631690498-1d5aab66dd3d?w=1200&q=80&fit=crop",
+    "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=1200&q=80&fit=crop",
   ];
 
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   return (
     <div className="min-h-screen flex font-sans">
@@ -138,12 +143,14 @@ export default function SignupPage() {
               {step===2 && <>Tell Us About<br/><span className="italic text-rose-200">Yourself</span></>}
               {step===3 && <>Keep Your<br/><span className="italic text-rose-200">Account Safe</span></>}
               {step===4 && <>Almost<br/><span className="italic text-rose-200">There!</span></>}
+              {step===5 && <>Welcome<br/><span className="italic text-rose-200">Aboard!</span></>}
             </h1>
             <p className="text-lg text-rose-100/80 leading-relaxed">
               {step===1 && "Create your free account and join thousands finding meaningful connections."}
               {step===2 && "Help us find your perfect match by sharing a few details about you."}
               {step===3 && "Set up a security question to protect your account."}
               {step===4 && "Add a photo and interests to get 3x more matches!"}
+              {step===5 && "Your journey to finding love starts now!"}
             </p>
           </div>
 
@@ -181,7 +188,38 @@ export default function SignupPage() {
               <span className="text-xs font-bold text-gray-400 ml-2">{step}/{totalSteps}</span>
             </div>
 
-            {error && (
+            {step === 5 && (
+              <div className="text-center py-8">
+                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-rose-100 to-pink-100 rounded-full flex items-center justify-center mb-6">
+                  <span className="text-5xl">🎉</span>
+                </div>
+                <h2 className="text-3xl font-extrabold text-gray-900 mb-2 font-display">Welcome to ConnectHub!</h2>
+                <p className="text-gray-500 text-sm mb-6">Your account has been created successfully</p>
+                
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">
+                  <p className="text-sm font-bold text-amber-900 mb-2">🎁 Your Welcome Gifts:</p>
+                  <p className="text-xs text-amber-700 mb-1">✅ 20 free coins added to your wallet</p>
+                  <p className="text-xs text-amber-700 mb-1">✅ Welcome email sent to your inbox</p>
+                  <p className="text-xs text-amber-700">✅ Profile ready for your first match!</p>
+                </div>
+
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 mb-6 text-left">
+                  <p className="text-sm font-bold text-rose-900 mb-2">📋 Recommended Next Steps:</p>
+                  <p className="text-xs text-rose-700 mb-1">1. Complete your profile to attract more matches</p>
+                  <p className="text-xs text-rose-700 mb-1">2. Verify your identity for a trusted badge ✓</p>
+                  <p className="text-xs text-rose-700">3. Start swiping and find your perfect match!</p>
+                </div>
+
+                <a href="/dashboard" className="block w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-center hover:shadow-lg transition-all mb-3">
+                  Start Exploring 💕
+                </a>
+                <a href="/dashboard/verify" className="block text-xs text-rose-500 hover:text-rose-700 font-medium underline underline-offset-4">
+                  Verify your profile now →
+                </a>
+              </div>
+            )}
+
+                        {step < 5 && error && (
               <div className="mb-5 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 flex items-center gap-2">
                 <span className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center text-red-500 text-xs flex-shrink-0">!</span>
                 {error}
