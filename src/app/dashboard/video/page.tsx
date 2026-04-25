@@ -41,6 +41,9 @@ export default function LiveStreamPage() {
   const chatEnd = useRef<HTMLDivElement>(null);
   const remoteUsers = useRef<Map<any, any>>(new Map());
   const [floatingGifts, setFloatingGifts] = useState<{id:number;emoji:string;anim:string;x:number}[]>([]);
+  const [streamTimer, setStreamTimer] = useState(0);
+  const [hearts, setHearts] = useState<{id:number;x:number;size:number;delay:number}[]>([]);
+  const [prevViewerNames, setPrevViewerNames] = useState<Set<string>>(new Set());
   const [topGifters, setTopGifters] = useState<{name:string;photo:string|null;total:number}[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
@@ -99,6 +102,53 @@ export default function LiveStreamPage() {
   },[page,stream,role,invited]);
 
   useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
+
+  // Stream duration timer
+  useEffect(()=>{
+    if(page!=="live") return;
+    setStreamTimer(0);
+    const t=setInterval(()=>setStreamTimer(p=>p+1),1000);
+    return()=>clearInterval(t);
+  },[page]);
+
+  // Detect join/leave from chat messages
+  useEffect(()=>{
+    if(!msgs.length) return;
+    const last = msgs[msgs.length-1];
+    if(!last?.content) return;
+    if(last.content.includes("joined the stream") && !last.content.includes(me?.name)){
+      const name = last.content.replace("👋 ","").replace(" joined the stream","");
+      toast(name + " joined","👋");
+    }
+    if(last.content.includes("left the stream") && !last.content.includes(me?.name)){
+      const name = last.content.replace("👋 ","").replace(" left the stream","");
+      toast(name + " left","🚶");
+    }
+  },[msgs.length]);
+
+  // Send floating hearts
+  const sendHearts = ()=>{
+    const newHearts = Array.from({length:6},(_,i)=>({
+      id: Date.now()+i+Math.random(),
+      x: 70+Math.random()*25,
+      size: 16+Math.random()*20,
+      delay: i*0.15
+    }));
+    setHearts(p=>[...p,...newHearts]);
+    setTimeout(()=>setHearts(p=>p.filter(h=>!newHearts.find(n=>n.id===h.id))),3000);
+    // Send to chat so others see it
+    if(stream){
+      fetch("/api/live/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,content:`💕 ${me?.name||"Someone"} sent hearts`})}).catch(()=>{});
+    }
+  };
+
+  // Format timer
+  const formatTimer = (s:number)=>{
+    const h=Math.floor(s/3600);
+    const m=Math.floor((s%3600)/60);
+    const sec=s%60;
+    return h>0 ? `${h}:${m<10?"0":""}${m}:${sec<10?"0":""}${sec}` : `${m}:${sec<10?"0":""}${sec}`;
+  };
 
   // Helper: connect to Agora as host and start streaming
   const connectAgoraAsHost = async(s:any)=>{
@@ -285,6 +335,10 @@ export default function LiveStreamPage() {
   // ===== END STREAM =====
   const leave = async()=>{
     try{
+      // Send leave message for viewers/cohosts
+      if(role!=="host" && stream){
+        await fetch("/api/live/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,content:`👋 ${me?.name||"A viewer"} left the stream`})}).catch(()=>{});
+      }
       if(tracks.v){tracks.v.stop();tracks.v.close();}
       if(tracks.a){tracks.a.stop();tracks.a.close();}
       if(agoraClient) await agoraClient.leave();
@@ -346,9 +400,25 @@ export default function LiveStreamPage() {
     return(
       <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
-          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-5"><Radio className="w-10 h-10 text-gray-400"/></div>
+          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-rose-100 to-pink-100 rounded-full flex items-center justify-center mb-5">
+            <span className="text-4xl">🎬</span>
+          </div>
           <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Stream Ended</h2>
-          <p className="text-gray-500 text-sm mb-6">The host has ended this live stream. Thanks for watching!</p>
+          <p className="text-gray-500 text-sm mb-3">Thanks for watching!</p>
+          <div className="flex justify-center gap-6 mb-6 py-4 border-y border-gray-100">
+            <div className="text-center">
+              <p className="text-2xl font-extrabold text-gray-900">{formatTimer(streamTimer)}</p>
+              <p className="text-[10px] text-gray-400 font-medium uppercase mt-1">Duration</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-extrabold text-gray-900">{viewerCount}</p>
+              <p className="text-[10px] text-gray-400 font-medium uppercase mt-1">Viewers</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-extrabold text-gray-900">{msgs.filter(m=>m.content?.includes("🎁")).length}</p>
+              <p className="text-[10px] text-gray-400 font-medium uppercase mt-1">Gifts</p>
+            </div>
+          </div>
           <button onClick={leave} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg transition-all">Discover More Streams</button>
         </div>
       </div>
@@ -391,9 +461,12 @@ export default function LiveStreamPage() {
             <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin"/></div>
           ):streams.length===0?(
             <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
-              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-rose-100 to-pink-100 rounded-full flex items-center justify-center mb-4"><Radio className="w-10 h-10 text-rose-500"/></div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">No Live Streams Yet</h3>
-              <p className="text-gray-500 text-sm mb-6">Be the first to go live!</p>
+              <div className="w-24 h-24 mx-auto bg-gradient-to-br from-rose-100 to-pink-100 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                <span className="text-5xl">📡</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">No Live Streams Yet</h3>
+              <p className="text-gray-500 text-sm mb-2">Be the first to go live and connect with others!</p>
+              <p className="text-rose-400 text-xs mb-6">💡 Streams with video-verified profiles get 3x more viewers</p>
               <button onClick={()=>setPage("setup")} className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm">Start Streaming</button>
             </div>
           ):(
@@ -500,6 +573,7 @@ export default function LiveStreamPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <div className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"><span className="w-2 h-2 bg-white rounded-full animate-pulse"/> LIVE</div>
+                <div className="bg-black/40 backdrop-blur text-white text-[10px] font-mono px-2.5 py-1.5 rounded-full">{formatTimer(streamTimer)}</div>
                 <button onClick={()=>setShowViewerList(true)} className="bg-black/40 backdrop-blur text-white text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-black/60"><Eye className="w-3 h-3"/> {viewerCount} viewer{viewerCount!==1?"s":""}</button>
                 {role==="cohost"&&<div className="bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-full">🎤 Co-hosting</div>}
               </div>
@@ -513,6 +587,15 @@ export default function LiveStreamPage() {
         {/* Toasts */}
         <div className="absolute top-24 left-1/2 -translate-x-1/2 space-y-2 pointer-events-none z-30 w-[90%] max-w-md">
           {toasts.map(t=>(<div key={t.id} className="bg-gradient-to-r from-rose-500/95 to-pink-500/95 backdrop-blur-lg text-white text-sm px-5 py-3 rounded-full flex items-center justify-center gap-2 shadow-2xl"><span className="text-lg">{t.emoji}</span><span className="font-semibold">{t.text}</span></div>))}
+        </div>
+
+        {/* Floating hearts */}
+        <div className="absolute bottom-32 right-4 pointer-events-none z-20">
+          {hearts.map(h => (
+            <div key={h.id} className="absolute animate-gift-float" style={{ right: (h.x - 70) + "%", bottom: 0, fontSize: h.size + "px", animationDelay: h.delay + "s", opacity: 0.9 }}>
+              {["❤️","💖","💕","💗","💘"][Math.floor(Math.random()*5)]}
+            </div>
+          ))}
         </div>
 
         {/* Floating gift emojis */}
@@ -558,7 +641,7 @@ export default function LiveStreamPage() {
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden">
                   {m.user?.profilePhoto?<img src={m.user.profilePhoto} alt="" className="w-full h-full object-cover"/>:(m.user?.name?.[0]||"?")}
                 </div>
-                <div className={"backdrop-blur-md rounded-2xl px-3 py-1.5 max-w-[75%] "+(m.content.includes("🎁")?"bg-gradient-to-r from-amber-500/50 to-orange-500/40 border border-amber-400/30":"bg-black/50")}>
+                <div className={"backdrop-blur-md rounded-2xl px-3 py-1.5 max-w-[75%] "+(m.content.includes("🎁")?"bg-gradient-to-r from-amber-500/50 to-orange-500/40 border border-amber-400/30":m.content.includes("joined the stream")?"bg-gradient-to-r from-green-500/40 to-emerald-500/30 border border-green-400/20":m.content.includes("left the stream")?"bg-gradient-to-r from-gray-500/40 to-gray-600/30 border border-gray-400/20":m.content.includes("sent hearts")?"bg-gradient-to-r from-rose-500/40 to-pink-500/30 border border-rose-400/20":m.content.includes("co-hosting")?"bg-gradient-to-r from-purple-500/40 to-violet-500/30 border border-purple-400/20":"bg-black/50")}>
                   <span className="text-white/80 text-[11px] font-semibold mr-1.5">{m.user?.name||"User"}</span>
                   <span className="text-white text-sm break-words">{m.content}</span>
                 </div>
@@ -576,7 +659,7 @@ export default function LiveStreamPage() {
         <div className="flex items-center gap-2 mb-2">
           <input value={chatText} onChange={e=>setChatText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Say something..." className="flex-1 px-4 py-3 bg-white/10 text-white placeholder:text-white/40 rounded-full outline-none text-sm border border-white/10 focus:border-rose-500/50"/>
           <button onClick={sendChat} className="w-11 h-11 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full flex items-center justify-center flex-shrink-0"><Send className="w-4 h-4"/></button>
-          {role!=="host"&&<button onClick={()=>setShowGifts(true)} className="w-11 h-11 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full flex items-center justify-center flex-shrink-0"><Gift className="w-5 h-5"/></button>}
+          {role!=="host"&&<><button onClick={sendHearts} className="w-11 h-11 bg-gradient-to-r from-rose-400 to-pink-500 text-white rounded-full flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"><span className="text-lg">💕</span></button><button onClick={()=>setShowGifts(true)} className="w-11 h-11 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full flex items-center justify-center flex-shrink-0"><Gift className="w-5 h-5"/></button></>}
         </div>
         {(role==="host"||role==="cohost")&&(
           <div className="flex items-center justify-center gap-2">
