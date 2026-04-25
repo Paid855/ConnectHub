@@ -125,21 +125,33 @@ export default function HomePage() {
             </div>
           </div>
 
-          {mobileMenu && (
-            <div className="md:hidden pb-6 border-t border-rose-100/50">
-              <div className="pt-4 space-y-1">
-                {[["Features", "#features"], ["How It Works", "#how-it-works"], ["Pricing", "#pricing"], ["Stories", "#testimonials"]].map(([name, href]) => (
-                  <a key={name} href={href} onClick={() => setMobileMenu(false)} className="block px-4 py-3 rounded-xl text-gray-700 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 font-medium transition-all">{name}</a>
-                ))}
-                <div className="flex gap-3 pt-4 px-2">
-                  <a href="/login" onClick={() => setMobileMenu(false)} className="flex-1 py-3 text-center border-2 border-rose-300 text-rose-600 rounded-full font-bold hover:bg-rose-50 transition-all">Sign In</a>
-                  <a href="/signup" onClick={() => setMobileMenu(false)} className="flex-1 py-3 text-center bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold shadow-lg shadow-rose-200/50">Sign Up</a>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </nav>
+
+      {/* Mobile menu overlay */}
+      {mobileMenu && (
+        <div className="md:hidden fixed inset-0 z-[60] bg-white">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-rose-100">
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="ConnectHub" className="h-9 w-auto" />
+              <span className="text-xl font-extrabold gradient-text">ConnectHub</span>
+            </div>
+            <button onClick={() => setMobileMenu(false)} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-rose-50">
+              <span className="text-2xl text-gray-500">&times;</span>
+            </button>
+          </div>
+          <div className="flex flex-col justify-center px-6 py-10 space-y-2">
+            {[["Features", "#features"], ["How It Works", "#how-it-works"], ["Pricing", "#pricing"], ["Success Stories", "#testimonials"]].map(([name, href]) => (
+              <a key={name} href={href} onClick={() => setMobileMenu(false)} className="block px-5 py-4 rounded-2xl text-lg font-semibold text-gray-800 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 transition-all">{name}</a>
+            ))}
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 p-6 space-y-3 border-t border-rose-100 bg-gradient-to-t from-rose-50/50 to-white">
+            <a href="/signup" onClick={() => setMobileMenu(false)} className="block w-full py-4 text-center bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-2xl font-bold text-base shadow-lg shadow-rose-200/50">Create Account</a>
+            <a href="/login" onClick={() => setMobileMenu(false)} className="block w-full py-4 text-center border-2 border-rose-200 text-rose-600 rounded-2xl font-bold text-base hover:bg-rose-50 transition-all">Sign In</a>
+            <p className="text-center text-xs text-gray-400 pt-2">Join 10,000+ singles finding love</p>
+          </div>
+        </div>
+      )}
 
       {/* ═══ HERO ═══ */}
       <section className="relative min-h-[90vh] sm:min-h-screen flex items-center overflow-hidden">
