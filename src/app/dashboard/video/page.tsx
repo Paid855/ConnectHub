@@ -684,7 +684,7 @@ export default function LiveStreamPage() {
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-end sm:items-center justify-center" onClick={()=>setShowGifts(false)}>
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl max-h-[80vh] overflow-hidden" onClick={e=>e.stopPropagation()}>
             <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-amber-50 to-orange-50">
-              <div><h3 className="font-bold text-gray-900 flex items-center gap-2"><Gift className="w-5 h-5 text-amber-500"/> Send a Gift</h3><p className="text-xs text-gray-500 mt-0.5">80% goes to the host</p></div>
+              <div><h3 className="font-bold text-gray-900 flex items-center gap-2"><Gift className="w-5 h-5 text-amber-500"/> Send a Gift</h3><p className="text-xs text-gray-500 mt-0.5">🎁 Host receives <span className="font-bold text-green-600">80%</span> • Platform fee <span className="font-bold text-amber-600">20%</span></p></div>
               <div className="flex items-center gap-2"><div className="bg-amber-100 px-3 py-1.5 rounded-full flex items-center gap-1.5"><span className="text-amber-600">🪙</span><span className="font-bold text-amber-900 text-sm">{coins}</span></div><button onClick={()=>setShowGifts(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5"/></button></div>
             </div>
             <div className="p-5">

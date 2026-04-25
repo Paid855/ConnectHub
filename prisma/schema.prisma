@@ -227,3 +227,15 @@ model Reaction {
 
   @@unique([messageId, userId, emoji])
 }
+
+model Withdrawal {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Int
+  method      String   @default("bank")
+  details     String?
+  status      String   @default("pending")
+  adminNote   String?
+  createdAt   DateTime @default(now())
+  processedAt DateTime?
+}
