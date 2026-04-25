@@ -21,6 +21,14 @@ export default function SignupPage() {
   const [usernameStatus, setUsernameStatus] = useState<""|"checking"|"available"|"taken">("");
   const [showPwd, setShowPwd] = useState(false);
   const [confirmPwd, setConfirmPwd] = useState("");
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+  const [dobMonth, setDobMonth] = useState("");
+  const [dobDay, setDobDay] = useState("");
+  const [dobYear, setDobYear] = useState("");
+  const [customQuestion, setCustomQuestion] = useState("");
+  const updateDob = (m:string, d:string, y:string) => {
+    if (m && d && y) set("dateOfBirth", y + "-" + m + "-" + d);
+  };
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
   useEffect(() => { setMounted(true); }, []);
@@ -63,7 +71,7 @@ export default function SignupPage() {
       return true;
     }
     if (step === 3) {
-      if (!form.securityQuestion) { setError("Please select a security question"); return false; }
+      if (!form.securityQuestion || form.securityQuestion === "custom") { setError("Please provide a security question"); return false; }
       if (!form.securityAnswer.trim()) { setError("Please answer your security question"); return false; }
       return true;
     }
@@ -272,8 +280,8 @@ export default function SignupPage() {
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2"><Lock className="w-4 h-4 text-gray-400" /></div>
-                      <input type="password" className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Confirm your password" value={confirmPwd} onChange={e=>setConfirmPwd(e.target.value)} />
-                      {confirmPwd && form.password === confirmPwd && <div className="absolute right-4 top-1/2 -translate-y-1/2"><Check className="w-4 h-4 text-emerald-500" /></div>}
+                      <input type={showConfirmPwd?"text":"password"} className="w-full pl-11 pr-12 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Confirm your password" value={confirmPwd} onChange={e=>setConfirmPwd(e.target.value)} />
+                      <button type="button" onClick={()=>setShowConfirmPwd(!showConfirmPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{confirmPwd && form.password === confirmPwd ? <Check className="w-4 h-4 text-emerald-500" /> : showConfirmPwd ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}</button>
                     </div>
                   </div>
                 </div>
@@ -288,11 +296,21 @@ export default function SignupPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Date of Birth</label>
-                    <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><Calendar className="w-4 h-4 text-gray-400" /></div>
-                      <input type="date" className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={form.dateOfBirth} onChange={e=>set("dateOfBirth",e.target.value)} max={new Date(new Date().setFullYear(new Date().getFullYear()-18)).toISOString().split("T")[0]} />
+                    <div className="grid grid-cols-3 gap-2">
+                      <select className="px-3 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={dobMonth} onChange={e=>{setDobMonth(e.target.value); updateDob(e.target.value, dobDay, dobYear);}}>
+                        <option value="">Month</option>
+                        {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m,i)=><option key={m} value={String(i+1).padStart(2,"0")}>{m}</option>)}
+                      </select>
+                      <select className="px-3 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={dobDay} onChange={e=>{setDobDay(e.target.value); updateDob(dobMonth, e.target.value, dobYear);}}>
+                        <option value="">Day</option>
+                        {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={String(d).padStart(2,"0")}>{d}</option>)}
+                      </select>
+                      <select className="px-3 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={dobYear} onChange={e=>{setDobYear(e.target.value); updateDob(dobMonth, dobDay, e.target.value);}}>
+                        <option value="">Year</option>
+                        {Array.from({length:80},(_,i)=>new Date().getFullYear()-18-i).map(y=><option key={y} value={String(y)}>{y}</option>)}
+                      </select>
                     </div>
-                    {age !== null && <p className={"text-xs mt-1 font-medium " + (age>=18?"text-emerald-500":"text-red-500")}>{age >= 18 ? `You are ${age} years old ✓` : "You must be 18 or older"}</p>}
+                    {age !== null && <p className={"text-xs mt-1.5 font-medium " + (age>=18?"text-emerald-500":"text-red-500")}>{age >= 18 ? `You are ${age} years old ✓` : "You must be 18 or older"}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -332,32 +350,47 @@ export default function SignupPage() {
             {step === 3 && (
               <div>
                 <h2 className="text-2xl font-extrabold text-gray-900 mb-1 font-display">Security</h2>
-                <p className="text-gray-400 text-sm mb-7">Set up a security question for password recovery.</p>
+                <p className="text-gray-400 text-sm mb-7">Set up a security question to protect your account.</p>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Security Question</label>
-                    <select className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={form.securityQuestion} onChange={e=>set("securityQuestion",e.target.value)}>
-                      <option value="">Select a question</option>
-                      {SECURITY_QS.map(q=><option key={q}>{q}</option>)}
+                    <select className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" value={form.securityQuestion} onChange={e=>{set("securityQuestion",e.target.value); if(e.target.value !== "custom") setCustomQuestion("");}}>
+                      <option value="">Choose a question</option>
+                      <option value="What is the name of your first pet?">What is the name of your first pet?</option>
+                      <option value="What city were you born in?">What city were you born in?</option>
+                      <option value="What is your mother's maiden name?">What is your mother&apos;s maiden name?</option>
+                      <option value="What was the name of your first school?">What was the name of your first school?</option>
+                      <option value="What is your favorite movie?">What is your favorite movie?</option>
+                      <option value="What is your childhood nickname?">What is your childhood nickname?</option>
+                      <option value="custom">✏️ Write my own question</option>
                     </select>
                   </div>
+
+                  {form.securityQuestion === "custom" && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Your Custom Question</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2"><HelpCircle className="w-4 h-4 text-gray-400" /></div>
+                        <input className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Write your own security question..." value={customQuestion} onChange={e=>{setCustomQuestion(e.target.value); set("securityQuestion", e.target.value);}} />
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Your Answer</label>
                     <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><Shield className="w-4 h-4 text-gray-400" /></div>
-                      <input className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Enter your answer" value={form.securityAnswer} onChange={e=>set("securityAnswer",e.target.value)} />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><Lock className="w-4 h-4 text-gray-400" /></div>
+                      <input className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="Your answer (case-sensitive)" value={form.securityAnswer} onChange={e=>set("securityAnswer",e.target.value)} />
                     </div>
                   </div>
-                  <div className="rounded-xl bg-amber-50 border border-amber-100 p-4">
-                    <p className="text-xs text-amber-700 leading-relaxed">
-                      <span className="font-bold">Remember this!</span> You will need this answer to reset your password if you ever forget it. Choose something only you would know.
-                    </p>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <p className="text-xs text-blue-700 font-medium">🔒 This question will be used to recover your account if you forget your password. Choose something only you would know.</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* STEP 4 — Photo + Interests */}
             {step === 4 && (
               <div>
                 <h2 className="text-2xl font-extrabold text-gray-900 mb-1 font-display">Final Touches</h2>

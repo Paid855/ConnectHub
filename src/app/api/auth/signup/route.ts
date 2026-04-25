@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, email, username, password, phone, age, gender, lookingFor, country, dateOfBirth, securityQuestion, securityAnswer } = body;
+    const { name, email, username, password, phone, age, gender, lookingFor, country, dateOfBirth, securityQuestion, securityAnswer, profilePhoto, interests } = body;
 
     if (!name || !email || !password) return NextResponse.json({ error: "Name, email and password required" }, { status: 400 });
     if (password.length < 6) return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
@@ -53,6 +53,28 @@ export async function POST(req: NextRequest) {
         coins: 20,
       }
     });
+
+    // Upload profile photo to Cloudinary if provided
+    if (profilePhoto && profilePhoto.startsWith("data:image")) {
+      try {
+        const cloudRes = await fetch("https://api.cloudinary.com/v1_1/" + (process.env.CLOUDINARY_CLOUD_NAME || "dpov63szx") + "/image/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file: profilePhoto, upload_preset: "connecthub_photos", folder: "connecthub/profiles" })
+        });
+        const cloudData = await cloudRes.json();
+        if (cloudData.secure_url) {
+          await prisma.user.update({ where: { id: user.id }, data: { profilePhoto: cloudData.secure_url } });
+        }
+      } catch (e) { console.error("Photo upload error:", e); }
+    }
+
+    // Save interests
+    if (interests && Array.isArray(interests) && interests.length > 0) {
+      try {
+        await prisma.user.update({ where: { id: user.id }, data: { interests } });
+      } catch {}
+    }
 
     await prisma.coinTransaction.create({ data: { userId: user.id, amount: 20, type: "welcome_bonus", description: "Welcome to ConnectHub!" } }).catch(() => {});
 
