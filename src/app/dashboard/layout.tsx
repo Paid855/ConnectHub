@@ -6,7 +6,7 @@ import LocationDetector from "@/components/LocationDetector";
 import PushPrompt from "@/components/PushPrompt";
 import PushNotifications from "@/components/PushNotifications";
 import IncomingCall from "@/components/IncomingCall";
-import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins, Eye, Trophy, Ban, Camera, Gift, Wallet } from "lucide-react";
+import { Heart, Compass, Search, MessageCircle, Video, Shield, User, LogOut, Menu, X, Crown, HelpCircle, Gem, Sparkles, Rss, Users, Bell, Moon, Sun, Coins, Eye, Trophy, Ban, Camera, Gift, Wallet, Lock, ChevronRight } from "lucide-react";
 
 type UserData = { id:string; name:string; email:string; username?:string; age:number|null; gender:string|null; lookingFor:string|null; bio:string|null; country:string|null; profilePhoto:string|null; tier:string; verified:boolean; verificationStatus:string; phone:string|null; isPrivate:boolean; interests:string[]; coins:number; createdAt:string; };
 const UserCtx = createContext<{ user:UserData|null; reload:()=>void; unread:number; dark:boolean; setDark:(v:boolean)=>void }>({ user:null, reload:()=>{}, unread:0, dark:false, setDark:()=>{} });
@@ -143,26 +143,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return n.toLocaleString();
   };
 
+  // Core nav — clean 5 items
   const nav = [
     { href:"/dashboard", label:"Discover", icon:Compass },
-    { href:"/dashboard/browse", label:"Browse", icon:Search },
+    { href:"/dashboard/messages", label:"Messages", icon:MessageCircle, badge:unread },
     { href:"/dashboard/feed", label:"Feed", icon:Rss },
     { href:"/dashboard/friends", label:"Friends", icon:Users },
-    { href:"/dashboard/messages", label:"Messages", icon:MessageCircle, badge:unread },
-    { href:"/dashboard/liked", label:"Who Likes You", icon:Heart, badge:0 },
-    { href:"/dashboard/video", label:"Video", icon:Video },
-    { href:"/dashboard/verify", label:"Verification", icon:Shield },
     { href:"/dashboard/profile", label:"Profile", icon:User },
-    { href:"/dashboard/views", label:"Who Viewed", icon:Eye },
-    { href:"/dashboard/leaderboard", label:"Leaderboard", icon:Trophy },
+  ];
+
+  // Everything else goes in avatar dropdown menu
+  const menuItems = [
+    { section: "Activity" },
+    { href:"/dashboard/liked", label:"Who Likes You", icon:Heart },
+    { href:"/dashboard/views", label:"Who Viewed Me", icon:Eye },
+    { href:"/dashboard/video", label:"Live Streams", icon:Video },
     { href:"/dashboard/stories", label:"Stories", icon:Camera },
-    { href:"/dashboard/quiz", label:"Explore", icon:Heart },
-    { href:"/dashboard/referral", label:"Invite", icon:Gift },
-    { href:"/dashboard/search", label:"Search", icon:Search },
-    { href:"/dashboard/blocked", label:"Blocked", icon:Ban },
-    { href:"/dashboard/settings", label:"Settings", icon:Shield },
-    { href:"/dashboard/support", label:"Support", icon:HelpCircle },
-    { href:"/dashboard/wallet", label:"Wallet", icon:Wallet },
+    { href:"/dashboard/browse", label:"Browse People", icon:Search },
+    { section: "Money" },
+    { href:"/dashboard/wallet", label:"Wallet & Earnings", icon:Wallet },
+    { href:"/dashboard/coins", label:"Buy Coins", icon:Coins },
+    { section: "Account" },
+    { href:"/dashboard/verify", label:"Verification", icon:Shield },
+    { href:"/dashboard/settings", label:"Settings", icon:Lock },
+    { href:"/dashboard/referral", label:"Invite Friends", icon:Gift },
+    { href:"/dashboard/blocked", label:"Blocked Users", icon:Ban },
+    { href:"/dashboard/support", label:"Help & Support", icon:HelpCircle },
   ];
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900"><div className="text-center"><div className="w-12 h-12 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin mx-auto mb-4" /><p className="text-gray-400 text-sm">Loading ConnectHub...</p></div></div>;
@@ -207,11 +213,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto scrollbar-hide">
             {nav.map(item => { const active = pathname === item.href; return <Link key={item.href} href={item.href} className={"flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all " + (active?(dc?"bg-rose-500/20 text-rose-400":"bg-rose-50 text-rose-600"):(dc?"text-gray-400 hover:bg-gray-700":"text-gray-600 hover:bg-gray-50"))}><item.icon className={"w-[18px] h-[18px] " + (active?"text-rose-500":(dc?"text-gray-500":"text-gray-400"))} />{item.label}{item.badge && item.badge > 0 ? <span className="ml-auto bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{item.badge}</span> : null}</Link>; })}
           </nav>
-          <div className={"mx-3 mb-2 flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer " + (dc?"bg-gray-700 hover:bg-gray-600":"bg-gray-50 hover:bg-gray-100")} onClick={() => setDark(!dc)}>
-            {dc ? <Sun className="w-[18px] h-[18px] text-amber-400" /> : <Moon className="w-[18px] h-[18px] text-gray-400" />}
-            <span className={"text-sm font-medium " + (dc?"text-gray-300":"text-gray-600")}>{dc?"Light Mode":"Dark Mode"}</span>
-          </div>
-          {user && user.tier === "basic" && <div className="mx-3 mb-2"><Link href="/dashboard/upgrade" className="flex items-center gap-2 px-3 py-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl text-white text-sm font-bold hover:shadow-lg transition-all"><Crown className="w-5 h-5" /> Upgrade Plan</Link></div>}
+
+
           <div className={"px-3 py-3 border-t " + (dc?"border-gray-700":"border-gray-100")}><button onClick={logout} className={"flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full " + (dc?"text-gray-400 hover:bg-gray-700":"text-gray-500 hover:bg-gray-50")}><LogOut className="w-[18px] h-[18px]" /> Log Out</button></div>
         </aside>
 
@@ -226,7 +229,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Mobile sidebar */}
-        {sideOpen && <div className="lg:hidden fixed inset-0 z-50"><div className="absolute inset-0 bg-black/30" onClick={() => setSideOpen(false)} /><div className={"absolute left-0 top-0 bottom-0 w-[280px] shadow-xl p-4 overflow-y-auto " + (dc?"bg-gray-800":"bg-white")}><div className="flex justify-between items-center mb-4"><span className={"font-bold " + (dc?"text-white":"text-gray-900")}>Menu</span><button onClick={() => setSideOpen(false)}><X className={"w-5 h-5 " + (dc?"text-gray-400":"text-gray-500")} /></button></div><nav className="space-y-1">{nav.map(item => <Link key={item.href} href={item.href} onClick={() => setSideOpen(false)} className={"flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium " + (pathname===item.href?(dc?"bg-rose-500/20 text-rose-400":"bg-rose-50 text-rose-600"):(dc?"text-gray-400 hover:bg-gray-700":"text-gray-600 hover:bg-gray-50"))}><item.icon className="w-5 h-5" /> {item.label}{item.badge && item.badge > 0 ? <span className="ml-auto bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{item.badge}</span> : null}</Link>)}<button onClick={() => setDark(!dc)} className={"flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full mt-2 " + (dc?"text-gray-400 hover:bg-gray-700":"text-gray-500 hover:bg-gray-50")}>{dc?<Sun className="w-5 h-5 text-amber-400"/>:<Moon className="w-5 h-5"/>} {dc?"Light Mode":"Dark Mode"}</button><button onClick={logout} className={"flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full mt-2 border-t pt-4 " + (dc?"text-gray-400 hover:bg-gray-700 border-gray-700":"text-gray-500 hover:bg-gray-50 border-gray-100")}><LogOut className="w-5 h-5" /> Log Out</button></nav></div></div>}
+        {sideOpen && <div className="lg:hidden fixed inset-0 z-50"><div className="absolute inset-0 bg-black/30" onClick={() => setSideOpen(false)} /><div className={"absolute left-0 top-0 bottom-0 w-[280px] shadow-xl p-4 overflow-y-auto " + (dc?"bg-gray-800":"bg-white")}><div className="flex justify-between items-center mb-4"><span className={"font-bold " + (dc?"text-white":"text-gray-900")}>Menu</span><button onClick={() => setSideOpen(false)}><X className={"w-5 h-5 " + (dc?"text-gray-400":"text-gray-500")} /></button></div><nav className="space-y-0.5">
+              {nav.map(item => <Link key={item.href} href={item.href} onClick={() => setSideOpen(false)} className={"flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold " + (pathname===item.href?(dc?"bg-rose-500/20 text-rose-400":"bg-rose-50 text-rose-600"):(dc?"text-gray-300 hover:bg-gray-700":"text-gray-700 hover:bg-gray-50"))}><item.icon className="w-5 h-5" /> {item.label}{item.badge && item.badge > 0 ? <span className="ml-auto bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{item.badge}</span> : null}</Link>)}
+              <div className={"my-3 border-t " + (dc?"border-gray-700":"border-gray-100")} />
+              {menuItems.map((item: any, i: number) => 
+                item.section ? <div key={i} className={"px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider " + (dc?"text-gray-500":"text-gray-400")}>{item.section}</div> : <Link key={item.href} href={item.href} onClick={() => setSideOpen(false)} className={"flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium " + (pathname===item.href?(dc?"bg-rose-500/20 text-rose-400":"bg-rose-50 text-rose-600"):(dc?"text-gray-400 hover:bg-gray-700":"text-gray-600 hover:bg-gray-50"))}><item.icon className="w-4 h-4" /> {item.label}</Link>
+              )}
+              <div className={"my-3 border-t " + (dc?"border-gray-700":"border-gray-100")} />
+              <button onClick={() => {setDark(!dc);setSideOpen(false);}} className={"flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full " + (dc?"text-gray-400 hover:bg-gray-700":"text-gray-500 hover:bg-gray-50")}>{dc?<Sun className="w-5 h-5 text-amber-400"/>:<Moon className="w-5 h-5"/>} {dc?"Light Mode":"Dark Mode"}</button>
+              <button onClick={logout} className={"flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full " + (dc?"text-gray-400 hover:bg-gray-700":"text-gray-500 hover:bg-gray-50")}><LogOut className="w-5 h-5" /> Log Out</button>
+            </nav></div></div>}
 
         {/* === DESKTOP TOP-RIGHT with Logout (#4) === */}
         <div className="hidden lg:flex fixed top-4 right-6 z-30 items-center gap-2">
@@ -238,9 +250,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Bell className={"w-4 h-4 " + (dc?"text-gray-400":"text-gray-600")} />
             {notifCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{notifCount}</span>}
           </button>
-          <button onClick={() => setDark(!dc)} className={"p-2.5 rounded-xl border transition-all " + (dc?"bg-gray-800 border-gray-700 hover:bg-gray-700":"bg-white border-gray-200 hover:bg-gray-50 shadow-sm")}>
-            {dc?<Sun className="w-4 h-4 text-amber-400"/>:<Moon className="w-4 h-4 text-gray-500"/>}
-          </button>
+
           {/* User menu with logout (#4) */}
           <div className="relative">
             <button onClick={() => setShowUserMenu(!showUserMenu)} className={"flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all " + (dc?"bg-gray-800 border-gray-700 hover:bg-gray-700":"bg-white border-gray-200 hover:bg-gray-50 shadow-sm")}>
@@ -249,17 +259,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
             {showUserMenu && (
               <div className="fixed inset-0 z-50" onClick={() => setShowUserMenu(false)}>
-                <div className={"absolute right-6 top-14 w-56 rounded-2xl shadow-2xl border overflow-hidden " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-200")} onClick={e => e.stopPropagation()}>
+                <div className={"absolute right-6 top-14 w-64 rounded-2xl shadow-2xl border overflow-hidden " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-200")} onClick={e => e.stopPropagation()}>
                   <div className={"p-4 border-b " + (dc?"border-gray-700":"border-gray-100")}>
                     <p className={"font-bold text-sm " + (dc?"text-white":"text-gray-900")}>{user?.name}</p>
                     <p className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>{user?.email}</p>
                   </div>
-                  <div className="p-2">
-                    <Link href="/dashboard/profile" onClick={() => setShowUserMenu(false)} className={"flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium " + (dc?"text-gray-300 hover:bg-gray-700":"text-gray-700 hover:bg-gray-50")}><User className="w-4 h-4" /> My Profile</Link>
-                    <Link href="/dashboard/coins" onClick={() => setShowUserMenu(false)} className={"flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium " + (dc?"text-gray-300 hover:bg-gray-700":"text-gray-700 hover:bg-gray-50")}><Coins className="w-4 h-4 text-amber-500" /> My Coins</Link>
-                    <Link href="/dashboard/support" onClick={() => setShowUserMenu(false)} className={"flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium " + (dc?"text-gray-300 hover:bg-gray-700":"text-gray-700 hover:bg-gray-50")}><HelpCircle className="w-4 h-4" /> Help Center</Link>
+                  <div className="p-2 max-h-[70vh] overflow-y-auto scrollbar-hide">
+                    {menuItems.map((item: any, i: number) => 
+                      item.section ? (
+                        <div key={i} className={"px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider " + (dc?"text-gray-500":"text-gray-400")}>{item.section}</div>
+                      ) : (
+                        <Link key={item.href} href={item.href} onClick={() => setShowUserMenu(false)} className={"flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all " + (pathname===item.href?(dc?"bg-rose-500/20 text-rose-400":"bg-rose-50 text-rose-600"):(dc?"text-gray-300 hover:bg-gray-700":"text-gray-700 hover:bg-gray-50"))}>
+                          <item.icon className={"w-4 h-4 " + (pathname===item.href?"text-rose-500":(dc?"text-gray-500":"text-gray-400"))} />
+                          {item.label}
+                          <ChevronRight className={"w-3 h-3 ml-auto " + (dc?"text-gray-600":"text-gray-300")} />
+                        </Link>
+                      )
+                    )}
                   </div>
                   <div className={"p-2 border-t " + (dc?"border-gray-700":"border-gray-100")}>
+                    <div className={"px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider " + (dc?"text-gray-500":"text-gray-400")}>Preferences</div>
+                    <button onClick={() => setDark(!dc)} className={"flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full " + (dc?"text-gray-300 hover:bg-gray-700":"text-gray-700 hover:bg-gray-50")}>
+                      {dc?<Sun className="w-4 h-4 text-amber-400"/>:<Moon className="w-4 h-4 text-gray-400"/>}
+                      {dc?"Light Mode":"Dark Mode"}
+                    </button>
                     <button onClick={() => { setShowUserMenu(false); logout(); }} className={"flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-red-500 " + (dc?"hover:bg-gray-700":"hover:bg-red-50")}><LogOut className="w-4 h-4" /> Log Out</button>
                   </div>
                 </div>
@@ -302,7 +325,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               { href:"/dashboard", icon:Compass, label:"Discover" },
               { href:"/dashboard/messages", icon:MessageCircle, label:"Messages" },
               { href:"/dashboard/feed", icon:Rss, label:"Feed" },
-              { href:"/dashboard/stories", icon:Camera, label:"Stories" },
+              { href:"/dashboard/friends", icon:Users, label:"Friends" },
               { href:"/dashboard/profile", icon:User, label:"Profile" },
             ].map(item => {
               const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
