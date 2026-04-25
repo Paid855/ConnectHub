@@ -379,7 +379,7 @@ export default function LiveStreamPage() {
           ):(
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {streams.map(s=>(
-                <button key={s.id} onClick={(e)=>{e.preventDefault();e.stopPropagation();if(me?.id && s.userId===me.id){rejoinAsHost(s);}else{joinLive(s);}}} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left group">
+                <button key={s.id} onClick={()=>{alert("Joining stream: "+s.title);if(me?.id && s.userId===me.id){rejoinAsHost(s);}else{joinLive(s);}}} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left group">
                   <div className="aspect-video bg-gradient-to-br from-rose-400 via-pink-400 to-purple-500 relative overflow-hidden">
                     {s.host?.profilePhoto?<img src={s.host.profilePhoto} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-500"/>:<div className="w-full h-full flex items-center justify-center"><Radio className="w-16 h-16 text-white/30"/></div>}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"/>
