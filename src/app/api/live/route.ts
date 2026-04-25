@@ -35,12 +35,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const id = getUserId(req);
   if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const { action, title } = await req.json();
+  const body = await req.json();
+  const action = body.action;
+  const title = body.title;
+  const category = body.category || "chat";
 
   if (action === "start") {
     // End any existing streams first
     await prisma.liveStream.updateMany({ where: { userId: id, isLive: true }, data: { isLive: false, endedAt: new Date() } });
-    const stream = await prisma.liveStream.create({ data: { userId: id, title: title || "Live Stream", isLive: true } });
+    const stream = await prisma.liveStream.create({ data: { userId: id, title: title || "Live Stream", category, isLive: true } });
     return NextResponse.json({ stream });
   }
 

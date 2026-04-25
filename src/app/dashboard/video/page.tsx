@@ -38,6 +38,9 @@ export default function LiveStreamPage() {
   const [invited, setInvited] = useState(false);
   const [inviteSending, setInviteSending] = useState<string|null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
+  const [floatingGifts, setFloatingGifts] = useState<{id:number;emoji:string;anim:string;x:number}[]>([]);
+  const [topGifters, setTopGifters] = useState<{name:string;photo:string|null;total:number}[]>([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   const toast = useCallback((text:string, emoji="💬")=>{
     const id=Date.now()+Math.random();
@@ -93,7 +96,7 @@ export default function LiveStreamPage() {
     if(!title.trim()){setErr("Enter a stream title");return;}
     setErr("");
     try{
-      const cr=await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start",title})});
+      const cr=await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start",title,category})});
       const{stream:s}=await cr.json();
       setStream(s); setRole("host");
 
@@ -243,6 +246,26 @@ export default function LiveStreamPage() {
       const d=await r.json();
       if(d.success){
         setCoins(c=>c-g.coins);toast(`Sent ${g.emoji} ${g.name}!`,g.emoji);setShowGifts(false);
+        // Floating gift animation
+        const anims = ["animate-gift-float","animate-gift-float-2","animate-gift-float-3"];
+        for (let i = 0; i < 3; i++) {
+          setTimeout(() => {
+            const fid = Date.now() + Math.random();
+            const x = 15 + Math.random() * 70;
+            setFloatingGifts(p => [...p, { id: fid, emoji: g.emoji, anim: anims[i % 3], x }]);
+            setTimeout(() => setFloatingGifts(p => p.filter(f => f.id !== fid)), 3200);
+          }, i * 300);
+        }
+        // Update top gifters
+        setTopGifters(prev => {
+          const name = me?.name || "You";
+          const photo = me?.profilePhoto || null;
+          const exists = prev.find(p => p.name === name);
+          if (exists) {
+            return prev.map(p => p.name === name ? { ...p, total: p.total + g.coins } : p).sort((a,b) => b.total - a.total);
+          }
+          return [...prev, { name, photo, total: g.coins }].sort((a,b) => b.total - a.total).slice(0, 5);
+        });
         await fetch("/api/live/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,content:`🎁 sent ${g.emoji} ${g.name} (${g.coins} coins)`})});
         const r2=await fetch(`/api/live/chat?streamId=${stream.id}`);const d2=await r2.json();setMsgs(d2.messages||[]);
       }else{toast(d.error||"Gift failed","❌");}
@@ -287,16 +310,41 @@ export default function LiveStreamPage() {
           ):(
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {streams.map(s=>(
-                <button key={s.id} onClick={()=>joinLive(s)} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all text-left group">
+                <button key={s.id} onClick={()=>joinLive(s)} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left group">
                   <div className="aspect-video bg-gradient-to-br from-rose-400 via-pink-400 to-purple-500 relative overflow-hidden">
-                    {s.host?.profilePhoto?<img src={s.host.profilePhoto} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-500"/>:<div className="w-full h-full flex items-center justify-center text-6xl">👤</div>}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"/>
-                    <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1"><span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"/> LIVE</div>
-                    <div className="absolute top-3 right-3 bg-black/40 backdrop-blur text-white text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1"><Eye className="w-3 h-3"/> {s.viewers||0}</div>
+                    {s.host?.profilePhoto?<img src={s.host.profilePhoto} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-500"/>:<div className="w-full h-full flex items-center justify-center"><Radio className="w-16 h-16 text-white/30"/></div>}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"/>
+                    {/* Live pulse badge */}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-40"/>
+                        <div className="relative bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1"><span className="w-1.5 h-1.5 bg-white rounded-full"/> LIVE</div>
+                      </div>
+                    </div>
+                    <div className="absolute top-3 right-3 bg-black/40 backdrop-blur-lg text-white text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1 border border-white/10"><Eye className="w-3 h-3"/> {s.viewers||0}</div>
+                    {/* Category badge */}
+                    {s.category && <div className="absolute bottom-3 left-3 bg-black/40 backdrop-blur-lg text-white text-[10px] font-medium px-2.5 py-1 rounded-full border border-white/10">{s.category==="dating"?"💕":s.category==="music"?"🎵":s.category==="dance"?"💃":s.category==="gaming"?"🎮":s.category==="cooking"?"🍳":s.category==="fitness"?"💪":s.category==="talk"?"🎤":"💬"} {s.category.charAt(0).toUpperCase()+s.category.slice(1)}</div>}
+                    {/* Viewer avatars */}
+                    {(s.viewers||0) > 0 && (
+                      <div className="absolute bottom-3 right-3 flex -space-x-1.5">
+                        {[0,1,2].map(i => (
+                          <div key={i} className="w-6 h-6 rounded-full bg-gradient-to-br from-rose-300 to-pink-400 border-2 border-black/30 flex items-center justify-center text-white text-[8px] font-bold" style={{opacity: 1 - i * 0.2}}/>
+                        ))}
+                        {(s.viewers||0) > 3 && <div className="w-6 h-6 rounded-full bg-black/50 backdrop-blur border-2 border-black/30 flex items-center justify-center text-white text-[8px] font-bold">+{(s.viewers||0)-3}</div>}
+                      </div>
+                    )}
                   </div>
                   <div className="p-4">
-                    <p className="font-bold text-gray-900 text-sm truncate">{s.title}</p>
-                    <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">{s.host?.verified&&<span className="text-blue-500">✓</span>}{s.host?.name||"Host"}{s.host?.tier==="premium"&&<Crown className="w-3 h-3 text-amber-500"/>}</p>
+                    <p className="font-bold text-gray-900 text-sm truncate group-hover:text-rose-600 transition-colors">{s.title}</p>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-[8px] font-bold overflow-hidden flex-shrink-0">
+                          {s.host?.profilePhoto ? <img src={s.host.profilePhoto} alt="" className="w-full h-full object-cover"/> : (s.host?.name?.[0] || "?")}
+                        </div>
+                        <p className="text-gray-500 text-xs flex items-center gap-1 truncate">{s.host?.verified&&<span className="text-blue-500 text-[10px]">✓</span>}{s.host?.name||"Host"}</p>
+                      </div>
+                      {s.host?.tier==="premium"&&<div className="bg-gradient-to-r from-amber-100 to-orange-100 px-2 py-0.5 rounded-full flex items-center gap-0.5"><Crown className="w-2.5 h-2.5 text-amber-500"/><span className="text-[9px] font-bold text-amber-700">PRO</span></div>}
+                    </div>
                   </div>
                 </button>
               ))}
@@ -324,7 +372,7 @@ export default function LiveStreamPage() {
           <p className="text-xs text-gray-400 mb-5">{title.length}/80</p>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
           <div className="grid grid-cols-4 gap-2 mb-5">
-            {[{id:"chat",l:"Chat",e:"💬"},{id:"music",l:"Music",e:"🎵"},{id:"dance",l:"Dance",e:"💃"},{id:"talk",l:"Talk",e:"🎤"}].map(c=>(
+            {[{id:"chat",l:"Chat",e:"💬"},{id:"dating",l:"Dating",e:"💕"},{id:"music",l:"Music",e:"🎵"},{id:"dance",l:"Dance",e:"💃"},{id:"talk",l:"Talk",e:"🎤"},{id:"gaming",l:"Gaming",e:"🎮"},{id:"cooking",l:"Cooking",e:"🍳"},{id:"fitness",l:"Fitness",e:"💪"}].map(c=>(
               <button key={c.id} onClick={()=>setCategory(c.id)} className={"p-3 rounded-xl text-center transition-all "+(category===c.id?"bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-lg":"bg-gray-50 hover:bg-gray-100 text-gray-600")}><p className="text-xl mb-1">{c.e}</p><p className="text-xs font-medium">{c.l}</p></button>
             ))}
           </div>
@@ -378,6 +426,26 @@ export default function LiveStreamPage() {
           {toasts.map(t=>(<div key={t.id} className="bg-gradient-to-r from-rose-500/95 to-pink-500/95 backdrop-blur-lg text-white text-sm px-5 py-3 rounded-full flex items-center justify-center gap-2 shadow-2xl"><span className="text-lg">{t.emoji}</span><span className="font-semibold">{t.text}</span></div>))}
         </div>
 
+        {/* Floating gift emojis */}
+        <div className="absolute bottom-32 left-0 right-0 pointer-events-none z-20">
+          {floatingGifts.map(fg => (
+            <div key={fg.id} className={fg.anim} style={{ position: "absolute", bottom: 0, left: fg.x + "%", fontSize: "48px", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }}>
+              {fg.emoji}
+            </div>
+          ))}
+        </div>
+
+        {/* Top Gifter leaderboard button */}
+        {topGifters.length > 0 && (
+          <button onClick={() => setShowLeaderboard(true)} className="absolute top-20 right-3 z-20 bg-gradient-to-r from-amber-500/90 to-orange-500/90 backdrop-blur-lg text-white px-3 py-2 rounded-xl flex items-center gap-2 shadow-lg hover:scale-105 transition-all border border-amber-400/30">
+            <Crown className="w-4 h-4" />
+            <div className="text-left">
+              <p className="text-[10px] font-bold leading-none">Top Gifter</p>
+              <p className="text-[10px] opacity-80 leading-none mt-0.5">{topGifters[0]?.name}</p>
+            </div>
+          </button>
+        )}
+
         {/* Co-host invite popup for viewer */}
         {invited&&role==="viewer"&&(
           <div className="absolute inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
@@ -401,7 +469,7 @@ export default function LiveStreamPage() {
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden">
                   {m.user?.profilePhoto?<img src={m.user.profilePhoto} alt="" className="w-full h-full object-cover"/>:(m.user?.name?.[0]||"?")}
                 </div>
-                <div className={"backdrop-blur-md rounded-2xl px-3 py-1.5 max-w-[75%] "+(m.content.includes("🎁")?"bg-amber-500/40":"bg-black/50")}>
+                <div className={"backdrop-blur-md rounded-2xl px-3 py-1.5 max-w-[75%] "+(m.content.includes("🎁")?"bg-gradient-to-r from-amber-500/50 to-orange-500/40 border border-amber-400/30":"bg-black/50")}>
                   <span className="text-white/80 text-[11px] font-semibold mr-1.5">{m.user?.name||"User"}</span>
                   <span className="text-white text-sm break-words">{m.content}</span>
                 </div>
@@ -444,6 +512,54 @@ export default function LiveStreamPage() {
                 {GIFTS.map(g=>(<button key={g.id} onClick={()=>sendGift(g)} disabled={coins<g.coins} className={"aspect-square rounded-2xl flex flex-col items-center justify-center transition-all "+(coins<g.coins?"bg-gray-50 opacity-50":"bg-gradient-to-br from-amber-50 to-orange-50 hover:scale-105 border border-amber-100")}><span className="text-3xl mb-1">{g.emoji}</span><span className="text-[10px] font-bold text-gray-700">{g.name}</span><span className="text-[10px] text-amber-600 font-semibold">🪙 {g.coins}</span></button>))}
               </div>
               <Link href="/dashboard/coins" onClick={()=>setShowGifts(false)} className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full font-bold text-sm flex items-center justify-center gap-2"><ShoppingCart className="w-4 h-4"/> Buy More Coins</Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top Gifter Leaderboard */}
+      {showLeaderboard && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-end sm:items-center justify-center" onClick={() => setShowLeaderboard(false)}>
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 p-6 text-center relative overflow-hidden">
+              <div className="absolute inset-0 opacity-20" style={{backgroundImage:"radial-gradient(circle at 2px 2px, white 1px, transparent 0)",backgroundSize:"16px 16px"}} />
+              <div className="relative">
+                <Crown className="w-10 h-10 text-white mx-auto mb-2" />
+                <h3 className="text-xl font-extrabold text-white">Top Gifters</h3>
+                <p className="text-amber-100 text-xs mt-1">Most generous supporters this stream</p>
+              </div>
+            </div>
+            <div className="p-5">
+              {topGifters.length === 0 ? (
+                <div className="text-center py-8">
+                  <Gift className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">No gifts yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {topGifters.map((g, i) => (
+                    <div key={i} className={"flex items-center gap-3 p-3 rounded-xl " + (i === 0 ? "bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200" : i === 1 ? "bg-gray-50 border border-gray-100" : "bg-gray-50/50")}>
+                      <div className={"w-8 h-8 rounded-full flex items-center justify-center text-white font-extrabold text-sm flex-shrink-0 " + (i === 0 ? "bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-200" : i === 1 ? "bg-gradient-to-br from-gray-400 to-gray-500" : "bg-gradient-to-br from-amber-600 to-amber-700")}>
+                        {i + 1}
+                      </div>
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
+                        {g.photo ? <img src={g.photo} alt="" className="w-full h-full object-cover" /> : g.name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-900 text-sm truncate">{g.name}</p>
+                        <p className="text-xs text-gray-500">{i === 0 ? "👑 Top Gifter" : i === 1 ? "🥈 2nd Place" : "🥉 " + (i + 1) + "th Place"}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-amber-500">🪙</span>
+                        <span className="font-bold text-amber-600 text-sm">{g.total.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-gray-100">
+              <button onClick={() => setShowLeaderboard(false)} className="w-full py-3 bg-gray-100 text-gray-700 rounded-full font-bold text-sm hover:bg-gray-200 transition-all">Close</button>
             </div>
           </div>
         </div>

@@ -125,6 +125,7 @@ model LiveStream {
   id          String    @id @default(cuid())
   userId      String
   title       String?
+  category    String    @default("chat")
   isLive      Boolean   @default(true)
   viewerCount Int       @default(0)
   createdAt   DateTime  @default(now())
