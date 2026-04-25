@@ -39,6 +39,7 @@ export default function LiveStreamPage() {
   const [myActiveStream, setMyActiveStream] = useState<any>(null);
   const [inviteSending, setInviteSending] = useState<string|null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
+  const remoteUsers = useRef<Map<any, any>>(new Map());
   const [floatingGifts, setFloatingGifts] = useState<{id:number;emoji:string;anim:string;x:number}[]>([]);
   const [topGifters, setTopGifters] = useState<{name:string;photo:string|null;total:number}[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -195,6 +196,7 @@ export default function LiveStreamPage() {
       c.on("user-published",async(user:any,type:any)=>{
         await c.subscribe(user,type);
         if(type==="video"){
+          remoteUsers.current.set(user.uid, user);
           const tryPlay=()=>{const el=document.getElementById("viewer-video");if(el&&user.videoTrack){user.videoTrack.play(el,{fit:"cover"});return true;}return false;};
           if(!tryPlay()){let n=0;const iv=setInterval(()=>{n++;if(tryPlay()||n>30)clearInterval(iv);},200);}
         }
@@ -246,10 +248,23 @@ export default function LiveStreamPage() {
       setRole("cohost");
       toast("You are now co-hosting!","🎤");
 
-      // Play own video in small preview
+      // Play own video in small preview + replay host video in main view
       requestAnimationFrame(()=>{requestAnimationFrame(()=>{
-        const el=document.getElementById("cohost-self-video");
-        if(el&&vt) vt.play(el,{fit:"cover",mirror:true});
+        // Own camera in small preview
+        const selfEl=document.getElementById("cohost-self-video");
+        if(selfEl&&vt) vt.play(selfEl,{fit:"cover",mirror:true});
+
+        // Replay host's video in the main viewer-video div (DOM was recreated on role switch)
+        setTimeout(()=>{
+          remoteUsers.current.forEach((user:any)=>{
+            if(user.videoTrack){
+              const hostEl=document.getElementById("viewer-video");
+              if(hostEl){
+                try{ user.videoTrack.play(hostEl,{fit:"cover"}); }catch(e){ console.log("[Live] Replay host video:", e); }
+              }
+            }
+          });
+        }, 300);
       });});
 
       // Announce in chat
