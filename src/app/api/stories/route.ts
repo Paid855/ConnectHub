@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const views = allViews.filter(v => v.storyId === s.id);
     grouped[s.userId].stories.push({
       ...s,
-      viewCount: views.length,
+      viewCount: views.filter(v => v.viewerId !== s.userId).length,
       viewedByMe: views.some(v => v.viewerId === id)
     });
   });
@@ -73,10 +73,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "view" && storyId) {
-    // Only count unique views
-    const existing = await prisma.storyView.findFirst({ where: { storyId, viewerId: id } });
-    if (!existing) {
-      await prisma.storyView.create({ data: { storyId, viewerId: id } }).catch(() => {});
+    // Don't count self-views (story owner viewing their own story)
+    const story = await prisma.story.findUnique({ where: { id: storyId }, select: { userId: true } });
+    if (story && story.userId !== id) {
+      const existing = await prisma.storyView.findFirst({ where: { storyId, viewerId: id } });
+      if (!existing) {
+        await prisma.storyView.create({ data: { storyId, viewerId: id } }).catch(() => {});
+      }
     }
     return NextResponse.json({ viewed: true });
   }
@@ -91,9 +94,10 @@ export async function POST(req: NextRequest) {
       where: { id: { in: viewerIds } },
       select: { id:true, name:true, profilePhoto:true }
     }) : [];
+    const filtered = views.filter(v => v.viewerId !== id);
     return NextResponse.json({
-      viewers: views.map(v => ({ ...v, user: viewers.find(u => u.id === v.viewerId) })),
-      totalViews: views.length
+      viewers: filtered.map(v => ({ ...v, user: viewers.find(u => u.id === v.viewerId) })),
+      totalViews: filtered.length
     });
   }
 

@@ -39,6 +39,7 @@ export default function FeedPage() {
   const [storyReply, setStoryReply] = useState("");
   const [storyLoved, setStoryLoved] = useState(false);
   const [storyPaused, setStoryPaused] = useState(false);
+  const storyPausedRef = useRef(false);
   const holdTimer = useRef<any>(null);
   const [uploadingStory, setUploadingStory] = useState(false);
   const storyBgs = [
@@ -178,7 +179,7 @@ export default function FeedPage() {
   };
 
   const openStory = (group: StoryGroup, index = 0) => {
-    setViewing({ group, index }); setStoryProgress(0); setStoryLoved(false); setStoryReply(""); setStoryPaused(false);
+    setViewing({ group, index }); setStoryProgress(0); setStoryLoved(false); setStoryReply(""); setStoryPaused(false); storyPausedRef.current = false;
     // Mark as viewed
     const story = group.stories[index];
     if (story) fetch("/api/stories", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"view", storyId:story.id }) }).catch(() => {});
@@ -207,30 +208,27 @@ export default function FeedPage() {
     }
   };
 
-  // Story progress timer — respects pause
+  // Story progress timer — checks pausedRef every tick for instant response
   useEffect(() => {
-    if (!viewing || storyPaused) {
-      if (progressTimer.current) clearInterval(progressTimer.current);
-      return;
-    }
+    if (!viewing) return;
     if (progressTimer.current) clearInterval(progressTimer.current);
     progressTimer.current = setInterval(() => {
+      if (storyPausedRef.current) return; // Skip tick while paused
       setStoryProgress(p => {
         if (p >= 100) { nextStory(); return 0; }
         return p + 2;
       });
     }, 100);
     return () => { if (progressTimer.current) clearInterval(progressTimer.current); };
-  }, [viewing?.group?.user?.id, viewing?.index, storyPaused]);
+  }, [viewing?.group?.user?.id, viewing?.index]);
 
   // Hold handlers for pausing
-  const handleHoldStart = (e?: any) => {
-    if (e?.preventDefault) e.preventDefault();
-    holdTimer.current = setTimeout(() => { setStoryPaused(true); }, 200);
+  const handleHoldStart = () => {
+    holdTimer.current = setTimeout(() => { storyPausedRef.current = true; setStoryPaused(true); }, 200);
   };
-  const handleHoldEnd = (e?: any) => {
+  const handleHoldEnd = () => {
     if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; }
-    if (storyPaused) setStoryPaused(false);
+    storyPausedRef.current = false; setStoryPaused(false);
   };
 
   // Delete own story
@@ -576,21 +574,22 @@ export default function FeedPage() {
 
           {/* Navigation zones with hold-to-pause */}
           <div
-            onMouseDown={handleHoldStart} onMouseUp={(e) => { handleHoldEnd(e); if (!storyPaused) prevStory(); }} onMouseLeave={handleHoldEnd}
-            onTouchStart={handleHoldStart} onTouchEnd={(e) => { handleHoldEnd(e); }}
-            onClick={() => { if (!storyPaused) prevStory(); }}
-            className="absolute left-0 top-0 bottom-0 w-1/3 z-20 cursor-pointer"
+            onPointerDown={handleHoldStart}
+            onPointerUp={() => { const wasPaused = storyPausedRef.current; handleHoldEnd(); if (!wasPaused) prevStory(); }}
+            onPointerLeave={handleHoldEnd}
+            className="absolute left-0 top-0 bottom-0 w-1/3 z-20 cursor-pointer touch-none"
           />
           <div
-            onMouseDown={handleHoldStart} onMouseUp={handleHoldEnd} onMouseLeave={handleHoldEnd}
-            onTouchStart={handleHoldStart} onTouchEnd={handleHoldEnd}
-            className="absolute left-1/3 top-0 bottom-0 w-1/3 z-20"
+            onPointerDown={handleHoldStart}
+            onPointerUp={handleHoldEnd}
+            onPointerLeave={handleHoldEnd}
+            className="absolute left-1/3 top-0 bottom-0 w-1/3 z-20 touch-none"
           />
           <div
-            onMouseDown={handleHoldStart} onMouseUp={(e) => { handleHoldEnd(e); if (!storyPaused) nextStory(); }} onMouseLeave={handleHoldEnd}
-            onTouchStart={handleHoldStart} onTouchEnd={(e) => { handleHoldEnd(e); }}
-            onClick={() => { if (!storyPaused) nextStory(); }}
-            className="absolute right-0 top-0 bottom-0 w-1/3 z-20 cursor-pointer"
+            onPointerDown={handleHoldStart}
+            onPointerUp={() => { const wasPaused = storyPausedRef.current; handleHoldEnd(); if (!wasPaused) nextStory(); }}
+            onPointerLeave={handleHoldEnd}
+            className="absolute right-0 top-0 bottom-0 w-1/3 z-20 cursor-pointer touch-none"
           />
 
           {/* Paused indicator */}
