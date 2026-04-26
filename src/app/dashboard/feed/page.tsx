@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useUser, TierBadge } from "../layout";
-import { Heart, MessageCircle, Send, Image as ImageIcon, Smile, Trash2, X, Film, Plus, Eye, Clock, ChevronLeft, ChevronRight, Shield } from "lucide-react";
+import { Heart, MessageCircle, Send, Image as ImageIcon, Smile, Trash2, X, Film, Plus, Eye, Clock, ChevronLeft, ChevronRight, Shield, Edit3, Camera } from "lucide-react";
 import Link from "next/link";
 
 const EMOJIS = ["😀","😂","🥰","😍","😘","🤗","😊","❤️","🔥","💕","✨","💯","👋","🎉","💐","🌹","💝","💖","😎","🥳","🤩","💪","🙌","👏"];
