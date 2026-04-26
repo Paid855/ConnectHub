@@ -49,7 +49,7 @@ export default function FeedPage() {
       const res = await fetch("/api/stories");
       if (res.ok) {
         const d = await res.json();
-        setStoryGroups(d.groups || []);
+        setStoryGroups(d.storyGroups || d.groups || []);
         setMyStories(d.myStories || []);
       }
     } catch {}
@@ -124,7 +124,7 @@ export default function FeedPage() {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const img = ev.target?.result as string;
-      await fetch("/api/stories", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ image: img, caption: "" }) });
+      await fetch("/api/stories", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action: "create", image: img, caption: "" }) });
       loadStories(); setUploadingStory(false);
     };
     reader.readAsDataURL(file); e.target.value = "";
@@ -134,7 +134,7 @@ export default function FeedPage() {
     setViewing({ group, index }); setStoryProgress(0); setStoryLoved(false); setStoryReply("");
     // Mark as viewed
     const story = group.stories[index];
-    if (story) fetch("/api/stories?view=" + story.id).catch(() => {});
+    if (story) fetch("/api/stories", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"view", storyId:story.id }) }).catch(() => {});
   };
 
   const nextStory = () => {
@@ -142,7 +142,7 @@ export default function FeedPage() {
     if (viewing.index < viewing.group.stories.length - 1) {
       const next = viewing.index + 1;
       setViewing({ ...viewing, index: next }); setStoryProgress(0); setStoryLoved(false);
-      fetch("/api/stories?view=" + viewing.group.stories[next]?.id).catch(() => {});
+      fetch("/api/stories", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"view", storyId:viewing.group.stories[next]?.id }) }).catch(() => {});
     } else {
       const groupIdx = storyGroups.findIndex(g => g.user.id === viewing.group.user.id);
       if (groupIdx < storyGroups.length - 1) {
