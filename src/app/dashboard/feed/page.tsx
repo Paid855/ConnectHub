@@ -157,43 +157,19 @@ export default function FeedPage() {
     setUploadingStory(true);
     try {
       let image = storyMediaPreview || "";
-      // For text-only stories, create a canvas image with the text on gradient background
+      let caption = storyCaption || "";
+
       if (!storyMediaPreview && storyText.trim()) {
-        const canvas = document.createElement("canvas");
-        canvas.width = 1080; canvas.height = 1920;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          // Draw gradient background
-          const colors: Record<number, string[]> = {
-            0: ["#f43f5e","#ec4899","#9333ea"], 1: ["#3b82f6","#06b6d4","#14b8a6"],
-            2: ["#f59e0b","#f97316","#ef4444"], 3: ["#7c3aed","#9333ea","#4f46e5"],
-            4: ["#10b981","#22c55e","#84cc16"], 5: ["#ec4899","#f43f5e","#ef4444"],
-            6: ["#1f2937","#111827","#000000"], 7: ["#6366f1","#2563eb","#7c3aed"],
-          };
-          const gc = colors[storyBg] || colors[0];
-          const grad = ctx.createLinearGradient(0, 0, 1080, 1920);
-          grad.addColorStop(0, gc[0]); grad.addColorStop(0.5, gc[1]); grad.addColorStop(1, gc[2]);
-          ctx.fillStyle = grad; ctx.fillRect(0, 0, 1080, 1920);
-          // Draw text
-          ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          const fontSize = storyText.length > 100 ? 48 : storyText.length > 50 ? 60 : 80;
-          ctx.font = "bold " + fontSize + "px system-ui, -apple-system, sans-serif";
-          // Word wrap
-          const words = storyText.split(" ");
-          const lines: string[] = []; let line = "";
-          for (const word of words) {
-            const test = line + (line ? " " : "") + word;
-            if (ctx.measureText(test).width > 900) { lines.push(line); line = word; }
-            else line = test;
-          }
-          if (line) lines.push(line);
-          const startY = 960 - (lines.length * fontSize * 0.6);
-          lines.forEach((l, i) => { ctx.fillText(l, 540, startY + i * fontSize * 1.2); });
-          image = canvas.toDataURL("image/jpeg", 0.9);
-        }
+        // Text-only story — store as special format [TEXT:bgIndex]content
+        image = "[TEXT:" + storyBg + "]" + storyText;
+        caption = storyText.substring(0, 50);
       }
-      const payload: any = { action: "create", image, caption: storyCaption || storyText.substring(0, 50) };
-      if (storyMediaType === "video") payload.image = "[VID]" + storyMediaPreview;
+
+      const payload: any = { action: "create", image, caption };
+      if (storyMediaType === "video" && storyMediaPreview) {
+        payload.image = "[VID]" + storyMediaPreview;
+      }
+
       await fetch("/api/stories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       loadStories();
       setShowStoryCreator(false); setStoryText(""); setStoryMediaPreview(null); setStoryMediaType(null); setStoryCaption(""); setStoryBg(0);
@@ -248,12 +224,13 @@ export default function FeedPage() {
   }, [viewing?.group?.user?.id, viewing?.index, storyPaused]);
 
   // Hold handlers for pausing
-  const handleHoldStart = () => {
-    holdTimer.current = setTimeout(() => { setStoryPaused(true); }, 150);
+  const handleHoldStart = (e?: any) => {
+    if (e?.preventDefault) e.preventDefault();
+    holdTimer.current = setTimeout(() => { setStoryPaused(true); }, 200);
   };
-  const handleHoldEnd = () => {
-    if (holdTimer.current) clearTimeout(holdTimer.current);
-    setStoryPaused(false);
+  const handleHoldEnd = (e?: any) => {
+    if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; }
+    if (storyPaused) setStoryPaused(false);
   };
 
   // Delete own story
@@ -577,8 +554,18 @@ export default function FeedPage() {
             </div>
           </div>
 
-          {/* Story image */}
-          <img src={currentStory.image} className="max-w-full max-h-full object-contain" />
+          {/* Story content */}
+          {currentStory.image?.startsWith("[TEXT:") ? (
+            <div className={"absolute inset-0 bg-gradient-to-br flex items-center justify-center p-8 " + (storyBgs[parseInt(currentStory.image.match(/\[TEXT:(\d+)\]/)?.[1] || "0")] || storyBgs[0])}>
+              <p className="text-white font-bold text-center break-words" style={{ fontSize: (currentStory.image.replace(/\[TEXT:\d+\]/, "").length > 100 ? 18 : currentStory.image.replace(/\[TEXT:\d+\]/, "").length > 50 ? 24 : 32), lineHeight: 1.5, textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+                {currentStory.image.replace(/\[TEXT:\d+\]/, "")}
+              </p>
+            </div>
+          ) : currentStory.image?.startsWith("[VID]") ? (
+            <video src={currentStory.image.replace("[VID]", "")} className="max-w-full max-h-full object-contain" autoPlay playsInline />
+          ) : (
+            <img src={currentStory.image} className="max-w-full max-h-full object-contain" />
+          )}
 
           {/* Caption */}
           {currentStory.caption && (
@@ -588,22 +575,22 @@ export default function FeedPage() {
           )}
 
           {/* Navigation zones with hold-to-pause */}
-          <button
-            onClick={prevStory}
-            onMouseDown={handleHoldStart} onMouseUp={handleHoldEnd} onMouseLeave={handleHoldEnd}
-            onTouchStart={handleHoldStart} onTouchEnd={handleHoldEnd}
-            className="absolute left-0 top-0 bottom-0 w-1/3 z-20"
+          <div
+            onMouseDown={handleHoldStart} onMouseUp={(e) => { handleHoldEnd(e); if (!storyPaused) prevStory(); }} onMouseLeave={handleHoldEnd}
+            onTouchStart={handleHoldStart} onTouchEnd={(e) => { handleHoldEnd(e); }}
+            onClick={() => { if (!storyPaused) prevStory(); }}
+            className="absolute left-0 top-0 bottom-0 w-1/3 z-20 cursor-pointer"
           />
           <div
             onMouseDown={handleHoldStart} onMouseUp={handleHoldEnd} onMouseLeave={handleHoldEnd}
             onTouchStart={handleHoldStart} onTouchEnd={handleHoldEnd}
             className="absolute left-1/3 top-0 bottom-0 w-1/3 z-20"
           />
-          <button
-            onClick={nextStory}
-            onMouseDown={handleHoldStart} onMouseUp={handleHoldEnd} onMouseLeave={handleHoldEnd}
-            onTouchStart={handleHoldStart} onTouchEnd={handleHoldEnd}
-            className="absolute right-0 top-0 bottom-0 w-1/3 z-20"
+          <div
+            onMouseDown={handleHoldStart} onMouseUp={(e) => { handleHoldEnd(e); if (!storyPaused) nextStory(); }} onMouseLeave={handleHoldEnd}
+            onTouchStart={handleHoldStart} onTouchEnd={(e) => { handleHoldEnd(e); }}
+            onClick={() => { if (!storyPaused) nextStory(); }}
+            className="absolute right-0 top-0 bottom-0 w-1/3 z-20 cursor-pointer"
           />
 
           {/* Paused indicator */}

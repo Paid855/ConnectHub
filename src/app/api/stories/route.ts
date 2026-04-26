@@ -52,7 +52,10 @@ export async function POST(req: NextRequest) {
   if (action === "create") {
     if (!image) return NextResponse.json({ error: "Image or video required" }, { status: 400 });
     let storeUrl = image;
-    if (image.startsWith("[VID]")) {
+    // Text stories don't need upload
+    if (image.startsWith("[TEXT:")) {
+      storeUrl = image;
+    } else if (image.startsWith("[VID]")) {
       const vidData = image.replace("[VID]", "");
       if (vidData.startsWith("data:")) {
         const cloudUrl = await uploadVideo(vidData, "stories");
