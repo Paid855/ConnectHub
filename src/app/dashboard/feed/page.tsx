@@ -41,6 +41,22 @@ export default function FeedPage() {
   const [storyPaused, setStoryPaused] = useState(false);
   const holdTimer = useRef<any>(null);
   const [uploadingStory, setUploadingStory] = useState(false);
+  const storyBgs = [
+    "from-rose-500 via-pink-500 to-purple-600",
+    "from-blue-500 via-cyan-500 to-teal-500",
+    "from-amber-500 via-orange-500 to-red-500",
+    "from-violet-600 via-purple-600 to-indigo-600",
+    "from-emerald-500 via-green-500 to-lime-500",
+    "from-pink-500 via-rose-500 to-red-500",
+    "from-gray-800 via-gray-900 to-black",
+    "from-indigo-500 via-blue-600 to-purple-700",
+  ];
+  const [showStoryCreator, setShowStoryCreator] = useState(false);
+  const [storyText, setStoryText] = useState("");
+  const [storyBg, setStoryBg] = useState(0);
+  const [storyMediaPreview, setStoryMediaPreview] = useState<string|null>(null);
+  const [storyMediaType, setStoryMediaType] = useState<"image"|"video"|null>(null);
+  const [storyCaption, setStoryCaption] = useState("");
 
   const loadFeed = async () => {
     try { const res = await fetch("/api/feed"); if (res.ok) { const d = await res.json(); setPosts(d.feed || []); } } catch {}
@@ -121,16 +137,68 @@ export default function FeedPage() {
   };
 
   // Story functions
-  const uploadStory = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStoryFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
-    setUploadingStory(true);
     const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const img = ev.target?.result as string;
-      await fetch("/api/stories", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action: "create", image: img, caption: "" }) });
-      loadStories(); setUploadingStory(false);
+    reader.onload = (ev) => {
+      const data = ev.target?.result as string;
+      if (file.type.startsWith("video/")) {
+        setStoryMediaPreview(data); setStoryMediaType("video");
+      } else {
+        setStoryMediaPreview(data); setStoryMediaType("image");
+      }
+      setShowStoryCreator(true);
     };
     reader.readAsDataURL(file); e.target.value = "";
+  };
+
+  const publishStory = async () => {
+    if (!storyText.trim() && !storyMediaPreview) return;
+    setUploadingStory(true);
+    try {
+      let image = storyMediaPreview || "";
+      // For text-only stories, create a canvas image with the text on gradient background
+      if (!storyMediaPreview && storyText.trim()) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1080; canvas.height = 1920;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          // Draw gradient background
+          const colors: Record<number, string[]> = {
+            0: ["#f43f5e","#ec4899","#9333ea"], 1: ["#3b82f6","#06b6d4","#14b8a6"],
+            2: ["#f59e0b","#f97316","#ef4444"], 3: ["#7c3aed","#9333ea","#4f46e5"],
+            4: ["#10b981","#22c55e","#84cc16"], 5: ["#ec4899","#f43f5e","#ef4444"],
+            6: ["#1f2937","#111827","#000000"], 7: ["#6366f1","#2563eb","#7c3aed"],
+          };
+          const gc = colors[storyBg] || colors[0];
+          const grad = ctx.createLinearGradient(0, 0, 1080, 1920);
+          grad.addColorStop(0, gc[0]); grad.addColorStop(0.5, gc[1]); grad.addColorStop(1, gc[2]);
+          ctx.fillStyle = grad; ctx.fillRect(0, 0, 1080, 1920);
+          // Draw text
+          ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          const fontSize = storyText.length > 100 ? 48 : storyText.length > 50 ? 60 : 80;
+          ctx.font = "bold " + fontSize + "px system-ui, -apple-system, sans-serif";
+          // Word wrap
+          const words = storyText.split(" ");
+          const lines: string[] = []; let line = "";
+          for (const word of words) {
+            const test = line + (line ? " " : "") + word;
+            if (ctx.measureText(test).width > 900) { lines.push(line); line = word; }
+            else line = test;
+          }
+          if (line) lines.push(line);
+          const startY = 960 - (lines.length * fontSize * 0.6);
+          lines.forEach((l, i) => { ctx.fillText(l, 540, startY + i * fontSize * 1.2); });
+          image = canvas.toDataURL("image/jpeg", 0.9);
+        }
+      }
+      const payload: any = { action: "create", image, caption: storyCaption || storyText.substring(0, 50) };
+      if (storyMediaType === "video") payload.image = "[VID]" + storyMediaPreview;
+      await fetch("/api/stories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      loadStories();
+      setShowStoryCreator(false); setStoryText(""); setStoryMediaPreview(null); setStoryMediaType(null); setStoryCaption(""); setStoryBg(0);
+    } catch {}
+    setUploadingStory(false);
   };
 
   const openStory = (group: StoryGroup, index = 0) => {
@@ -238,7 +306,7 @@ export default function FeedPage() {
       <div className={"py-4 mb-4 " + (dc ? "" : "")}>
         <div ref={storyScrollRef} className="flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-hide" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
           {/* Your Story */}
-          <div className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer" onClick={() => storyFileRef.current?.click()}>
+          <div className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer" onClick={() => setShowStoryCreator(true)}>
             <div className="relative">
               <div className={"w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-full flex items-center justify-center " + (myStories.length > 0 ? "p-[3px] bg-gradient-to-br from-rose-500 via-pink-500 to-purple-500" : (dc ? "p-[3px] bg-gray-600" : "p-[3px] bg-gray-200"))}>
                 <div className={"w-full h-full rounded-full overflow-hidden " + (dc ? "bg-gray-800" : "bg-white")}>
@@ -251,7 +319,7 @@ export default function FeedPage() {
             </div>
             <span className={"text-[10px] font-medium w-14 sm:w-16 text-center truncate " + (dc ? "text-gray-400" : "text-gray-500")}>Your Story</span>
           </div>
-          <input ref={storyFileRef} type="file" accept="image/*,video/*" onChange={uploadStory} className="hidden" />
+          <input ref={storyFileRef} type="file" accept="image/*,video/*" onChange={handleStoryFile} className="hidden" />
 
           {/* Other stories */}
           {storyGroups.map((group) => {
@@ -406,7 +474,76 @@ export default function FeedPage() {
       )}
 
       {/* ═══ STORY VIEWER (FULLSCREEN) ═══ */}
-      {viewing && currentStory && (
+      {/* Story Creator Modal */}
+      {showStoryCreator && (
+        <div className="fixed inset-0 z-[190] bg-black flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-lg">
+            <button onClick={() => { setShowStoryCreator(false); setStoryMediaPreview(null); setStoryMediaType(null); setStoryText(""); setStoryCaption(""); }} className="text-white text-sm font-medium px-3 py-1.5 rounded-full hover:bg-white/10">Cancel</button>
+            <p className="text-white font-bold text-sm">Create Story</p>
+            <button onClick={publishStory} disabled={uploadingStory || (!storyText.trim() && !storyMediaPreview)} className="px-5 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-bold disabled:opacity-40 hover:shadow-lg transition-all flex items-center gap-1.5">
+              {uploadingStory ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Share"}
+            </button>
+          </div>
+
+          {/* Preview Area */}
+          <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+            {storyMediaPreview ? (
+              <>
+                {storyMediaType === "video" ? (
+                  <video src={storyMediaPreview} className="max-w-full max-h-full object-contain" autoPlay loop muted playsInline />
+                ) : (
+                  <img src={storyMediaPreview} className="max-w-full max-h-full object-contain" />
+                )}
+                {/* Caption overlay on media */}
+                <div className="absolute bottom-20 left-0 right-0 px-6">
+                  <input value={storyCaption} onChange={e => setStoryCaption(e.target.value)} placeholder="Add a caption..." maxLength={100} className="w-full px-5 py-3 bg-black/40 backdrop-blur-lg text-white placeholder:text-white/40 rounded-full text-sm outline-none border border-white/10 focus:border-white/30" />
+                </div>
+              </>
+            ) : (
+              /* Text story preview */
+              <div className={"absolute inset-0 bg-gradient-to-br " + storyBgs[storyBg] + " flex items-center justify-center p-8"}>
+                {storyText ? (
+                  <p className="text-white font-bold text-center break-words" style={{ fontSize: storyText.length > 100 ? "20px" : storyText.length > 50 ? "28px" : "36px", lineHeight: 1.4, textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>{storyText}</p>
+                ) : (
+                  <p className="text-white/30 text-2xl font-bold">Type your story...</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Controls */}
+          <div className="bg-black/90 backdrop-blur-lg px-4 py-4 space-y-3 safe-area-bottom">
+            {!storyMediaPreview && (
+              <>
+                {/* Text input */}
+                <textarea value={storyText} onChange={e => setStoryText(e.target.value)} placeholder="What's on your mind?" maxLength={280} className="w-full px-4 py-3 bg-white/10 text-white placeholder:text-white/30 rounded-2xl text-sm outline-none resize-none h-20 border border-white/10 focus:border-rose-500/50" />
+                {/* Background picker */}
+                <div className="flex items-center gap-2">
+                  <span className="text-white/40 text-xs font-medium mr-1">BG</span>
+                  {storyBgs.map((bg, i) => (
+                    <button key={i} onClick={() => setStoryBg(i)} className={"w-8 h-8 rounded-full bg-gradient-to-br " + bg + " transition-all " + (storyBg === i ? "ring-2 ring-white ring-offset-2 ring-offset-black scale-110" : "opacity-60 hover:opacity-100")} />
+                  ))}
+                </div>
+              </>
+            )}
+            {/* Action buttons */}
+            <div className="flex items-center gap-3">
+              <button onClick={() => storyFileRef.current?.click()} className="flex items-center gap-2 px-4 py-2.5 bg-white/10 text-white rounded-full text-xs font-bold hover:bg-white/20 transition-all border border-white/10">
+                <Camera className="w-4 h-4" /> {storyMediaPreview ? "Change" : "Photo/Video"}
+              </button>
+              {storyMediaPreview && (
+                <button onClick={() => { setStoryMediaPreview(null); setStoryMediaType(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold hover:bg-red-500/30 transition-all border border-red-500/20">
+                  <X className="w-4 h-4" /> Remove Media
+                </button>
+              )}
+              {storyText && !storyMediaPreview && <span className="text-white/30 text-xs ml-auto">{storyText.length}/280</span>}
+            </div>
+          </div>
+        </div>
+      )}
+
+            {viewing && currentStory && (
         <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center">
           {/* Progress bars */}
           <div className="absolute top-0 left-0 right-0 z-30 px-3 pt-3 flex gap-1">
