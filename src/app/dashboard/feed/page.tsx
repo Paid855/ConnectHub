@@ -32,11 +32,14 @@ export default function FeedPage() {
 
   // Stories state
   const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
+  const [myId, setMyId] = useState("");
   const [myStories, setMyStories] = useState<StoryItem[]>([]);
   const [viewing, setViewing] = useState<{group:StoryGroup;index:number}|null>(null);
   const [storyProgress, setStoryProgress] = useState(0);
   const [storyReply, setStoryReply] = useState("");
   const [storyLoved, setStoryLoved] = useState(false);
+  const [storyPaused, setStoryPaused] = useState(false);
+  const holdTimer = useRef<any>(null);
   const [uploadingStory, setUploadingStory] = useState(false);
 
   const loadFeed = async () => {
@@ -49,7 +52,7 @@ export default function FeedPage() {
       const res = await fetch("/api/stories");
       if (res.ok) {
         const d = await res.json();
-        setStoryGroups(d.storyGroups || d.groups || []);
+        setStoryGroups(d.storyGroups || d.groups || []); if (d.myId) setMyId(d.myId);
         setMyStories(d.myStories || []);
       }
     } catch {}
@@ -131,7 +134,7 @@ export default function FeedPage() {
   };
 
   const openStory = (group: StoryGroup, index = 0) => {
-    setViewing({ group, index }); setStoryProgress(0); setStoryLoved(false); setStoryReply("");
+    setViewing({ group, index }); setStoryProgress(0); setStoryLoved(false); setStoryReply(""); setStoryPaused(false);
     // Mark as viewed
     const story = group.stories[index];
     if (story) fetch("/api/stories", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"view", storyId:story.id }) }).catch(() => {});
@@ -160,10 +163,12 @@ export default function FeedPage() {
     }
   };
 
-  // Story progress timer
+  // Story progress timer — respects pause
   useEffect(() => {
-    if (!viewing) return;
-    setStoryProgress(0);
+    if (!viewing || storyPaused) {
+      if (progressTimer.current) clearInterval(progressTimer.current);
+      return;
+    }
     if (progressTimer.current) clearInterval(progressTimer.current);
     progressTimer.current = setInterval(() => {
       setStoryProgress(p => {
@@ -172,7 +177,26 @@ export default function FeedPage() {
       });
     }, 100);
     return () => { if (progressTimer.current) clearInterval(progressTimer.current); };
-  }, [viewing?.group.user.id, viewing?.index]);
+  }, [viewing?.group?.user?.id, viewing?.index, storyPaused]);
+
+  // Hold handlers for pausing
+  const handleHoldStart = () => {
+    holdTimer.current = setTimeout(() => { setStoryPaused(true); }, 150);
+  };
+  const handleHoldEnd = () => {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    setStoryPaused(false);
+  };
+
+  // Delete own story
+  const deleteStory = async (storyId: string) => {
+    await fetch("/api/stories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", storyId }) });
+    if (viewing) {
+      if (viewing.group.stories.length <= 1) { setViewing(null); }
+      else { nextStory(); }
+    }
+    loadStories();
+  };
 
   const sendStoryReply = async () => {
     if (!storyReply.trim() || !viewing) return;
@@ -404,9 +428,16 @@ export default function FeedPage() {
                 <p className="text-white/50 text-[10px]">{timeAgo(currentStory.createdAt)} ago · <Eye className="w-3 h-3 inline" /> {currentStory.viewCount}</p>
               </div>
             </div>
-            <button onClick={() => { setViewing(null); if (progressTimer.current) clearInterval(progressTimer.current); }} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {viewing.group.user.id === myId && (
+                <button onClick={() => { if (confirm("Delete this story?")) deleteStory(currentStory.id); }} className="w-9 h-9 rounded-full bg-red-500/30 flex items-center justify-center text-white hover:bg-red-500/50 transition-colors">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+              <button onClick={() => { setViewing(null); setStoryPaused(false); if (progressTimer.current) clearInterval(progressTimer.current); }} className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Story image */}
@@ -419,9 +450,33 @@ export default function FeedPage() {
             </div>
           )}
 
-          {/* Navigation zones */}
-          <button onClick={prevStory} className="absolute left-0 top-0 bottom-0 w-1/3 z-20" />
-          <button onClick={nextStory} className="absolute right-0 top-0 bottom-0 w-1/3 z-20" />
+          {/* Navigation zones with hold-to-pause */}
+          <button
+            onClick={prevStory}
+            onMouseDown={handleHoldStart} onMouseUp={handleHoldEnd} onMouseLeave={handleHoldEnd}
+            onTouchStart={handleHoldStart} onTouchEnd={handleHoldEnd}
+            className="absolute left-0 top-0 bottom-0 w-1/3 z-20"
+          />
+          <div
+            onMouseDown={handleHoldStart} onMouseUp={handleHoldEnd} onMouseLeave={handleHoldEnd}
+            onTouchStart={handleHoldStart} onTouchEnd={handleHoldEnd}
+            className="absolute left-1/3 top-0 bottom-0 w-1/3 z-20"
+          />
+          <button
+            onClick={nextStory}
+            onMouseDown={handleHoldStart} onMouseUp={handleHoldEnd} onMouseLeave={handleHoldEnd}
+            onTouchStart={handleHoldStart} onTouchEnd={handleHoldEnd}
+            className="absolute right-0 top-0 bottom-0 w-1/3 z-20"
+          />
+
+          {/* Paused indicator */}
+          {storyPaused && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
+              <div className="bg-black/50 backdrop-blur-sm px-5 py-2.5 rounded-full text-white text-xs font-bold flex items-center gap-2">
+                <div className="w-3 h-3 border-2 border-white rounded-sm" /> Paused
+              </div>
+            </div>
+          )}
 
           {/* Reply bar */}
           {viewing.group.user.id !== user.id && (
