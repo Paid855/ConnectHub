@@ -280,8 +280,8 @@ export default function FeedPage() {
       {/* ═══ STORIES BAR ═══ */}
       <div className={"py-4 mb-4 " + (dc ? "" : "")}>
         <div ref={storyScrollRef} className="flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-hide" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-          {/* Your Story */}
-          <div className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer" onClick={() => setShowStoryCreator(true)}>
+          {/* Your Story — Photo/Video */}
+          <div className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer" onClick={() => storyFileRef.current?.click()}>
             <div className="relative">
               <div className={"w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-full flex items-center justify-center " + (myStories.length > 0 ? "p-[3px] bg-gradient-to-br from-rose-500 via-pink-500 to-purple-500" : (dc ? "p-[3px] bg-gray-600" : "p-[3px] bg-gray-200"))}>
                 <div className={"w-full h-full rounded-full overflow-hidden " + (dc ? "bg-gray-800" : "bg-white")}>
@@ -289,11 +289,24 @@ export default function FeedPage() {
                 </div>
               </div>
               <div className={"absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center border-2 " + (dc ? "bg-rose-500 border-gray-900" : "bg-rose-500 border-white")}>
-                {uploadingStory ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus className="w-3.5 h-3.5 text-white" />}
+                {uploadingStory ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="w-3.5 h-3.5 text-white" />}
               </div>
             </div>
-            <span className={"text-[10px] font-medium w-14 sm:w-16 text-center truncate " + (dc ? "text-gray-400" : "text-gray-500")}>Your Story</span>
+            <span className={"text-[10px] font-medium w-14 sm:w-16 text-center truncate " + (dc ? "text-gray-400" : "text-gray-500")}>Photo</span>
           </div>
+
+          {/* Text Story — Pen icon */}
+          <div className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer" onClick={() => { setStoryMediaPreview(null); setStoryMediaType(null); setShowStoryCreator(true); }}>
+            <div className="relative">
+              <div className={"w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-full flex items-center justify-center " + (dc ? "p-[3px] bg-gradient-to-br from-emerald-500 to-teal-500" : "p-[3px] bg-gradient-to-br from-emerald-500 to-teal-500")}>
+                <div className={"w-full h-full rounded-full flex items-center justify-center " + (dc ? "bg-gray-800" : "bg-white")}>
+                  <Edit3 className={"w-6 h-6 " + (dc ? "text-emerald-400" : "text-emerald-500")} />
+                </div>
+              </div>
+            </div>
+            <span className={"text-[10px] font-medium w-14 sm:w-16 text-center truncate " + (dc ? "text-gray-400" : "text-gray-500")}>Text</span>
+          </div>
+
           <input ref={storyFileRef} type="file" accept="image/*,video/*" onChange={handleStoryFile} className="hidden" />
 
           {/* Other stories */}
@@ -451,7 +464,7 @@ export default function FeedPage() {
       {/* ═══ STORY VIEWER (FULLSCREEN) ═══ */}
       {/* Story Creator Modal */}
       {showStoryCreator && (
-        <div className="fixed inset-0 z-[190] bg-black flex flex-col">
+        <div className="fixed inset-0 z-[999] bg-black flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-lg">
             <button onClick={() => { setShowStoryCreator(false); setStoryMediaPreview(null); setStoryMediaType(null); setStoryText(""); setStoryCaption(""); }} className="text-white text-sm font-medium px-3 py-1.5 rounded-full hover:bg-white/10">Cancel</button>
