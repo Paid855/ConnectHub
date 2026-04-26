@@ -154,8 +154,9 @@ export default function StoriesPage() {
   };
 
   // Hold-to-pause handlers
-  const handleHoldStart = () => { pausedRef.current = true; setPaused(true); };
-  const handleHoldEnd = () => { if (!replyText && !showViewers) { pausedRef.current = false; setPaused(false); } };
+  const holdTimeout = useRef<any>(null);
+  const handleHoldStart = () => { holdTimeout.current = setTimeout(() => { pausedRef.current = true; setPaused(true); }, 150); };
+  const handleHoldEnd = () => { if (holdTimeout.current) { clearTimeout(holdTimeout.current); holdTimeout.current = null; } if (!replyText && !showViewers) { pausedRef.current = false; setPaused(false); } };
 
   // Pause when typing reply
   useEffect(() => {
@@ -254,11 +255,7 @@ export default function StoriesPage() {
           </div>
 
           {/* Story content — hold to pause */}
-          <div className="flex-1 flex items-center justify-center"
-            onPointerDown={handleHoldStart}
-            onPointerUp={handleHoldEnd}
-            onPointerLeave={handleHoldEnd}
-          >
+          <div className="flex-1 flex items-center justify-center">
             {isText ? (
               <div className={"absolute inset-0 bg-gradient-to-br " + getTextBg(story.image) + " flex items-center justify-center p-8"}>
                 <p className="text-white font-bold text-center break-words max-w-md" style={{ fontSize: getTextContent(story.image).length > 100 ? 20 : getTextContent(story.image).length > 50 ? 28 : 36, lineHeight: 1.5, textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>{getTextContent(story.image)}</p>
@@ -287,8 +284,24 @@ export default function StoriesPage() {
           {/* Navigation zones — tapping prev/next only if not paused */}
           {!isVideo && (
             <>
-              <div onClick={() => { if (!paused) prevStory(); }} className="absolute left-0 top-16 bottom-24 w-1/3 z-10 cursor-pointer" />
-              <div onClick={() => { if (!paused) nextStory(); }} className="absolute right-0 top-16 bottom-24 w-2/3 z-10 cursor-pointer" />
+              <div
+                onPointerDown={handleHoldStart}
+                onPointerUp={() => { const was = pausedRef.current; handleHoldEnd(); if (!was) prevStory(); }}
+                onPointerLeave={handleHoldEnd}
+                className="absolute left-0 top-16 bottom-24 w-1/3 z-10 cursor-pointer touch-none"
+              />
+              <div
+                onPointerDown={handleHoldStart}
+                onPointerUp={handleHoldEnd}
+                onPointerLeave={handleHoldEnd}
+                className="absolute left-1/3 top-16 bottom-24 w-1/3 z-10 touch-none"
+              />
+              <div
+                onPointerDown={handleHoldStart}
+                onPointerUp={() => { const was = pausedRef.current; handleHoldEnd(); if (!was) nextStory(); }}
+                onPointerLeave={handleHoldEnd}
+                className="absolute right-0 top-16 bottom-24 w-1/3 z-10 cursor-pointer touch-none"
+              />
             </>
           )}
 
