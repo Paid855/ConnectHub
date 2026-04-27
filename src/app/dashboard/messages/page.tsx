@@ -520,7 +520,7 @@ export default function MessagesPage() {
                         </span>
                         {isMine && (
                           msg.read ? (
-                            {canSeeRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-300" /> : <Check className="w-3.5 h-3.5 text-white/50" />}
+                            canSeeRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-300" /> : <Check className="w-3.5 h-3.5 text-white/50" />
                           ) : (
                             <Check className="w-3.5 h-3.5 text-white/50" />
                           )
