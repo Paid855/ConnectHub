@@ -9,15 +9,30 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id:true, name:true, email:true, username:true, phone:true, age:true,
-        gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true,
-        tier:true, verified:true, verificationStatus:true, interests:true,
-        coins:true, createdAt:true, lastSeen:true, referralCode:true, boostedUntil:true, emailVerified:true, phoneVerified:true
-      }
-    });
+    let user: any = null;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          id:true, name:true, email:true, username:true, phone:true, age:true,
+          gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true,
+          tier:true, verified:true, verificationStatus:true, interests:true,
+          coins:true, createdAt:true, lastSeen:true, referralCode:true, boostedUntil:true,
+          emailVerified:true, phoneVerified:true
+        }
+      });
+    } catch {
+      // Fallback without new fields if they don't exist yet
+      user = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          id:true, name:true, email:true, username:true, phone:true, age:true,
+          gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true,
+          tier:true, verified:true, verificationStatus:true, interests:true,
+          coins:true, createdAt:true, lastSeen:true, referralCode:true, boostedUntil:true
+        }
+      });
+    }
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
