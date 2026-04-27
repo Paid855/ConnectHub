@@ -628,6 +628,8 @@ export default function HomePage() {
         </div>
       </footer>
 
+      <LanguageSelector />
+
 
     </div>
   );
