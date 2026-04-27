@@ -150,21 +150,24 @@ export async function POST(req: NextRequest) {
       data: { userId: user.id, type: "purchase", title: "Welcome to ConnectHub! 🎉", message: "You received 20 free coins as a welcome gift. Start exploring and find your perfect match!", read: false }
     }).catch(() => {});
 
-    // Generate email verification code
-    const emailOtp = String(Math.floor(100000 + Math.random() * 900000));
-    const emailOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-    await prisma.user.update({ where: { id: user.id }, data: { emailOtp, emailOtpExpiry } });
-
-    // Send verification email
-    try {
-      const { sendEmail } = await import("@/lib/email");
-      const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:30px;background:#fff;border-radius:16px;border:1px solid #f3f4f6;"><div style="text-align:center;margin-bottom:24px;"><span style="font-size:40px;">\u{1F495}</span><h1 style="font-size:24px;font-weight:800;color:#111;margin:12px 0 4px;">Verify Your Email</h1><p style="color:#6b7280;font-size:14px;">Hi ' + name.trim() + ', welcome to ConnectHub! Enter this code to verify your account.</p></div><div style="background:linear-gradient(135deg,#f43f5e,#ec4899);border-radius:12px;padding:24px;text-align:center;margin:20px 0;"><p style="color:rgba(255,255,255,0.8);font-size:12px;margin:0 0 8px;letter-spacing:2px;text-transform:uppercase;">Your Verification Code</p><p style="font-size:36px;font-weight:800;color:#fff;letter-spacing:8px;margin:0;">' + emailOtp + '</p></div><p style="color:#9ca3af;font-size:12px;text-align:center;">This code expires in 10 minutes.</p></div>';
-      await sendEmail({ to: cleanEmail, subject: "ConnectHub - Verify Your Email", html: emailHtml });
-    } catch (e) { console.error("Verification email error:", e); }
-
+    // Set session FIRST so signup succeeds even if email fails
     const session = JSON.stringify({ id: user.id, email: cleanEmail, name: name.trim() });
     const res = NextResponse.json({ success: true, userId: user.id, step: "verify_email" });
     res.cookies.set("session", session, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60*60*24*7 });
+
+    // Generate and send verification code (non-blocking)
+    try {
+      const emailOtp = String(Math.floor(100000 + Math.random() * 900000));
+      const emailOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+      await prisma.user.update({ where: { id: user.id }, data: { emailOtp, emailOtpExpiry } });
+      const { sendEmail } = await import("@/lib/email");
+      await sendEmail({
+        to: cleanEmail,
+        subject: "ConnectHub - Verify Your Email",
+        html: '<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:30px;background:#fff;border-radius:16px;border:1px solid #f3f4f6;"><div style="text-align:center;margin-bottom:24px;"><h1 style="font-size:24px;font-weight:800;color:#111;margin:12px 0 4px;">Verify Your Email</h1><p style="color:#6b7280;font-size:14px;">Hi ' + name.trim() + ', welcome to ConnectHub! Enter this code to verify your account.</p></div><div style="background:linear-gradient(135deg,#f43f5e,#ec4899);border-radius:12px;padding:24px;text-align:center;margin:20px 0;"><p style="color:rgba(255,255,255,0.8);font-size:12px;margin:0 0 8px;letter-spacing:2px;text-transform:uppercase;">Your Verification Code</p><p style="font-size:36px;font-weight:800;color:#fff;letter-spacing:8px;margin:0;">' + emailOtp + '</p></div><p style="color:#9ca3af;font-size:12px;text-align:center;">This code expires in 10 minutes.</p></div>'
+      });
+    } catch (e) { console.error("Verification email error:", e); }
+
     return res;
   } catch (e: any) {
     console.error("Signup error:", e);

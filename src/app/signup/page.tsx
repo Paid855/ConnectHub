@@ -345,6 +345,14 @@ export default function SignupPage() {
                     </div>
                   </div>
                   <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number <span className="text-gray-400 font-normal">(optional — for verification)</span></label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2"><Phone className="w-4 h-4 text-gray-400" /></div>
+                      <input type="tel" className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all" placeholder="+1 234 567 8900" value={form.phone} onChange={e=>set("phone",e.target.value)} />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">We'll send a verification code via SMS</p>
+                  </div>
+                  <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Bio <span className="text-gray-400 font-normal">(optional)</span></label>
                     <textarea className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 focus:bg-white transition-all resize-none h-24" placeholder="Tell people what makes you unique..." value={form.bio} onChange={e=>set("bio",e.target.value)} />
                   </div>
