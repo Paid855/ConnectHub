@@ -436,7 +436,7 @@ export default function LiveStreamPage() {
   // ===== LIST =====
   if(page==="list"){
     return(
-      <div className="min-h-screen bg-gradient-to-b from-rose-50/30 to-white pb-24">
+      <div className="min-h-screen bg-gradient-to-b from-rose-50/30 to-white pb-24 notranslate" translate="no">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <div className="flex items-center justify-between mb-8">
             <div>
