@@ -128,26 +128,7 @@ export default function LiveStreamPage() {
     return()=>clearInterval(t);
   },[page]);
 
-  // Detect join/leave — track ALL shown message IDs to never repeat
-  const shownMsgIds = useRef<Set<string>>(new Set());
-  useEffect(()=>{
-    if(!msgs.length) return;
-    msgs.forEach((m: any) => {
-      if(!m?.content || !m?.id) return;
-      if(shownMsgIds.current.has(m.id)) return;
-      // Only process join/leave messages
-      if(!m.content.includes("joined the stream") && !m.content.includes("left the stream")) return;
-      shownMsgIds.current.add(m.id);
-      if(m.content.includes("joined the stream") && !m.content.includes(me?.name)){
-        const name = m.content.replace("👋 ","").replace(" joined the stream","");
-        toast(name + " joined","👋");
-      }
-      if(m.content.includes("left the stream") && !m.content.includes(me?.name)){
-        const name = m.content.replace("👋 ","").replace(" left the stream","");
-        toast(name + " left","🚶");
-      }
-    });
-  },[msgs]);
+
 
   // Send floating hearts
   const sendHearts = ()=>{
@@ -361,7 +342,6 @@ export default function LiveStreamPage() {
       // Send leave to viewers API + chat message
       if(role!=="host" && stream){
         await fetch("/api/live/viewers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,action:"leave"})}).catch(()=>{});
-        await fetch("/api/live/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,content:`👋 ${me?.name||"A viewer"} left the stream`})}).catch(()=>{});
       }
       if(tracks.v){tracks.v.stop();tracks.v.close();}
       if(tracks.a){tracks.a.stop();tracks.a.close();}
@@ -371,7 +351,6 @@ export default function LiveStreamPage() {
     setAgoraClient(null);setTracks({a:null,v:null});setStream(null);setPage("list");
     setViewerCount(0);setRealViewers([]);setMsgs([]);setEnded(false);setTitle("");
     setRole("viewer");setInvited(false);setMyActiveStream(null);
-    shownMsgIds.current.clear();
     loadStreams();
     try{const r=await fetch("/api/coins");const d=await r.json();setCoins(d.coins||0);}catch{}
   };

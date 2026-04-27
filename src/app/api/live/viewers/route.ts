@@ -50,6 +50,16 @@ export async function POST(req: NextRequest) {
       streamViewers.delete(id);
       if (streamViewers.size === 0) activeViewers.delete(streamId);
     }
+    // Only send leave message if no recent one exists
+    const recentLeave = await prisma.liveChat.findFirst({
+      where: { streamId, userId: id, content: { contains: "left the stream" }, createdAt: { gte: new Date(Date.now() - 60000) } }
+    }).catch(() => null);
+    if (!recentLeave) {
+      const user = await prisma.user.findUnique({ where: { id }, select: { name: true } });
+      await prisma.liveChat.create({
+        data: { streamId, userId: id, content: `👋 ${user?.name || "Someone"} left the stream` }
+      }).catch(() => {});
+    }
     return NextResponse.json({ success: true });
   }
 
@@ -74,10 +84,16 @@ export async function POST(req: NextRequest) {
       lastPing: Date.now()
     });
 
-    // Send join message to chat
-    await prisma.liveChat.create({
-      data: { streamId, userId: id, content: `👋 ${user?.name || "Someone"} joined the stream` }
-    }).catch(() => {});
+    // Only send join message if we haven't sent one recently (prevents serverless cold start duplicates)
+    const recentJoin = await prisma.liveChat.findFirst({
+      where: { streamId, userId: id, content: { contains: "joined the stream" }, createdAt: { gte: new Date(Date.now() - 60000) } },
+      orderBy: { createdAt: "desc" }
+    }).catch(() => null);
+    if (!recentJoin) {
+      await prisma.liveChat.create({
+        data: { streamId, userId: id, content: `👋 ${user?.name || "Someone"} joined the stream` }
+      }).catch(() => {});
+    }
   } else {
     // Update last ping time
     const existing = streamViewers.get(id)!;
