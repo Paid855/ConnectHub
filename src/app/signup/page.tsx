@@ -220,15 +220,15 @@ export default function SignupPage() {
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-left">
-                  <p className="text-sm font-bold text-blue-900 mb-1">📧 Verification Code Sent!</p>
-                  <p className="text-xs text-blue-700">Check your email for a 6-digit code to verify your account.</p>
+                  <p className="text-sm font-bold text-blue-900 mb-1">📧 Verify your email to secure your account</p>
+                  <p className="text-xs text-blue-700">You can verify anytime from your dashboard.</p>
                 </div>
 
-                <a href="/verify-email" className="block w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-center hover:shadow-lg transition-all mb-3">
-                  Verify My Account →
-                </a>
-                <a href="/dashboard" className="block text-xs text-gray-400 hover:text-gray-600 font-medium">
-                  Skip for now
+                <button onClick={() => window.location.replace("/dashboard")} className="block w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-center hover:shadow-lg transition-all mb-3">
+                  Start Exploring 💕
+                </button>
+                <a href="/verify-email" className="block text-xs text-rose-500 hover:text-rose-700 font-medium text-center">
+                  Verify email now →
                 </a>
               </div>
             )}

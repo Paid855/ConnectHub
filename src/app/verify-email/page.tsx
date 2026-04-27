@@ -20,14 +20,14 @@ export default function VerifyPage() {
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => r.json()).then(d => {
-      if (d.user) {
-        setUserEmail(d.user.email || "");
-        setUserPhone(d.user.phone || "");
-        if (d.user.emailVerified && d.user.phoneVerified) { setStep("done"); }
-        else if (d.user.emailVerified && !d.user.phone) { setStep("done"); }
-        else if (d.user.emailVerified) { setStep("phone"); }
-      }
-    }).catch(() => {});
+      if (!d.user) { window.location.href = "/login"; return; }
+      setUserEmail(d.user.email || "");
+      setUserPhone(d.user.phone || "");
+      if (d.user.emailVerified && d.user.phoneVerified) { setStep("done"); }
+      else if (d.user.emailVerified && !d.user.phone) { setStep("done"); }
+      else if (d.user.emailVerified) { setStep("phone"); sendCode("phone"); }
+      else { sendCode("email"); }
+    }).catch(() => { window.location.href = "/login"; });
   }, []);
 
   useEffect(() => {
@@ -211,7 +211,7 @@ export default function VerifyPage() {
         </p>
 
         {/* Skip for now */}
-        <button onClick={() => window.location.href = "/dashboard"} className="block mx-auto mt-4 text-xs text-gray-400 hover:text-gray-600">
+        <button onClick={() => window.location.replace("/dashboard")} className="block mx-auto mt-4 text-xs text-gray-400 hover:text-gray-600">
           Skip for now
         </button>
       </div>
