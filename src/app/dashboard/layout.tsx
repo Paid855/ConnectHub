@@ -325,7 +325,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 " + (dc?"bg-gray-900":"bg-gray-50")}><div className="p-2 sm:p-4 md:p-6 lg:p-8 max-w-6xl mx-auto pb-24 lg:pb-8">{children}</div><PushPrompt />
+        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 notranslate " + (dc?"bg-gray-900":"bg-gray-50")} translate="no"><div className="p-2 sm:p-4 md:p-6 lg:p-8 max-w-6xl mx-auto pb-24 lg:pb-8">{children}</div><PushPrompt />
         <LocationDetector /><PushNotifications />
         <IncomingCall /></main>
 
