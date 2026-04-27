@@ -5,9 +5,7 @@ import { prisma } from "@/lib/db";
 export async function GET(req: NextRequest) {
   const id = getUserId(req);
   if (!id) {
-    const res = NextResponse.json({ error: "Not logged in" }, { status: 401 });
-    res.cookies.set("session", "", { path: "/", maxAge: 0 });
-    return res;
+    return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   }
 
   try {
@@ -22,9 +20,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!user) {
-      const res = NextResponse.json({ error: "User not found" }, { status: 401 });
-      res.cookies.set("session", "", { path: "/", maxAge: 0 });
-      return res;
+      return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
 
     if (user.tier === "banned") {
