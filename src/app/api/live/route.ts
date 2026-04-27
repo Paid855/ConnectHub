@@ -35,6 +35,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const id = getUserId(req);
   if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+
+  // Only Plus/Premium can go live
+  const streamer = await prisma.user.findUnique({ where: { id }, select: { tier: true } });
+  if (!streamer?.tier || streamer.tier === "free" || streamer.tier === "basic") {
+    return NextResponse.json({ error: "Upgrade to Plus or Premium to go live", upgrade: true }, { status: 403 });
+  }
   const body = await req.json();
   const action = body.action;
   const title = body.title;

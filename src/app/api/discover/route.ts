@@ -44,6 +44,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, action: "pass" });
   }
 
+  // Daily like limit for free users (10 per day)
+  const user = await prisma.user.findUnique({ where: { id }, select: { tier: true } });
+  const userTier = user?.tier || "free";
+  if (userTier === "free" || userTier === "basic") {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dailyLikes = await prisma.like.count({ where: { fromUserId: id, createdAt: { gte: today } } });
+    if (dailyLikes >= 10) {
+      return NextResponse.json({ error: "You've reached your daily like limit. Upgrade for unlimited likes!", upgrade: true }, { status: 403 });
+    }
+  }
+
   // Create like
   try {
     await prisma.like.upsert({
