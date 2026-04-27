@@ -101,7 +101,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-5 font-body">
+          <form onSubmit={handleLogin} className="space-y-5 font-body notranslate" translate="no">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email or Username</label>
               <div className="relative">
