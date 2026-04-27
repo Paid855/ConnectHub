@@ -99,12 +99,13 @@ export async function POST(req: NextRequest) {
       lastPing: Date.now()
     });
 
-    // Only send join message if we haven't sent one recently (prevents serverless cold start duplicates)
-    const recentJoin = await prisma.liveChat.findFirst({
-      where: { streamId, userId: id, content: { contains: "joined the stream" }, createdAt: { gte: new Date(Date.now() - 60000) } },
+    // Check user's last join/leave message — only show join if last action wasn't already a join
+    const lastAction = await prisma.liveChat.findFirst({
+      where: { streamId, userId: id, OR: [{ content: { contains: "joined the stream" } }, { content: { contains: "left the stream" } }] },
       orderBy: { createdAt: "desc" }
     }).catch(() => null);
-    if (!recentJoin) {
+    const wasAlreadyJoined = lastAction?.content?.includes("joined the stream") && lastAction.createdAt > new Date(Date.now() - 10000);
+    if (!wasAlreadyJoined) {
       await prisma.liveChat.create({
         data: { streamId, userId: id, content: `👋 ${user?.name || "Someone"} joined the stream` }
       }).catch(() => {});
