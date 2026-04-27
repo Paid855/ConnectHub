@@ -90,6 +90,15 @@ export default function LiveStreamPage() {
     const loadViewers = async()=>{
       try{const r=await fetch(`/api/live/viewers?streamId=${stream.id}`);const d=await r.json();setRealViewers(d.viewers||[]);setViewerCount(d.count||0);}catch{}
     };
+    // Check if stream is still alive (for viewers)
+    const checkStreamAlive = async()=>{
+      if(role==="host") return;
+      try{
+        const r=await fetch("/api/live");const d=await r.json();
+        const still=(d.streams||[]).find((x:any)=>x.id===stream.id);
+        if(!still) setEnded(true);
+      }catch{}
+    };
     // Ping presence so host knows we're still here
     const pingPresence = async()=>{
       if(role!=="host"){
@@ -105,7 +114,8 @@ export default function LiveStreamPage() {
     const i2=setInterval(loadViewers,5000);
     const i3=setInterval(checkInvite,3000);
     const i4=setInterval(pingPresence,8000);
-    return()=>{clearInterval(i1);clearInterval(i2);clearInterval(i3);clearInterval(i4);};
+    const i5=setInterval(checkStreamAlive,4000);
+    return()=>{clearInterval(i1);clearInterval(i2);clearInterval(i3);clearInterval(i4);clearInterval(i5);};
   },[page,stream,role,invited]);
 
   useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
@@ -118,22 +128,25 @@ export default function LiveStreamPage() {
     return()=>clearInterval(t);
   },[page]);
 
-  // Detect join/leave — only show ONCE per message
-  const lastToastMsgId = useRef<string>("");
+  // Detect join/leave — track ALL shown message IDs to never repeat
+  const shownMsgIds = useRef<Set<string>>(new Set());
   useEffect(()=>{
     if(!msgs.length) return;
-    const last = msgs[msgs.length-1];
-    if(!last?.content || !last?.id) return;
-    if(last.id === lastToastMsgId.current) return; // Already shown
-    lastToastMsgId.current = last.id;
-    if(last.content.includes("joined the stream") && !last.content.includes(me?.name)){
-      const name = last.content.replace("👋 ","").replace(" joined the stream","");
-      toast(name + " joined","👋");
-    }
-    if(last.content.includes("left the stream") && !last.content.includes(me?.name)){
-      const name = last.content.replace("👋 ","").replace(" left the stream","");
-      toast(name + " left","🚶");
-    }
+    msgs.forEach((m: any) => {
+      if(!m?.content || !m?.id) return;
+      if(shownMsgIds.current.has(m.id)) return;
+      // Only process join/leave messages
+      if(!m.content.includes("joined the stream") && !m.content.includes("left the stream")) return;
+      shownMsgIds.current.add(m.id);
+      if(m.content.includes("joined the stream") && !m.content.includes(me?.name)){
+        const name = m.content.replace("👋 ","").replace(" joined the stream","");
+        toast(name + " joined","👋");
+      }
+      if(m.content.includes("left the stream") && !m.content.includes(me?.name)){
+        const name = m.content.replace("👋 ","").replace(" left the stream","");
+        toast(name + " left","🚶");
+      }
+    });
   },[msgs]);
 
   // Send floating hearts
@@ -264,13 +277,13 @@ export default function LiveStreamPage() {
       });
 
       c.on("user-left",(user:any)=>{
-        // Check if stream is still live when host leaves
-        setTimeout(async()=>{
+        // Check immediately if stream ended
+        (async()=>{
           try{const r=await fetch("/api/live");const d=await r.json();
             const still = (d.streams||[]).find((x:any)=>x.id===s.id);
             if(!still) setEnded(true);
           }catch{}
-        },2000);
+        })();
       });
 
       console.log("[Live] Step 5: Joining channel:", ch);
@@ -357,7 +370,9 @@ export default function LiveStreamPage() {
     }catch{}
     setAgoraClient(null);setTracks({a:null,v:null});setStream(null);setPage("list");
     setViewerCount(0);setRealViewers([]);setMsgs([]);setEnded(false);setTitle("");
-    setRole("viewer");setInvited(false);setMyActiveStream(null);loadStreams();
+    setRole("viewer");setInvited(false);setMyActiveStream(null);
+    shownMsgIds.current.clear();
+    loadStreams();
     try{const r=await fetch("/api/coins");const d=await r.json();setCoins(d.coins||0);}catch{}
   };
 
@@ -430,7 +445,8 @@ export default function LiveStreamPage() {
               <p className="text-[10px] text-gray-400 font-medium uppercase mt-1">Gifts</p>
             </div>
           </div>
-          <button onClick={leave} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg transition-all">Discover More Streams</button>
+          <button onClick={leave} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg transition-all mb-2">Discover More Streams</button>
+          <p className="text-gray-400 text-xs">The host ended this stream</p>
         </div>
       </div>
     );
@@ -567,32 +583,31 @@ export default function LiveStreamPage() {
         {/* Host self-view */}
         {role==="host"&&<div id="host-video" style={{width:"100%",height:"100%",position:"absolute",top:0,left:0,background:"#111"}}/>}
         {/* Co-host video (shown alongside host) */}
-        {role==="host"&&<div id="cohost-video" style={{width:"120px",height:"160px",position:"absolute",bottom:"140px",right:"12px",borderRadius:"16px",overflow:"hidden",border:"3px solid rgba(255,255,255,0.3)",zIndex:15,background:"#222"}}/>}
+        {role==="host"&&<div id="cohost-video" style={{width:"90px",height:"120px",position:"absolute",bottom:"130px",right:"8px",borderRadius:"12px",overflow:"hidden",border:"2px solid rgba(255,255,255,0.3)",zIndex:15,background:"#222"}}/>}
         {/* Viewer sees host */}
         {role==="viewer"&&<div id="viewer-video" style={{width:"100%",height:"100%",position:"absolute",top:0,left:0,background:"#111"}}/>}
         {/* Co-host sees host + own small preview */}
         {role==="cohost"&&(
           <>
             <div id="viewer-video" style={{width:"100%",height:"100%",position:"absolute",top:0,left:0,background:"#111"}}/>
-            <div id="cohost-self-video" style={{width:"120px",height:"160px",position:"absolute",bottom:"140px",right:"12px",borderRadius:"16px",overflow:"hidden",border:"3px solid rgba(255,255,255,0.3)",zIndex:15,background:"#222"}}/>
+            <div id="cohost-self-video" style={{width:"90px",height:"120px",position:"absolute",bottom:"130px",right:"8px",borderRadius:"12px",overflow:"hidden",border:"2px solid rgba(255,255,255,0.3)",zIndex:15,background:"#222"}}/>
           </>
         )}
 
         {/* Top bar */}
-        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 via-black/30 to-transparent z-10">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"><span className="w-2 h-2 bg-white rounded-full animate-pulse"/> LIVE</div>
-                <div className="bg-black/40 backdrop-blur text-white text-[10px] font-mono px-2.5 py-1.5 rounded-full">{formatTimer(streamTimer)}</div>
-                <button onClick={()=>setShowViewerList(true)} className="bg-black/40 backdrop-blur text-white text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-black/60"><Eye className="w-3 h-3"/> {viewerCount} viewer{viewerCount!==1?"s":""}</button>
-                {role==="cohost"&&<div className="bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-full">🎤 Co-hosting</div>}
-              </div>
-              <p className="text-white font-bold text-lg drop-shadow-lg line-clamp-1">{stream?.title||title}</p>
-              {role!=="host"&&stream?.host&&<p className="text-white/80 text-xs flex items-center gap-1 mt-0.5">{stream.host.verified&&<span className="text-blue-400">✓</span>}{stream.host.name||"Host"}</p>}
+        {/* Top bar — compact on mobile */}
+        <div className="absolute top-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent z-10 safe-area-top">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap flex-1 min-w-0">
+              <div className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1"><span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"/> LIVE</div>
+              <div className="bg-black/40 backdrop-blur text-white text-[9px] sm:text-[10px] font-mono px-2 py-1 rounded-full">{formatTimer(streamTimer)}</div>
+              <button onClick={()=>setShowViewerList(true)} className="bg-black/40 backdrop-blur text-white text-[10px] sm:text-xs font-medium px-2 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1 hover:bg-black/60"><Eye className="w-3 h-3"/> {viewerCount}</button>
+              {role==="cohost"&&<div className="bg-purple-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">🎤</div>}
             </div>
-            <button onClick={leave} className="w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center ml-3 flex-shrink-0"><X className="w-5 h-5"/></button>
+            <button onClick={leave} className="w-9 h-9 sm:w-10 sm:h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center flex-shrink-0"><X className="w-4 h-4 sm:w-5 sm:h-5"/></button>
           </div>
+          <p className="text-white font-bold text-sm sm:text-lg drop-shadow-lg line-clamp-1 mt-1.5">{stream?.title||title}</p>
+          {role!=="host"&&stream?.host&&<p className="text-white/70 text-[10px] sm:text-xs flex items-center gap-1">{stream.host.verified&&<span className="text-blue-400">✓</span>}{stream.host.name||"Host"}</p>}
         </div>
 
         {/* Toasts */}
@@ -601,7 +616,7 @@ export default function LiveStreamPage() {
         </div>
 
         {/* Floating hearts */}
-        <div className="absolute bottom-32 right-4 pointer-events-none z-20">
+        <div className="absolute bottom-[140px] sm:bottom-[120px] right-4 pointer-events-none z-20">
           {hearts.map(h => (
             <div key={h.id} className="absolute animate-gift-float" style={{ right: (h.x - 70) + "%", bottom: 0, fontSize: h.size + "px", animationDelay: h.delay + "s", opacity: 0.9 }}>
               {["❤️","💖","💕","💗","💘"][Math.floor(Math.random()*5)]}
@@ -610,7 +625,7 @@ export default function LiveStreamPage() {
         </div>
 
         {/* Floating gift emojis */}
-        <div className="absolute bottom-32 left-0 right-0 pointer-events-none z-20">
+        <div className="absolute bottom-[140px] sm:bottom-[120px] left-0 right-0 pointer-events-none z-20">
           {floatingGifts.map(fg => (
             <div key={fg.id} className={fg.anim} style={{ position: "absolute", bottom: 0, left: fg.x + "%", fontSize: "48px", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }}>
               {fg.emoji}
@@ -644,8 +659,8 @@ export default function LiveStreamPage() {
           </div>
         )}
 
-        {/* Chat overlay */}
-        <div className="absolute left-3 right-3 bottom-4 max-h-[35vh] overflow-y-auto scrollbar-hide z-10">
+        {/* Chat overlay — positioned above controls */}
+        <div className="absolute left-3 right-3 bottom-[110px] sm:bottom-[90px] max-h-[30vh] sm:max-h-[35vh] overflow-y-auto scrollbar-hide z-10">
           <div className="space-y-1.5">
             {msgs.slice(-20).map((m:any)=>(
               <div key={m.id} className="flex items-start gap-2">
@@ -665,19 +680,19 @@ export default function LiveStreamPage() {
         {err&&<div className="absolute top-24 left-4 right-4 bg-red-500 text-white p-3 rounded-xl text-sm z-20">{err}</div>}
       </div>
 
-      {/* Controls */}
-      <div className="bg-black/95 p-3 pb-6 z-10">
-        <div className="flex items-center gap-2 mb-2">
-          <input value={chatText} onChange={e=>setChatText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Say something..." className="flex-1 px-4 py-3 bg-white/10 text-white placeholder:text-white/40 rounded-full outline-none text-sm border border-white/10 focus:border-rose-500/50"/>
-          <button onClick={sendChat} className="w-11 h-11 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full flex items-center justify-center flex-shrink-0"><Send className="w-4 h-4"/></button>
-          {role!=="host"&&<><button onClick={sendHearts} className="w-11 h-11 bg-gradient-to-r from-rose-400 to-pink-500 text-white rounded-full flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"><span className="text-lg">💕</span></button><button onClick={()=>setShowGifts(true)} className="w-11 h-11 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full flex items-center justify-center flex-shrink-0"><Gift className="w-5 h-5"/></button></>}
+      {/* Controls — compact on mobile */}
+      <div className="bg-black/95 p-2 sm:p-3 pb-4 sm:pb-6 z-10 safe-area-bottom">
+        <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+          <input value={chatText} onChange={e=>setChatText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Say something..." className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 text-white placeholder:text-white/40 rounded-full outline-none text-xs sm:text-sm border border-white/10 focus:border-rose-500/50"/>
+          <button onClick={sendChat} className="w-9 h-9 sm:w-11 sm:h-11 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full flex items-center justify-center flex-shrink-0"><Send className="w-3.5 h-3.5 sm:w-4 sm:h-4"/></button>
+          {role!=="host"&&<><button onClick={sendHearts} className="w-9 h-9 sm:w-11 sm:h-11 bg-gradient-to-r from-rose-400 to-pink-500 text-white rounded-full flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"><span className="text-sm sm:text-lg">💕</span></button><button onClick={()=>setShowGifts(true)} className="w-9 h-9 sm:w-11 sm:h-11 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-full flex items-center justify-center flex-shrink-0"><Gift className="w-4 h-4 sm:w-5 sm:h-5"/></button></>}
         </div>
         {(role==="host"||role==="cohost")&&(
-          <div className="flex items-center justify-center gap-2">
-            <button onClick={toggleMic} className={"w-11 h-11 rounded-full flex items-center justify-center "+(muted?"bg-red-500 text-white":"bg-white/10 text-white hover:bg-white/20")}>{muted?<MicOff className="w-5 h-5"/>:<Mic className="w-5 h-5"/>}</button>
-            <button onClick={toggleCam} className={"w-11 h-11 rounded-full flex items-center justify-center "+(camOff?"bg-red-500 text-white":"bg-white/10 text-white hover:bg-white/20")}>{camOff?<VideoOff className="w-5 h-5"/>:<Video className="w-5 h-5"/>}</button>
-            {role==="host"&&<button onClick={()=>setShowViewerList(true)} className="w-11 h-11 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20"><Users className="w-5 h-5"/></button>}
-            <button onClick={leave} className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold text-sm">{role==="host"?"End Stream":"Leave"}</button>
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+            <button onClick={toggleMic} className={"w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center "+(muted?"bg-red-500 text-white":"bg-white/10 text-white hover:bg-white/20")}>{muted?<MicOff className="w-4 h-4 sm:w-5 sm:h-5"/>:<Mic className="w-4 h-4 sm:w-5 sm:h-5"/>}</button>
+            <button onClick={toggleCam} className={"w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center "+(camOff?"bg-red-500 text-white":"bg-white/10 text-white hover:bg-white/20")}>{camOff?<VideoOff className="w-4 h-4 sm:w-5 sm:h-5"/>:<Video className="w-4 h-4 sm:w-5 sm:h-5"/>}</button>
+            {role==="host"&&<button onClick={()=>setShowViewerList(true)} className="w-9 h-9 sm:w-11 sm:h-11 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20"><Users className="w-4 h-4 sm:w-5 sm:h-5"/></button>}
+            <button onClick={leave} className="px-4 sm:px-5 py-2 sm:py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold text-xs sm:text-sm">{role==="host"?"End Stream":"Leave"}</button>
           </div>
         )}
       </div>
