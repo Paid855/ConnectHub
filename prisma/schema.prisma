@@ -259,3 +259,4 @@ model LiveViewer {
 
   @@unique([streamId, userId])
 }
+// force rebuild
