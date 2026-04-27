@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Globe, X, ChevronRight } from "lucide-react";
 
 const COMMON_LANGS = [
@@ -49,79 +49,101 @@ const ALL_LANGS = [
   { code: "te", name: "తెలుగు" },
 ];
 
-function doTranslate(lang: string) {
-  // Set Google Translate cookies on all relevant domains
-  const val = lang === "en" ? "" : "/en/" + lang;
-  const host = window.location.hostname;
-  const domains = [host, "." + host];
-  
-  if (lang === "en") {
-    // Clear all translation cookies
-    domains.forEach(d => {
-      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + d;
-    });
-    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-  } else {
-    // Set translation cookies
-    domains.forEach(d => {
-      document.cookie = "googtrans=" + val + "; path=/; domain=" + d;
-    });
-    document.cookie = "googtrans=" + val + "; path=/;";
-  }
-  
-  // Save preference
-  localStorage.setItem("ch_lang", lang);
-  
-  // Reload to apply
-  window.location.reload();
-}
-
 export default function LanguageSelector({ dark }: { dark?: boolean }) {
   const [showAll, setShowAll] = useState(false);
   const [currentLang, setCurrentLang] = useState("en");
+  const [ready, setReady] = useState(false);
+  const selectRef = useRef<HTMLSelectElement|null>(null);
   const dc = dark;
 
   useEffect(() => {
-    // Detect from localStorage or cookie
-    const saved = localStorage.getItem("ch_lang");
-    if (saved) { setCurrentLang(saved); return; }
-    const match = document.cookie.match(/googtrans=\/en\/([a-z\-]+)/i);
-    if (match) setCurrentLang(match[1]);
-  }, []);
+    const saved = localStorage.getItem("ch_lang") || "en";
+    setCurrentLang(saved);
 
-  // Load Google Translate script once
-  useEffect(() => {
-    if (document.getElementById("gt-init")) return;
-    
-    // Hidden element for Google Translate
-    let el = document.getElementById("google_translate_element");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "google_translate_element";
-      el.style.display = "none";
-      document.body.appendChild(el);
+    // Inject Google Translate
+    if (!document.getElementById("google_translate_element")) {
+      const div = document.createElement("div");
+      div.id = "google_translate_element";
+      div.style.position = "fixed";
+      div.style.top = "-9999px";
+      div.style.left = "-9999px";
+      document.body.appendChild(div);
     }
 
-    (window as any).googleTranslateElementInit = () => {
-      try {
+    if (!(window as any)._gtLoaded) {
+      (window as any)._gtLoaded = true;
+      (window as any).googleTranslateElementInit = () => {
         new (window as any).google.translate.TranslateElement({
           pageLanguage: "en",
-          autoDisplay: false
+          includedLanguages: ALL_LANGS.map(l => l.code).join(","),
+          autoDisplay: false,
         }, "google_translate_element");
-      } catch {}
-    };
-
-    const s = document.createElement("script");
-    s.id = "gt-init";
-    s.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-    s.async = true;
-    document.body.appendChild(s);
+        setTimeout(() => {
+          setReady(true);
+          // Auto-apply saved language
+          const s = localStorage.getItem("ch_lang");
+          if (s && s !== "en") applyLang(s);
+        }, 1000);
+      };
+      const s = document.createElement("script");
+      s.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+      document.head.appendChild(s);
+    } else {
+      setReady(true);
+      if (saved !== "en") setTimeout(() => applyLang(saved), 500);
+    }
   }, []);
 
+  const applyLang = (code: string) => {
+    try {
+      const iframe = document.querySelector("iframe.goog-te-menu-frame") as HTMLIFrameElement;
+      if (iframe) {
+        const items = iframe.contentWindow?.document.querySelectorAll(".goog-te-menu2-item span.text");
+        if (items) {
+          items.forEach((item: any) => {
+            const langMap: Record<string,string> = {};
+            ALL_LANGS.forEach(l => { langMap[l.name.toLowerCase()] = l.code; });
+            // Click won't work easily, use the select approach
+          });
+        }
+      }
+      // Use the select element directly
+      const sel = document.querySelector("#google_translate_element select") as HTMLSelectElement;
+      if (sel) {
+        sel.value = code;
+        sel.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    } catch {}
+  };
+
   const switchLang = (code: string) => {
+    localStorage.setItem("ch_lang", code);
     setCurrentLang(code);
     setShowAll(false);
-    doTranslate(code);
+
+    if (code === "en") {
+      // Restore original
+      localStorage.removeItem("ch_lang");
+      // Click the "Show original" button if available
+      try {
+        const banner = document.querySelector(".goog-te-banner-frame") as HTMLIFrameElement;
+        if (banner) {
+          const closeBtn = banner.contentWindow?.document.querySelector(".goog-close-link") as HTMLElement;
+          if (closeBtn) { closeBtn.click(); return; }
+        }
+      } catch {}
+      // Fallback: clear cookies and reload
+      document.cookie = "googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+      document.cookie = "googtrans=; path=/; domain=." + location.hostname + "; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+      location.reload();
+      return;
+    }
+
+    applyLang(code);
+
+    // If it didn't work, retry
+    setTimeout(() => applyLang(code), 1000);
+    setTimeout(() => applyLang(code), 2000);
   };
 
   const currentName = ALL_LANGS.find(l => l.code === currentLang)?.name || "English";
@@ -151,7 +173,7 @@ export default function LanguageSelector({ dark }: { dark?: boolean }) {
             <div className={"flex items-center justify-between px-6 py-4 border-b " + (dc ? "border-gray-700" : "border-gray-200")}>
               <div>
                 <h3 className={"text-lg font-bold " + (dc ? "text-white" : "text-gray-900")}>Select your language</h3>
-                <p className={"text-xs mt-0.5 " + (dc ? "text-gray-400" : "text-gray-500")}>The page will reload in your selected language</p>
+                <p className={"text-xs mt-0.5 " + (dc ? "text-gray-400" : "text-gray-500")}>Page content will be translated</p>
               </div>
               <button onClick={() => setShowAll(false)} className={"p-2 rounded-full " + (dc ? "hover:bg-gray-700" : "hover:bg-gray-100")}><X className={"w-5 h-5 " + (dc ? "text-gray-400" : "text-gray-500")} /></button>
             </div>
@@ -178,10 +200,9 @@ export default function LanguageSelector({ dark }: { dark?: boolean }) {
       <style jsx global>{`
         .goog-te-banner-frame { display: none !important; }
         #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
-        .skiptranslate { display: none !important; }
+        body > .skiptranslate { display: none !important; }
         body { top: 0 !important; }
         .goog-te-gadget { font-size: 0 !important; }
-        #google_translate_element { display: none !important; }
         .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
         .VIpgJd-ZVi9od-l4eHX-hSRGPd { display: none !important; }
       `}</style>
