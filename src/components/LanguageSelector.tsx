@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Globe, X, ChevronRight } from "lucide-react";
 
 const COMMON_LANGS = [
@@ -49,66 +49,109 @@ const ALL_LANGS = [
   { code: "te", name: "తెలుగు" },
 ];
 
-function triggerGoogleTranslate(langCode: string) {
-  // Set the Google Translate cookie to trigger translation
-  const domain = window.location.hostname;
-  if (langCode === "en") {
-    // Remove translation
-    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + domain;
-    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    window.location.reload();
-    return;
-  }
-  document.cookie = "googtrans=/en/" + langCode + "; path=/; domain=" + domain;
-  document.cookie = "googtrans=/en/" + langCode + "; path=/;";
-  window.location.reload();
-}
-
 export default function LanguageSelector({ dark }: { dark?: boolean }) {
   const [showAll, setShowAll] = useState(false);
   const [currentLang, setCurrentLang] = useState("en");
+  const [loaded, setLoaded] = useState(false);
   const dc = dark;
 
+  // Load Google Translate widget
   useEffect(() => {
-    // Load Google Translate script
-    if (!document.getElementById("google-translate-script")) {
-      const script = document.createElement("script");
-      script.id = "google-translate-script";
-      script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateInit";
-      document.head.appendChild(script);
-      (window as any).googleTranslateInit = () => {
+    const saved = localStorage.getItem("ch_lang");
+    if (saved) setCurrentLang(saved);
+
+    // Add Google Translate meta and script
+    if (!document.getElementById("gt-script")) {
+      // Add the hidden div for Google Translate
+      const gtDiv = document.createElement("div");
+      gtDiv.id = "google_translate_element";
+      gtDiv.style.display = "none";
+      document.body.appendChild(gtDiv);
+
+      (window as any).googleTranslateElementInit = () => {
         new (window as any).google.translate.TranslateElement({
           pageLanguage: "en",
+          includedLanguages: ALL_LANGS.map(l => l.code).join(","),
           autoDisplay: false,
-          layout: (window as any).google.translate.TranslateElement.InlineLayout.SIMPLE
-        }, "google_translate_element_hidden");
+          layout: (window as any).google.translate.TranslateElement?.InlineLayout?.SIMPLE
+        }, "google_translate_element");
+        setLoaded(true);
       };
+
+      const script = document.createElement("script");
+      script.id = "gt-script";
+      script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+      document.body.appendChild(script);
+    } else {
+      setLoaded(true);
     }
-    // Detect current language from cookie
-    const match = document.cookie.match(/googtrans=\/en\/([a-z\-]+)/i);
-    if (match) setCurrentLang(match[1]);
   }, []);
 
-  const switchLang = (code: string) => {
+  const switchLang = useCallback((code: string) => {
     setCurrentLang(code);
     setShowAll(false);
-    triggerGoogleTranslate(code);
-  };
+    localStorage.setItem("ch_lang", code);
+
+    if (code === "en") {
+      // Reset to English
+      const frame = document.querySelector(".goog-te-banner-frame") as HTMLIFrameElement;
+      if (frame) {
+        const btn = frame.contentDocument?.querySelector(".goog-close-link") as HTMLElement;
+        if (btn) btn.click();
+      }
+      // Also try via cookie
+      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." + window.location.hostname;
+      window.location.reload();
+      return;
+    }
+
+    // Trigger Google Translate by selecting the language in the hidden widget
+    const doTranslate = () => {
+      const select = document.querySelector("#google_translate_element select") as HTMLSelectElement;
+      if (select) {
+        select.value = code;
+        select.dispatchEvent(new Event("change"));
+      }
+    };
+
+    if (loaded) {
+      doTranslate();
+    } else {
+      // Wait for widget to load
+      const check = setInterval(() => {
+        const select = document.querySelector("#google_translate_element select") as HTMLSelectElement;
+        if (select) { clearInterval(check); select.value = code; select.dispatchEvent(new Event("change")); }
+      }, 500);
+      setTimeout(() => clearInterval(check), 10000);
+    }
+  }, [loaded]);
+
+  // Auto-apply saved language on load
+  useEffect(() => {
+    if (!loaded) return;
+    const saved = localStorage.getItem("ch_lang");
+    if (saved && saved !== "en") {
+      const timer = setTimeout(() => {
+        const select = document.querySelector("#google_translate_element select") as HTMLSelectElement;
+        if (select && select.value !== saved) {
+          select.value = saved;
+          select.dispatchEvent(new Event("change"));
+        }
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [loaded]);
 
   const currentName = ALL_LANGS.find(l => l.code === currentLang)?.name || "English";
 
   return (
     <>
-      {/* Hidden Google Translate element */}
-      <div id="google_translate_element_hidden" className="hidden" />
-
       <div className={"border-t py-5 px-4 " + (dc ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-gray-50")}>
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-2 mb-3">
             <Globe className={"w-4 h-4 " + (dc ? "text-gray-500" : "text-gray-400")} />
-            <span className={"text-xs font-medium " + (dc ? "text-gray-400" : "text-gray-500")}>
-              {currentName}
-            </span>
+            <span className={"text-xs font-medium " + (dc ? "text-gray-400" : "text-gray-500")}>{currentName}</span>
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5">
             {COMMON_LANGS.map(lang => (
@@ -127,7 +170,7 @@ export default function LanguageSelector({ dark }: { dark?: boolean }) {
             <div className={"flex items-center justify-between px-6 py-4 border-b " + (dc ? "border-gray-700" : "border-gray-200")}>
               <div>
                 <h3 className={"text-lg font-bold " + (dc ? "text-white" : "text-gray-900")}>Select your language</h3>
-                <p className={"text-xs mt-0.5 " + (dc ? "text-gray-400" : "text-gray-500")}>The page will reload in your selected language</p>
+                <p className={"text-xs mt-0.5 " + (dc ? "text-gray-400" : "text-gray-500")}>The page will translate automatically</p>
               </div>
               <button onClick={() => setShowAll(false)} className={"p-2 rounded-full " + (dc ? "hover:bg-gray-700" : "hover:bg-gray-100")}><X className={"w-5 h-5 " + (dc ? "text-gray-400" : "text-gray-500")} /></button>
             </div>
@@ -153,11 +196,16 @@ export default function LanguageSelector({ dark }: { dark?: boolean }) {
         </div>
       )}
 
-      {/* Hide Google Translate bar that appears at top */}
+      {/* Hide Google Translate's default UI */}
       <style jsx global>{`
-        .goog-te-banner-frame, #goog-gt-tt, .goog-te-balloon-frame, .skiptranslate { display: none !important; }
+        .goog-te-banner-frame { display: none !important; }
+        #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+        .skiptranslate { display: none !important; }
         body { top: 0 !important; }
         .goog-te-gadget { font-size: 0 !important; }
+        #google_translate_element { display: none !important; }
+        .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
+        .VIpgJd-ZVi9od-l4eHX-hSRGPd { display: none !important; }
       `}</style>
     </>
   );
