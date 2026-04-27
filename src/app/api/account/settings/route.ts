@@ -15,9 +15,21 @@ export async function GET(req: NextRequest) {
       notifLikes: true, notifGifts: true, verified: true, tier: true,
       email: true, phone: true, createdAt: true, lastSeen: true, emailVerified: true, phoneVerified: true
     }
+  }).catch(async () => {
+    // Fallback without new fields
+    return prisma.user.findUnique({
+      where: { id },
+      select: {
+        isPrivate: true, hideDob: true, hideEmail: true, hidePhone: true,
+        hideOnline: true, hideLastSeen: true, showDistance: true, allowMessages: true,
+        emailNotifs: true, pushNotifs: true, notifMatches: true, notifMessages: true,
+        notifLikes: true, notifGifts: true, verified: true, tier: true,
+        email: true, phone: true, createdAt: true, lastSeen: true
+      }
+    });
   });
 
-  return NextResponse.json({ settings: user });
+  return NextResponse.json({ settings: { ...user, emailVerified: (user as any)?.emailVerified ?? false, phoneVerified: (user as any)?.phoneVerified ?? false } });
 }
 
 export async function POST(req: NextRequest) {
