@@ -141,7 +141,7 @@ function VoicePlayer({ src, msgId, isMine, dark }: { src: string; msgId: string;
 }
 
 export default function MessagesPage() {
-  const { user, dark } = useUser();
+  const { user, dark, reload: reloadUser } = useUser();
   const dc = dark;
   const searchParams = useSearchParams();
   const autoUser = searchParams.get("user");
