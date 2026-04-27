@@ -36,11 +36,7 @@ export async function POST(req: NextRequest) {
   try { photos = JSON.parse((user?.photos as string) || "[]"); } catch { photos = []; }
 
   if (action === "add" && photo) {
-    // Tier-based photo limits: Free=6, Plus=16, Premium/Gold=50
-    const userInfo = await prisma.user.findUnique({ where: { id }, select: { tier: true } });
-    const tier = userInfo?.tier || "free";
-    const photoLimit = tier === "premium" || tier === "gold" ? 50 : tier === "plus" ? 16 : 6;
-    if (photos.length >= photoLimit) return NextResponse.json({ error: `Photo limit reached (${photoLimit}). ${tier === "free" ? "Upgrade to Plus for 16 photos or Premium for 50!" : tier === "plus" ? "Upgrade to Premium for up to 50 photos!" : ""}`, upgrade: tier !== "premium" && tier !== "gold", limit: photoLimit }, { status: 403 });
+    // No photo limit — unlimited uploads for all users
     // Upload to Cloudinary
     if (photo.startsWith("data:")) {
       const cloudUrl = await uploadImage(photo, "gallery");

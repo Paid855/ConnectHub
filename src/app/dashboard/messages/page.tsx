@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUser, TierBadge } from "../layout";
-import { Send, ArrowLeft, Play, Pause, Square, X as XIcon, Phone, Video, MoreVertical, Smile, Image as ImageIcon, Mic, Trash2, Shield, Search, Check, CheckCheck } from "lucide-react";
+import { Send, ArrowLeft, Play, Pause, Square, X as XIcon, Phone, Video, MoreVertical, Smile, Image as ImageIcon, Mic, Trash2, Shield, Search, Check, CheckCheck, Lock } from "lucide-react";
 import Link from "next/link";
 
 const EMOJIS = ["😀","😂","🥰","😍","😘","🤗","😊","❤️","🔥","💕","✨","💯","👋","🎉","💐","🌹"];
@@ -249,6 +249,9 @@ export default function MessagesPage() {
       });
     } catch {}
   }, [chatWith]);
+
+  const [canSeeRead, setCanSeeRead] = useState(false);
+  useEffect(() => { fetch("/api/messages/read").then(r=>r.json()).then(d=>setCanSeeRead(d.canSeeReadReceipts||false)).catch(()=>{}); }, []);
 
   // Check if other user is typing
   const checkTyping = useCallback(async () => {
@@ -517,7 +520,7 @@ export default function MessagesPage() {
                         </span>
                         {isMine && (
                           msg.read ? (
-                            <CheckCheck className="w-3.5 h-3.5 text-sky-300" />
+                            {canSeeRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-300" /> : <Check className="w-3.5 h-3.5 text-white/50" />}
                           ) : (
                             <Check className="w-3.5 h-3.5 text-white/50" />
                           )
@@ -715,7 +718,7 @@ export default function MessagesPage() {
                     <p className={"text-xs truncate flex-1 mr-2 " + (conv.unreadCount > 0 ? (dc ? "text-white font-medium" : "text-gray-900 font-medium") : (dc ? "text-gray-500" : "text-gray-400"))}>
                       {conv.lastMessage?.senderId === user.id && (
                         <span className="inline-flex items-center mr-1">
-                          {conv.lastMessage?.read ? <CheckCheck className="w-3 h-3 text-sky-400 inline" /> : <Check className="w-3 h-3 text-gray-400 inline" />}
+                          {canSeeRead && conv.lastMessage?.read ? <CheckCheck className="w-3 h-3 text-sky-400 inline" /> : <Check className="w-3 h-3 text-gray-400 inline" />}
                         </span>
                       )}
                       {conv.lastMessage?.content?.startsWith("[DELETED]") ? "🚫 Message deleted" : conv.lastMessage?.content?.startsWith("[IMG]") ? "📷 Photo" : conv.lastMessage?.content?.startsWith("[VOICE]") ? "🎤 Voice message" : conv.lastMessage?.content?.startsWith("[GIF]") ? "GIF 🎞️" : conv.lastMessage?.content?.substring(0, 40) || "Start chatting"}

@@ -205,7 +205,16 @@ export default function LiveStreamPage() {
       // Create fresh stream
       const cr=await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start",title,category})});
       const data=await cr.json();
-      if(!data.stream){setErr("Failed to create stream");return;}
+      if(!cr.ok && data.upgrade) {
+        setErr(""); setGoingLive(false);
+        // Show upgrade prompt instead of generic error
+        if(typeof window!=="undefined") {
+          const go = confirm("🔒 Live streaming requires Plus or Premium plan.\n\nFree users can watch streams but need to upgrade to go live.\n\nWould you like to upgrade now?");
+          if(go) window.location.href = "/dashboard/upgrade";
+        }
+        return;
+      }
+      if(!data.stream){setErr("Failed to create stream");setGoingLive(false);return;}
 
       await connectAgoraAsHost(data.stream);
       setMyActiveStream(null);
