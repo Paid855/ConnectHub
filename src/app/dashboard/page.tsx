@@ -196,9 +196,6 @@ export default function DiscoverPage() {
           <a href="/dashboard/upgrade" className="inline-block px-6 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-xs font-bold hover:shadow-lg transition-all">Upgrade Now</a>
           <button onClick={() => setSuperLikeError("")} className={"block mx-auto mt-2 text-xs " + (dc ? "text-gray-500" : "text-gray-400")}>Dismiss</button>
         </div>
-      )}>
-          {superLikeError}
-        </div>
       )}
 
       {/* Match Popup */}
