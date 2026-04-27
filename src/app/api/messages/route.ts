@@ -25,7 +25,13 @@ export async function GET(req: NextRequest) {
       let content = m.content.replace("[DEL_SENDER]", "").replace("[DEL_RECEIVER]", "");
       return { ...m, content };
     }).filter(Boolean);
-    return NextResponse.json({ messages });
+    // Get other user info with online status
+    const otherUser = await prisma.user.findUnique({
+      where: { id: chatWith },
+      select: { id: true, name: true, profilePhoto: true, tier: true, lastSeen: true, verified: true }
+    });
+    const isOnline = otherUser?.lastSeen ? (Date.now() - new Date(otherUser.lastSeen).getTime()) < 120000 : false;
+    return NextResponse.json({ messages, otherUser: otherUser ? { ...otherUser, isOnline } : null });
   }
 
   const sent = await prisma.message.findMany({ where: { senderId: id }, orderBy: { createdAt: "desc" }, take: 500 });
@@ -47,7 +53,8 @@ export async function GET(req: NextRequest) {
     let lastContent = last?.content || "";
     if (lastContent.startsWith("[DELETED]")) lastContent = "Message deleted";
     else lastContent = lastContent.replace(/\[DEL_(SENDER|RECEIVER)\]/g, "");
-    return { user: u, lastMessage: last ? { ...last, content: lastContent } : null, unreadCount };
+    const isOnline = u.lastSeen ? (Date.now() - new Date(u.lastSeen).getTime()) < 120000 : false;
+    return { user: { ...u, isOnline }, lastMessage: last ? { ...last, content: lastContent } : null, unreadCount };
   }).filter(Boolean).sort((a: any, b: any) => new Date(b.lastMessage?.createdAt || 0).getTime() - new Date(a.lastMessage?.createdAt || 0).getTime());
 
   return NextResponse.json({ conversations });
