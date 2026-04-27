@@ -2,10 +2,8 @@ import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-// In-memory active viewer tracking (resets on deploy — fine for live presence)
-const activeViewers = new Map<string, Map<string, { name: string; photo: string | null; verified: boolean; tier: string; lastPing: number }>>();
+const STALE_SECONDS = 20;
 
-// GET - list active viewers for a stream
 export async function GET(req: NextRequest) {
   const id = getUserId(req);
   if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -14,26 +12,32 @@ export async function GET(req: NextRequest) {
   const streamId = url.searchParams.get("streamId");
   if (!streamId) return NextResponse.json({ viewers: [], count: 0 });
 
-  const streamViewers = activeViewers.get(streamId);
-  if (!streamViewers) return NextResponse.json({ viewers: [], count: 0 });
+  // Clean stale viewers
+  await prisma.liveViewer.deleteMany({
+    where: { streamId, lastPing: { lt: new Date(Date.now() - STALE_SECONDS * 1000) } }
+  }).catch(() => {});
 
-  // Clean up stale viewers (no ping in 15 seconds)
-  const now = Date.now();
-  for (const [uid, v] of streamViewers.entries()) {
-    if (now - v.lastPing > 15000) streamViewers.delete(uid);
-  }
-
-  // Get stream host to exclude from viewers
+  // Get stream host to exclude
   const stream = await prisma.liveStream.findUnique({ where: { id: streamId }, select: { userId: true } });
 
-  const viewers = Array.from(streamViewers.entries())
-    .filter(([uid]) => uid !== stream?.userId)
-    .map(([uid, v]) => ({ id: uid, name: v.name, profilePhoto: v.photo, verified: v.verified, tier: v.tier }));
+  // Get active viewers
+  const viewers = await prisma.liveViewer.findMany({ where: { streamId } });
+  const userIds = viewers.map(v => v.userId).filter(uid => uid !== stream?.userId);
 
-  return NextResponse.json({ viewers, count: viewers.length });
+  let userDetails: any[] = [];
+  if (userIds.length > 0) {
+    userDetails = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, profilePhoto: true, verified: true, tier: true }
+    });
+  }
+
+  return NextResponse.json({
+    viewers: userDetails,
+    count: userDetails.length
+  });
 }
 
-// POST - register/ping as viewer or leave
 export async function POST(req: NextRequest) {
   const id = getUserId(req);
   if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -44,15 +48,19 @@ export async function POST(req: NextRequest) {
 
   if (!streamId) return NextResponse.json({ error: "No stream" }, { status: 400 });
 
+  // === CLEANUP (host ending stream) ===
+  if (action === "cleanup") {
+    await prisma.liveViewer.deleteMany({ where: { streamId } }).catch(() => {});
+    return NextResponse.json({ success: true });
+  }
+
+  // === LEAVE ===
   if (action === "leave") {
-    const streamViewers = activeViewers.get(streamId);
-    if (streamViewers) {
-      streamViewers.delete(id);
-      if (streamViewers.size === 0) activeViewers.delete(streamId);
-    }
-    // Only send leave message if no recent one exists
+    await prisma.liveViewer.deleteMany({ where: { streamId, userId: id } }).catch(() => {});
+
+    // Send leave message if no recent one
     const recentLeave = await prisma.liveChat.findFirst({
-      where: { streamId, userId: id, content: { contains: "left the stream" }, createdAt: { gte: new Date(Date.now() - 60000) } }
+      where: { streamId, userId: id, content: { contains: "left the stream" }, createdAt: { gte: new Date(Date.now() - 30000) } }
     }).catch(() => null);
     if (!recentLeave) {
       const user = await prisma.user.findUnique({ where: { id }, select: { name: true } });
@@ -63,59 +71,50 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
-  // Ping only — just update timestamp, never create chat message
+  // === PING — just update timestamp ===
   if (action === "ping") {
-    if (!activeViewers.has(streamId)) activeViewers.set(streamId, new Map());
-    const sv = activeViewers.get(streamId)!;
-    if (sv.has(id)) {
-      const existing = sv.get(id)!;
-      existing.lastPing = Date.now();
-      sv.set(id, existing);
-    } else {
-      const user = await prisma.user.findUnique({ where: { id }, select: { name: true, profilePhoto: true, verified: true, tier: true } });
-      sv.set(id, { name: user?.name || "User", photo: user?.profilePhoto || null, verified: user?.verified || false, tier: user?.tier || "free", lastPing: Date.now() });
-    }
+    await prisma.liveViewer.updateMany({
+      where: { streamId, userId: id },
+      data: { lastPing: new Date() }
+    }).catch(() => {});
     return NextResponse.json({ success: true });
   }
 
-  // Join — first time only
-  if (!activeViewers.has(streamId)) activeViewers.set(streamId, new Map());
-  const streamViewers = activeViewers.get(streamId)!;
+  // === JOIN ===
+  // Use upsert — if already exists, just update ping. If new, create.
+  const existing = await prisma.liveViewer.findUnique({
+    where: { streamId_userId: { streamId, userId: id } }
+  }).catch(() => null);
 
-  const isNew = !streamViewers.has(id);
-
-  // Get user info if new
-  if (isNew) {
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: { name: true, profilePhoto: true, verified: true, tier: true }
-    });
-
-    streamViewers.set(id, {
-      name: user?.name || "User",
-      photo: user?.profilePhoto || null,
-      verified: user?.verified || false,
-      tier: user?.tier || "free",
-      lastPing: Date.now()
-    });
-
-    // Check user's last join/leave message — only show join if last action wasn't already a join
-    const lastAction = await prisma.liveChat.findFirst({
-      where: { streamId, userId: id, OR: [{ content: { contains: "joined the stream" } }, { content: { contains: "left the stream" } }] },
-      orderBy: { createdAt: "desc" }
-    }).catch(() => null);
-    const wasAlreadyJoined = lastAction?.content?.includes("joined the stream") && lastAction.createdAt > new Date(Date.now() - 10000);
-    if (!wasAlreadyJoined) {
-      await prisma.liveChat.create({
-        data: { streamId, userId: id, content: `👋 ${user?.name || "Someone"} joined the stream` }
-      }).catch(() => {});
-    }
-  } else {
-    // Update last ping time
-    const existing = streamViewers.get(id)!;
-    existing.lastPing = Date.now();
-    streamViewers.set(id, existing);
+  if (existing) {
+    // Already watching — just update ping
+    await prisma.liveViewer.update({
+      where: { id: existing.id },
+      data: { lastPing: new Date() }
+    }).catch(() => {});
+    return NextResponse.json({ success: true, isNew: false });
   }
 
-  return NextResponse.json({ success: true, isNew });
+  // Truly new viewer
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { name: true, profilePhoto: true, verified: true, tier: true }
+  });
+
+  await prisma.liveViewer.create({
+    data: { streamId, userId: id }
+  }).catch(() => {});
+
+  // Check last action to prevent duplicate join message
+  const lastJoin = await prisma.liveChat.findFirst({
+    where: { streamId, userId: id, content: { contains: "joined the stream" }, createdAt: { gte: new Date(Date.now() - 10000) } }
+  }).catch(() => null);
+
+  if (!lastJoin) {
+    await prisma.liveChat.create({
+      data: { streamId, userId: id, content: `👋 ${user?.name || "Someone"} joined the stream` }
+    }).catch(() => {});
+  }
+
+  return NextResponse.json({ success: true, isNew: true });
 }

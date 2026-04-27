@@ -249,3 +249,13 @@ model Withdrawal {
   createdAt   DateTime @default(now())
   processedAt DateTime?
 }
+
+model LiveViewer {
+  id        String   @id @default(cuid())
+  streamId  String
+  userId    String
+  lastPing  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@unique([streamId, userId])
+}

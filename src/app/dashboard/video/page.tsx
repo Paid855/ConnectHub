@@ -277,8 +277,11 @@ export default function LiveStreamPage() {
       setPage("live");
       toast(`Joined ${s.host?.name||"the host"}'s stream`,"🎉");
 
-      // Register as viewer + start presence ping
-      try{await fetch("/api/live/viewers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:s.id})});}catch{}
+      // Register as viewer
+      try{
+        const vr = await fetch("/api/live/viewers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:s.id})});
+        const vd = await vr.json();
+      }catch{}
     }catch(e:any){
       console.error("[Live] Join failed:", e);
       const msg = e.message || "Unknown error";
@@ -349,7 +352,11 @@ export default function LiveStreamPage() {
       if(tracks.v){tracks.v.stop();tracks.v.close();}
       if(tracks.a){tracks.a.stop();tracks.a.close();}
       if(agoraClient) await agoraClient.leave();
-      if(role==="host") await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})});
+      if(role==="host"){
+        await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})});
+        // Clean up all viewer records for this stream
+        if(stream) await fetch("/api/live/viewers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({streamId:stream.id,action:"cleanup"})}).catch(()=>{});
+      }
     }catch{}
     setAgoraClient(null);setTracks({a:null,v:null});setStream(null);setPage("list");
     setViewerCount(0);setRealViewers([]);setMsgs([]);setEnded(false);setTitle("");
