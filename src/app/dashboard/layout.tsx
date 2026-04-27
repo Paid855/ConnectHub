@@ -72,14 +72,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const loadUser = async () => {
     if (userCache.current && Date.now() - userCache.current.time < 10000) { setUser(userCache.current.data); return; }
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.status === 403) { router.push("/login?banned=true"); return; }
-      const data = await res.json();
-      if (!data.user) { router.push("/login"); return; }
-      setUser(data.user);
-      userCache.current = { data: data.user, time: Date.now() };
-    } catch { router.push("/login"); } finally { setLoading(false); }
+    const tryAuth = async (attempt = 0): Promise<boolean> => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.status === 403) { router.push("/login?banned=true"); return true; }
+        const data = await res.json();
+        if (!data.user) {
+          if (attempt < 2) { await new Promise(r => setTimeout(r, 800)); return tryAuth(attempt + 1); }
+          router.push("/login"); return true;
+        }
+        setUser(data.user);
+        userCache.current = { data: data.user, time: Date.now() };
+        return true;
+      } catch {
+        if (attempt < 2) { await new Promise(r => setTimeout(r, 800)); return tryAuth(attempt + 1); }
+        router.push("/login"); return true;
+      }
+    };
+    await tryAuth();
+    setLoading(false);
   };
   const loadUnread = async () => { try { const res = await fetch("/api/messages"); if (res.ok) { const d = await res.json(); setUnread((d.conversations||[]).reduce((s:number,c:any)=>s+(c.unreadCount||0),0)); } } catch {} };
   const loadNotifications = async () => { if (Date.now() - lastReadTime.current < 8000) return; try { const res = await fetch("/api/notifications"); if (res.ok) { const d = await res.json(); setNotifCount(d.unreadCount||0); setNotifications(d.notifications||[]); } } catch {} };
