@@ -18,7 +18,7 @@ export default function LoginPage() {
     if (!form.emailOrUsername || !form.password) { setError("Please enter your email and password"); return; }
     setLoading(true); setError("");
     try {
-      const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const res = await fetch("https://connecthub.love/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Invalid credentials"); setLoading(false); return; }
       window.location.href = "https://connecthub.love/dashboard";
