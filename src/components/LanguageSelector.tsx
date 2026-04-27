@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { Globe, X, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Globe, X, ChevronRight, Loader2 } from "lucide-react";
 
 const COMMON_LANGS = [
   { code: "en", name: "English" },
@@ -17,139 +17,140 @@ const COMMON_LANGS = [
 
 const ALL_LANGS = [
   ...COMMON_LANGS,
-  { code: "ko", name: "한국어" },
-  { code: "ru", name: "Русский" },
-  { code: "tr", name: "Türkçe" },
-  { code: "nl", name: "Nederlands" },
-  { code: "pl", name: "Polski" },
-  { code: "sv", name: "Svenska" },
-  { code: "da", name: "Dansk" },
-  { code: "no", name: "Norsk" },
-  { code: "fi", name: "Suomi" },
-  { code: "el", name: "Ελληνικά" },
-  { code: "cs", name: "Čeština" },
-  { code: "ro", name: "Română" },
-  { code: "hu", name: "Magyar" },
-  { code: "th", name: "ไทย" },
-  { code: "vi", name: "Tiếng Việt" },
-  { code: "id", name: "Bahasa Indonesia" },
-  { code: "ms", name: "Bahasa Melayu" },
-  { code: "tl", name: "Filipino" },
-  { code: "sw", name: "Kiswahili" },
-  { code: "ha", name: "Hausa" },
-  { code: "yo", name: "Yorùbá" },
-  { code: "ig", name: "Igbo" },
-  { code: "am", name: "አማርኛ" },
-  { code: "uk", name: "Українська" },
-  { code: "bg", name: "Български" },
-  { code: "he", name: "עברית" },
-  { code: "ur", name: "اردو" },
-  { code: "bn", name: "বাংলা" },
-  { code: "ta", name: "தமிழ்" },
+  { code: "ko", name: "한국어" }, { code: "ru", name: "Русский" }, { code: "tr", name: "Türkçe" },
+  { code: "nl", name: "Nederlands" }, { code: "pl", name: "Polski" }, { code: "sv", name: "Svenska" },
+  { code: "da", name: "Dansk" }, { code: "no", name: "Norsk" }, { code: "fi", name: "Suomi" },
+  { code: "el", name: "Ελληνικά" }, { code: "cs", name: "Čeština" }, { code: "ro", name: "Română" },
+  { code: "hu", name: "Magyar" }, { code: "th", name: "ไทย" }, { code: "vi", name: "Tiếng Việt" },
+  { code: "id", name: "Bahasa Indonesia" }, { code: "ms", name: "Bahasa Melayu" },
+  { code: "tl", name: "Filipino" }, { code: "sw", name: "Kiswahili" }, { code: "ha", name: "Hausa" },
+  { code: "yo", name: "Yorùbá" }, { code: "ig", name: "Igbo" }, { code: "am", name: "አማርኛ" },
+  { code: "uk", name: "Українська" }, { code: "bg", name: "Български" }, { code: "he", name: "עברית" },
+  { code: "ur", name: "اردو" }, { code: "bn", name: "বাংলা" }, { code: "ta", name: "தமிழ்" },
   { code: "te", name: "తెలుగు" },
 ];
+
+// Translate all text nodes on the page using the free Google Translate API
+async function translatePage(targetLang: string) {
+  if (targetLang === "en") return;
+  
+  // Collect all visible text
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => {
+      const parent = node.parentElement;
+      if (!parent) return NodeFilter.FILTER_REJECT;
+      if (parent.closest(".notranslate")) return NodeFilter.FILTER_REJECT;
+      if (parent.tagName === "SCRIPT" || parent.tagName === "STYLE" || parent.tagName === "TEXTAREA" || parent.tagName === "INPUT") return NodeFilter.FILTER_REJECT;
+      if (!node.textContent?.trim()) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+
+  const textNodes: { node: Text; original: string }[] = [];
+  let node;
+  while (node = walker.nextNode()) {
+    const text = node.textContent?.trim();
+    if (text && text.length > 1 && !/^[0-9.,\-+%$€£¥]+$/.test(text)) {
+      textNodes.push({ node: node as Text, original: text });
+    }
+  }
+
+  // Batch translate in chunks of 50
+  const batchSize = 50;
+  for (let i = 0; i < textNodes.length; i += batchSize) {
+    const batch = textNodes.slice(i, i + batchSize);
+    const texts = batch.map(t => t.original);
+    
+    try {
+      const q = texts.map(t => encodeURIComponent(t)).join("&q=");
+      const res = await fetch(
+        `https://translate.googleapis.com/translate_a/t?client=gtx&sl=en&tl=${targetLang}&q=${q}`,
+        { headers: { "Content-Type": "application/json" } }
+      );
+      
+      if (!res.ok) {
+        // Fallback: translate one by one
+        for (const item of batch) {
+          try {
+            const r2 = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(item.original)}`);
+            const d2 = await r2.json();
+            if (d2?.[0]?.[0]?.[0]) {
+              item.node.textContent = item.node.textContent!.replace(item.original, d2[0][0][0]);
+            }
+          } catch {}
+        }
+        continue;
+      }
+      
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        data.forEach((translated: any, idx: number) => {
+          const text = typeof translated === "string" ? translated : translated?.[0];
+          if (text && batch[idx]) {
+            batch[idx].node.textContent = batch[idx].node.textContent!.replace(batch[idx].original, text);
+          }
+        });
+      }
+    } catch {
+      // Single translation fallback
+      for (const item of batch) {
+        try {
+          const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(item.original)}`);
+          const d = await r.json();
+          if (d?.[0]?.[0]?.[0]) {
+            item.node.textContent = item.node.textContent!.replace(item.original, d[0][0][0]);
+          }
+        } catch {}
+      }
+    }
+  }
+}
 
 export default function LanguageSelector({ dark }: { dark?: boolean }) {
   const [showAll, setShowAll] = useState(false);
   const [currentLang, setCurrentLang] = useState("en");
-  const [ready, setReady] = useState(false);
-  const selectRef = useRef<HTMLSelectElement|null>(null);
+  const [translating, setTranslating] = useState(false);
   const dc = dark;
 
   useEffect(() => {
     const saved = localStorage.getItem("ch_lang") || "en";
     setCurrentLang(saved);
-
-    // Inject Google Translate
-    if (!document.getElementById("google_translate_element")) {
-      const div = document.createElement("div");
-      div.id = "google_translate_element";
-      div.style.position = "fixed";
-      div.style.top = "-9999px";
-      div.style.left = "-9999px";
-      document.body.appendChild(div);
-    }
-
-    if (!(window as any)._gtLoaded) {
-      (window as any)._gtLoaded = true;
-      (window as any).googleTranslateElementInit = () => {
-        new (window as any).google.translate.TranslateElement({
-          pageLanguage: "en",
-          includedLanguages: ALL_LANGS.map(l => l.code).join(","),
-          autoDisplay: false,
-        }, "google_translate_element");
-        setTimeout(() => {
-          setReady(true);
-          // Auto-apply saved language
-          const s = localStorage.getItem("ch_lang");
-          if (s && s !== "en") applyLang(s);
-        }, 1000);
-      };
-      const s = document.createElement("script");
-      s.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-      document.head.appendChild(s);
-    } else {
-      setReady(true);
-      if (saved !== "en") setTimeout(() => applyLang(saved), 500);
+    if (saved !== "en") {
+      // Auto-translate on page load
+      setTranslating(true);
+      setTimeout(() => {
+        translatePage(saved).then(() => setTranslating(false)).catch(() => setTranslating(false));
+      }, 1000);
     }
   }, []);
 
-  const applyLang = (code: string) => {
-    try {
-      const iframe = document.querySelector("iframe.goog-te-menu-frame") as HTMLIFrameElement;
-      if (iframe) {
-        const items = iframe.contentWindow?.document.querySelectorAll(".goog-te-menu2-item span.text");
-        if (items) {
-          items.forEach((item: any) => {
-            const langMap: Record<string,string> = {};
-            ALL_LANGS.forEach(l => { langMap[l.name.toLowerCase()] = l.code; });
-            // Click won't work easily, use the select approach
-          });
-        }
-      }
-      // Use the select element directly
-      const sel = document.querySelector("#google_translate_element select") as HTMLSelectElement;
-      if (sel) {
-        sel.value = code;
-        sel.dispatchEvent(new Event("change", { bubbles: true }));
-      }
-    } catch {}
-  };
-
-  const switchLang = (code: string) => {
-    localStorage.setItem("ch_lang", code);
+  const switchLang = async (code: string) => {
     setCurrentLang(code);
     setShowAll(false);
+    localStorage.setItem("ch_lang", code);
 
     if (code === "en") {
-      // Restore original
       localStorage.removeItem("ch_lang");
-      // Click the "Show original" button if available
-      try {
-        const banner = document.querySelector(".goog-te-banner-frame") as HTMLIFrameElement;
-        if (banner) {
-          const closeBtn = banner.contentWindow?.document.querySelector(".goog-close-link") as HTMLElement;
-          if (closeBtn) { closeBtn.click(); return; }
-        }
-      } catch {}
-      // Fallback: clear cookies and reload
-      document.cookie = "googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
-      document.cookie = "googtrans=; path=/; domain=." + location.hostname + "; expires=Thu, 01 Jan 1970 00:00:00 UTC";
-      location.reload();
+      window.location.reload(); // Reload to get original English
       return;
     }
 
-    applyLang(code);
-
-    // If it didn't work, retry
-    setTimeout(() => applyLang(code), 1000);
-    setTimeout(() => applyLang(code), 2000);
+    setTranslating(true);
+    await translatePage(code);
+    setTranslating(false);
   };
 
   const currentName = ALL_LANGS.find(l => l.code === currentLang)?.name || "English";
 
   return (
     <>
+      {/* Translating indicator */}
+      {translating && (
+        <div className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-rose-500 to-pink-500 text-white text-center py-1.5 text-xs font-bold flex items-center justify-center gap-2">
+          <Loader2 className="w-3 h-3 animate-spin" /> Translating page...
+        </div>
+      )}
+
       <div className={"border-t py-5 px-4 notranslate " + (dc ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-gray-50")}>
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-2 mb-3">
@@ -173,7 +174,7 @@ export default function LanguageSelector({ dark }: { dark?: boolean }) {
             <div className={"flex items-center justify-between px-6 py-4 border-b " + (dc ? "border-gray-700" : "border-gray-200")}>
               <div>
                 <h3 className={"text-lg font-bold " + (dc ? "text-white" : "text-gray-900")}>Select your language</h3>
-                <p className={"text-xs mt-0.5 " + (dc ? "text-gray-400" : "text-gray-500")}>Page content will be translated</p>
+                <p className={"text-xs mt-0.5 " + (dc ? "text-gray-400" : "text-gray-500")}>Page text will be translated instantly</p>
               </div>
               <button onClick={() => setShowAll(false)} className={"p-2 rounded-full " + (dc ? "hover:bg-gray-700" : "hover:bg-gray-100")}><X className={"w-5 h-5 " + (dc ? "text-gray-400" : "text-gray-500")} /></button>
             </div>
@@ -196,16 +197,6 @@ export default function LanguageSelector({ dark }: { dark?: boolean }) {
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        .goog-te-banner-frame { display: none !important; }
-        #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
-        body > .skiptranslate { display: none !important; }
-        body { top: 0 !important; }
-        .goog-te-gadget { font-size: 0 !important; }
-        .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
-        .VIpgJd-ZVi9od-l4eHX-hSRGPd { display: none !important; }
-      `}</style>
     </>
   );
 }

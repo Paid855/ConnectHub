@@ -38,8 +38,10 @@ export default function DiscoverPage() {
         const data = await res.json();
 
         if (!res.ok) {
-          if (data.upgrade) { setSuperLikeError("Super Likes require Plus or Premium"); }
+          if (data.upgrade && type === "superlike") { setSuperLikeError("Super Likes require Plus or Premium. Upgrade to unlock!"); }
+          else if (data.upgrade) { setSuperLikeError("Daily like limit reached! Upgrade for unlimited likes."); }
           else if (data.limit) { setSuperLikeError(data.error); }
+          else if (data.error) { setSuperLikeError(data.error); }
           setAction(null);
           return;
         }
@@ -189,7 +191,12 @@ export default function DiscoverPage() {
       </p>
       {/* Super Like error */}
       {superLikeError && (
-        <div className={"fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full text-sm font-semibold shadow-xl " + (dc ? "bg-gray-800 text-amber-400 border border-gray-700" : "bg-white text-amber-600 border border-amber-200")}>
+        <div className={"absolute bottom-32 left-4 right-4 z-30 p-4 rounded-2xl text-center shadow-xl border backdrop-blur-sm " + (dc ? "bg-gray-800/95 border-gray-700" : "bg-white/95 border-rose-200")}>
+          <p className={"text-sm font-semibold mb-2 " + (dc ? "text-white" : "text-gray-900")}>{superLikeError}</p>
+          <a href="/dashboard/upgrade" className="inline-block px-6 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-xs font-bold hover:shadow-lg transition-all">Upgrade Now</a>
+          <button onClick={() => setSuperLikeError("")} className={"block mx-auto mt-2 text-xs " + (dc ? "text-gray-500" : "text-gray-400")}>Dismiss</button>
+        </div>
+      )}>
           {superLikeError}
         </div>
       )}
