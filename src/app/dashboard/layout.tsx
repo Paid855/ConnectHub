@@ -2,6 +2,7 @@
 import { useState, useEffect, createContext, useContext, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import LanguageSelector from "@/components/LanguageSelector";
 import LocationDetector from "@/components/LocationDetector";
 import PushPrompt from "@/components/PushPrompt";
 import PushNotifications from "@/components/PushNotifications";

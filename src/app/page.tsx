@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import LanguageSelector from "@/components/LanguageSelector";
 
 function useInView(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
@@ -58,7 +59,7 @@ export default function HomePage() {
     { name: "Sarah & Michael", loc: "New York, USA", quote: "We matched on ConnectHub and immediately connected over our love for hiking and Italian food. Six months later, we are inseparable and planning our future together!", status: "Married 2025", emoji: "💒", img: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=100&h=100&fit=crop&crop=faces" },
     { name: "David & Priya", loc: "London, UK", quote: "The video dating feature let us build real chemistry before meeting in person. Best decision I ever made was joining ConnectHub — found my soulmate.", status: "Together 2 years", emoji: "💕", img: "https://images.unsplash.com/photo-1529634597503-139d3726fed5?w=100&h=100&fit=crop&crop=faces" },
     { name: "Emma & Carlos", loc: "Barcelona, Spain", quote: "ConnectHub matched us based on shared values and passions. We connected from different countries, and love brought us together across the ocean.", status: "Engaged 2026", emoji: "💍", img: "https://images.unsplash.com/photo-1545912452-8aea7e25a3d3?w=100&h=100&fit=crop&crop=faces" },
-    { name: "Aisha & James", loc: "Toronto, Canada", quote: "After years of unsuccessful dating, ConnectHub's matching system finally understood what I was looking for. James appeared within a week!", status: "Together 1 year", emoji: "🌹", img: "https://images.unsplash.com/photo-1622495894321-a803e78f3892?w=100&h=100&fit=crop&crop=faces" },
+    { name: "Aisha & James", loc: "Toronto, Canada", quote: "After years of unsuccessful dating, ConnectHub's matching system finally understood what I was looking for. James appeared within a week!", status: "Together 1 year", emoji: "🌹", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces" },
   ];
 
   const s1 = useInView(); const s2 = useInView(); const s3 = useInView(); const s4 = useInView();
@@ -626,6 +627,9 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      <LanguageSelector />
+
     </div>
   );
 }
