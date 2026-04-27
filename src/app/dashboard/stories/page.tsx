@@ -7,6 +7,14 @@ import Link from "next/link";
 type StoryItem = { id:string; image:string; caption:string|null; viewCount:number; viewedByMe:boolean; createdAt:string; expiresAt:string };
 type StoryGroup = { user:{ id:string; name:string; profilePhoto:string|null }; stories:StoryItem[] };
 
+const FONTS = [
+  { name: "Classic", style: "font-sans", weight: "font-bold" },
+  { name: "Elegant", style: "font-serif", weight: "font-bold italic" },
+  { name: "Modern", style: "font-mono", weight: "font-semibold" },
+  { name: "Handwritten", style: "font-sans", weight: "font-medium italic" },
+  { name: "Impact", style: "font-sans", weight: "font-black uppercase tracking-wider" },
+];
+
 const STORY_BGS = [
   "from-rose-500 via-pink-500 to-purple-600",
   "from-blue-500 via-cyan-500 to-teal-500",
@@ -47,6 +55,7 @@ export default function StoriesPage() {
   const [showTextCreator, setShowTextCreator] = useState(false);
   const [storyText, setStoryText] = useState("");
   const [storyBg, setStoryBg] = useState(0);
+  const [textFont, setTextFont] = useState(0);
 
   const load = async () => {
     const res = await fetch("/api/stories");
@@ -91,7 +100,7 @@ export default function StoriesPage() {
     if (!storyText.trim()) return;
     setUploading(true);
     try {
-      const image = "[TEXT:" + storyBg + "]" + storyText;
+      const image = "[TEXT:" + storyBg + ":" + textFont + "]" + storyText;
       await fetch("/api/stories", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ action:"create", image, caption: storyText.substring(0, 50) }) });
       setShowTextCreator(false); setStoryText(""); setStoryBg(0); load();
     } catch {} finally { setUploading(false); }
@@ -182,39 +191,72 @@ export default function StoriesPage() {
 
   // Helper: check if story is text
   const isTextStory = (img: string) => img.startsWith("[TEXT:");
-  const getTextContent = (img: string) => img.replace(/\[TEXT:\d+\]/, "");
-  const getTextBg = (img: string) => { const m = img.match(/\[TEXT:(\d+)\]/); return STORY_BGS[parseInt(m?.[1] || "0")] || STORY_BGS[0]; };
+  const getTextContent = (img: string) => img.replace(/\[TEXT:[\d:]+\]/, "");
+  const getTextBg = (img: string) => { const m = img.match(/\[TEXT:(\d+)/); return STORY_BGS[parseInt(m?.[1] || "0")] || STORY_BGS[0]; };
+  const getTextFont = (img: string) => { const m = img.match(/\[TEXT:\d+:(\d+)\]/); return parseInt(m?.[1] || "0"); };
 
   if (!user) return null;
 
   // ═══ TEXT STORY CREATOR ═══
   if (showTextCreator) {
+    const fontStyle = FONTS[textFont] || FONTS[0];
     return (
       <div className="fixed inset-0 z-[999] bg-black flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3">
-          <button onClick={() => { setShowTextCreator(false); setStoryText(""); }} className="text-white text-sm font-medium px-3 py-1.5 rounded-full hover:bg-white/10">Cancel</button>
-          <p className="text-white font-bold text-sm">Text Story</p>
-          <button onClick={publishTextStory} disabled={uploading || !storyText.trim()} className="px-5 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-bold disabled:opacity-40">
-            {uploading ? "..." : "Share"}
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 bg-black/60 backdrop-blur-lg border-b border-white/5">
+          <button onClick={() => { setShowTextCreator(false); setStoryText(""); setTextFont(0); }} className="text-white/70 text-sm font-medium px-4 py-2 rounded-full hover:bg-white/10 transition-colors">Cancel</button>
+          <div className="flex items-center gap-2">
+            <Edit3 className="w-4 h-4 text-rose-400" />
+            <p className="text-white font-bold text-sm">Create Story</p>
+          </div>
+          <button onClick={publishTextStory} disabled={uploading || !storyText.trim()} className="px-6 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-bold disabled:opacity-30 hover:shadow-lg hover:shadow-rose-500/25 transition-all">
+            {uploading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-2" /> : "Share →"}
           </button>
         </div>
-        <div className={"flex-1 bg-gradient-to-br " + STORY_BGS[storyBg] + " flex items-center justify-center p-8 relative"}>
+
+        {/* Live Preview */}
+        <div className={"flex-1 bg-gradient-to-br " + STORY_BGS[storyBg] + " flex items-center justify-center p-10 relative overflow-hidden transition-all duration-500"}>
+          {/* Decorative elements */}
+          <div className="absolute top-10 left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+          <div className="absolute bottom-20 right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
           {storyText ? (
-            <p className="text-white font-bold text-center break-words max-w-md" style={{ fontSize: storyText.length > 100 ? "20px" : storyText.length > 50 ? "28px" : "36px", lineHeight: 1.5, textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>{storyText}</p>
+            <p className={"text-white text-center break-words max-w-sm " + fontStyle.style + " " + fontStyle.weight} style={{ fontSize: storyText.length > 150 ? 18 : storyText.length > 80 ? 24 : storyText.length > 40 ? 32 : 40, lineHeight: 1.6, textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>{storyText}</p>
           ) : (
-            <p className="text-white/30 text-2xl font-bold">Type your story...</p>
+            <div className="text-center">
+              <Edit3 className="w-10 h-10 text-white/20 mx-auto mb-4" />
+              <p className="text-white/25 text-xl font-medium">Tap below to start writing...</p>
+            </div>
           )}
         </div>
-        <div className="bg-black px-4 py-4 space-y-3 safe-area-bottom">
-          <textarea value={storyText} onChange={e => setStoryText(e.target.value)} placeholder="What's on your mind?" maxLength={280} autoFocus className="w-full px-4 py-3 bg-white/10 text-white placeholder:text-white/30 rounded-2xl text-sm outline-none resize-none h-20 border border-white/10 focus:border-rose-500/50" />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-white/40 text-xs font-medium">BG</span>
-              {STORY_BGS.map((bg, i) => (
-                <button key={i} onClick={() => setStoryBg(i)} className={"w-7 h-7 rounded-full bg-gradient-to-br " + bg + " transition-all " + (storyBg === i ? "ring-2 ring-white ring-offset-2 ring-offset-black scale-110" : "opacity-50 hover:opacity-100")} />
+
+        {/* Controls Panel */}
+        <div className="bg-gray-950 border-t border-white/5 px-4 pt-4 pb-6 space-y-4 safe-area-bottom">
+          {/* Text input */}
+          <div className="relative">
+            <textarea value={storyText} onChange={e => setStoryText(e.target.value)} placeholder="Share what's on your heart..." maxLength={280} autoFocus className={"w-full px-5 py-4 bg-white/8 text-white placeholder:text-white/25 rounded-2xl text-sm outline-none resize-none border border-white/10 focus:border-rose-500/40 focus:bg-white/10 transition-all " + fontStyle.style} rows={3} />
+            <span className={"absolute bottom-3 right-4 text-[10px] font-medium " + (storyText.length > 250 ? "text-amber-400" : "text-white/20")}>{storyText.length}/280</span>
+          </div>
+
+          {/* Font Style Picker */}
+          <div>
+            <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest mb-2">Font Style</p>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {FONTS.map((f, i) => (
+                <button key={i} onClick={() => setTextFont(i)} className={"px-4 py-2 rounded-xl text-xs whitespace-nowrap transition-all border " + (textFont === i ? "bg-white/15 border-rose-500/50 text-white font-bold" : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10")}>
+                  <span className={f.style + " " + f.weight}>{f.name}</span>
+                </button>
               ))}
             </div>
-            <span className="text-white/30 text-xs">{storyText.length}/280</span>
+          </div>
+
+          {/* Background Picker */}
+          <div>
+            <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest mb-2">Background</p>
+            <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
+              {STORY_BGS.map((bg, i) => (
+                <button key={i} onClick={() => setStoryBg(i)} className={"w-9 h-9 rounded-full bg-gradient-to-br " + bg + " transition-all flex-shrink-0 " + (storyBg === i ? "ring-2 ring-white ring-offset-2 ring-offset-gray-950 scale-110" : "opacity-50 hover:opacity-80 hover:scale-105")} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -258,7 +300,9 @@ export default function StoriesPage() {
           <div className="flex-1 flex items-center justify-center">
             {isText ? (
               <div className={"absolute inset-0 bg-gradient-to-br " + getTextBg(story.image) + " flex items-center justify-center p-8"}>
-                <p className="text-white font-bold text-center break-words max-w-md" style={{ fontSize: getTextContent(story.image).length > 100 ? 20 : getTextContent(story.image).length > 50 ? 28 : 36, lineHeight: 1.5, textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>{getTextContent(story.image)}</p>
+                <div className="absolute top-10 left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+                <div className="absolute bottom-20 right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
+                <p className={"text-white text-center break-words max-w-md " + (FONTS[getTextFont(story.image)]?.style || "font-sans") + " " + (FONTS[getTextFont(story.image)]?.weight || "font-bold")} style={{ fontSize: getTextContent(story.image).length > 150 ? 18 : getTextContent(story.image).length > 80 ? 24 : getTextContent(story.image).length > 40 ? 32 : 40, lineHeight: 1.6, textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>{getTextContent(story.image)}</p>
               </div>
             ) : isVideo ? (
               <video ref={videoRef} src={mediaSrc} controls autoPlay playsInline className="w-full h-full object-contain" onEnded={nextStory} />
@@ -266,12 +310,7 @@ export default function StoriesPage() {
               <img src={mediaSrc} className="w-full h-full object-contain" draggable={false} />
             )}
 
-            {/* Paused indicator */}
-            {paused && !replyText && !showViewers && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                <div className="bg-black/40 backdrop-blur-sm rounded-full px-5 py-2.5"><span className="text-white text-sm font-bold">⏸ Paused</span></div>
-              </div>
-            )}
+
           </div>
 
           {/* Caption */}
@@ -440,7 +479,7 @@ export default function StoriesPage() {
                 <div key={s.id} className="relative rounded-xl overflow-hidden group cursor-pointer h-36" onClick={() => { const g = groups.find(g => g.user.id === user.id); if (g) openStory(g, si); }}>
                   {isTxt ? (
                     <div className={"w-full h-full bg-gradient-to-br " + getTextBg(s.image) + " flex items-center justify-center p-3"}>
-                      <p className="text-white font-bold text-center text-xs leading-tight line-clamp-4">{getTextContent(s.image)}</p>
+                      <p className={"text-white text-center text-xs leading-tight line-clamp-4 " + (FONTS[getTextFont(s.image)]?.style || "") + " " + (FONTS[getTextFont(s.image)]?.weight || "font-bold")}>{getTextContent(s.image)}</p>
                     </div>
                   ) : isVid ? (
                     <video src={s.image.replace("[VID]","")} className="w-full h-full object-cover" />
