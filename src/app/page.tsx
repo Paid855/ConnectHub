@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import LanguageSelector from "@/components/LanguageSelector";
 
 function useInView(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
@@ -616,6 +617,9 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+
+          <LanguageSelector dark />
+
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-gray-500 text-sm">&copy; 2026 ConnectHub. All rights reserved.</p>
             <div className="flex gap-6">
