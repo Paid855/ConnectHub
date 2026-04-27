@@ -63,7 +63,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
-  // Join or ping
+  // Ping only — just update timestamp, never create chat message
+  if (action === "ping") {
+    if (!activeViewers.has(streamId)) activeViewers.set(streamId, new Map());
+    const sv = activeViewers.get(streamId)!;
+    if (sv.has(id)) {
+      const existing = sv.get(id)!;
+      existing.lastPing = Date.now();
+      sv.set(id, existing);
+    } else {
+      const user = await prisma.user.findUnique({ where: { id }, select: { name: true, profilePhoto: true, verified: true, tier: true } });
+      sv.set(id, { name: user?.name || "User", photo: user?.profilePhoto || null, verified: user?.verified || false, tier: user?.tier || "free", lastPing: Date.now() });
+    }
+    return NextResponse.json({ success: true });
+  }
+
+  // Join — first time only
   if (!activeViewers.has(streamId)) activeViewers.set(streamId, new Map());
   const streamViewers = activeViewers.get(streamId)!;
 

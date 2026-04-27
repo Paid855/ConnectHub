@@ -29,6 +29,7 @@ export default function LiveStreamPage() {
   const [agoraClient, setAgoraClient] = useState<any>(null);
   const [tracks, setTracks] = useState<{a:any,v:any}>({a:null,v:null});
   const [err, setErr] = useState("");
+  const [goingLive, setGoingLive] = useState(false);
   const [ended, setEnded] = useState(false);
   const [showGifts, setShowGifts] = useState(false);
   const [coins, setCoins] = useState(0);
@@ -195,7 +196,8 @@ export default function LiveStreamPage() {
   // ===== HOST: Go live =====
   const goLive = async()=>{
     if(!title.trim()){setErr("Enter a stream title");return;}
-    setErr("");
+    if(goingLive) return;
+    setErr(""); setGoingLive(true);
     try{
       // First end any existing stale streams
       await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})});
@@ -212,6 +214,7 @@ export default function LiveStreamPage() {
       const errMsg = e.message?.toLowerCase() || ""; setErr(errMsg.includes("permission") || errMsg.includes("denied") || errMsg.includes("notallowed") ? "Camera/mic access denied. Please allow access in your browser settings and try again." : "Failed to start stream: " + (e.message || "Please check camera & microphone permissions"));
       // Clean up the stream if Agora failed
       await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})}).catch(()=>{});
+      setGoingLive(false);
     }
   };
 
@@ -549,7 +552,7 @@ export default function LiveStreamPage() {
             <p className="text-xs text-amber-900 font-medium mb-1">📹 Camera and Microphone Required</p>
             <p className="text-xs text-amber-700">Allow camera and mic access when prompted.</p>
           </div>
-          <button onClick={goLive} disabled={!title.trim()} className="w-full py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full font-bold text-base disabled:opacity-50 hover:shadow-xl transition-all flex items-center justify-center gap-2"><Radio className="w-5 h-5"/> Start Streaming</button>
+          <button onClick={goLive} disabled={!title.trim()||goingLive} className="w-full py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full font-bold text-base disabled:opacity-50 hover:shadow-xl transition-all flex items-center justify-center gap-2">{goingLive?<><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/> Starting...</>:<><Radio className="w-5 h-5"/> Start Streaming</>}</button>
         </div>
       </div>
     );
