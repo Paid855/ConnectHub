@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import LanguageSelector from "@/components/LanguageSelector";
 
 function useInView(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
@@ -628,7 +627,6 @@ export default function HomePage() {
         </div>
       </footer>
 
-      <LanguageSelector />
 
 
     </div>

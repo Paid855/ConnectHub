@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import Script from "next/script";
 import ClientWrapper from "@/components/ClientWrapper";
 
 export const metadata: Metadata = {
@@ -45,7 +46,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-white text-gray-900 antialiased min-h-screen overflow-x-hidden" style={{fontFamily:"'Inter',system-ui,sans-serif"}}>
         <ClientWrapper>{children}</ClientWrapper>
-      </body>
+              <script
+          dangerouslySetInnerHTML={{__html: `
+            function googleTranslateElementInit() {
+              new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'en,fr,es,pt,de,it,ar,hi,zh-CN,ja,ko,ru,tr,nl,pl,sv,el,th,vi,id,sw,ha,yo,uk,bn,am,ur,ta,te',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false
+              }, 'google_translate_element');
+            }
+          `}}
+        />
+        <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async />
+        </body>
     </html>
   );
 }
