@@ -118,11 +118,14 @@ export default function LiveStreamPage() {
     return()=>clearInterval(t);
   },[page]);
 
-  // Detect join/leave from chat messages
+  // Detect join/leave — only show ONCE per message
+  const lastToastMsgId = useRef<string>("");
   useEffect(()=>{
     if(!msgs.length) return;
     const last = msgs[msgs.length-1];
-    if(!last?.content) return;
+    if(!last?.content || !last?.id) return;
+    if(last.id === lastToastMsgId.current) return; // Already shown
+    lastToastMsgId.current = last.id;
     if(last.content.includes("joined the stream") && !last.content.includes(me?.name)){
       const name = last.content.replace("👋 ","").replace(" joined the stream","");
       toast(name + " joined","👋");
@@ -131,7 +134,7 @@ export default function LiveStreamPage() {
       const name = last.content.replace("👋 ","").replace(" left the stream","");
       toast(name + " left","🚶");
     }
-  },[msgs.length]);
+  },[msgs]);
 
   // Send floating hearts
   const sendHearts = ()=>{
@@ -181,7 +184,7 @@ export default function LiveStreamPage() {
       }
       if(type==="audio") user.audioTrack?.play();
     });
-    c.on("user-joined",()=>toast("A viewer joined!","👋"));
+    c.on("user-joined",()=>{}); // Join handled via chat messages
     c.on("user-left",()=>{});
 
     setAgoraClient(c);
@@ -212,7 +215,7 @@ export default function LiveStreamPage() {
       setMyActiveStream(null);
       toast("You are now live!","🔴");
     }catch(e:any){
-      setErr("Failed: "+(e.message||"Allow camera & microphone access"));
+      const errMsg = e.message?.toLowerCase() || ""; setErr(errMsg.includes("permission") || errMsg.includes("denied") || errMsg.includes("notallowed") ? "Camera/mic access denied. Please allow access in your browser settings and try again." : "Failed to start stream: " + (e.message || "Please check camera & microphone permissions"));
       // Clean up the stream if Agora failed
       await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"end"})}).catch(()=>{});
     }
@@ -436,7 +439,7 @@ export default function LiveStreamPage() {
   // ===== LIST =====
   if(page==="list"){
     return(
-      <div className="min-h-screen bg-gradient-to-b from-rose-50/30 to-white pb-24 notranslate" translate="no">
+      <div className="min-h-screen bg-gradient-to-b from-rose-50/30 to-white pb-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <div className="flex items-center justify-between mb-8">
             <div>
