@@ -21,7 +21,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Invalid credentials"); setLoading(false); return; }
-      window.location.href = "/dashboard";
+      window.location.replace("/dashboard");
     } catch { setError("Network error. Please try again."); setLoading(false); }
   };
 
