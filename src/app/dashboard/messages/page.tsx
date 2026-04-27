@@ -232,8 +232,10 @@ export default function MessagesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ senderId }),
       });
+      // Refresh unread count in sidebar
+      if (typeof reloadUser === "function") reloadUser();
     } catch {}
-  }, []);
+  }, [reloadUser]);
 
   // Send typing indicator
   const sendTypingSignal = useCallback(async () => {
@@ -520,9 +522,9 @@ export default function MessagesPage() {
                         </span>
                         {isMine && (
                           msg.read ? (
-                            canSeeRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-300" /> : <Check className="w-3.5 h-3.5 text-white/50" />
+                            canSeeRead ? <CheckCheck className="w-3.5 h-3.5 text-sky-300" /> : <CheckCheck className="w-3.5 h-3.5 text-white/50" />
                           ) : (
-                            <Check className="w-3.5 h-3.5 text-white/50" />
+                            chatUser?.isOnline ? <CheckCheck className="w-3.5 h-3.5 text-white/50" /> : <Check className="w-3.5 h-3.5 text-white/50" />
                           )
                         )}
                       </div>
@@ -718,7 +720,7 @@ export default function MessagesPage() {
                     <p className={"text-xs truncate flex-1 mr-2 " + (conv.unreadCount > 0 ? (dc ? "text-white font-medium" : "text-gray-900 font-medium") : (dc ? "text-gray-500" : "text-gray-400"))}>
                       {conv.lastMessage?.senderId === user.id && (
                         <span className="inline-flex items-center mr-1">
-                          {canSeeRead && conv.lastMessage?.read ? <CheckCheck className="w-3 h-3 text-sky-400 inline" /> : <Check className="w-3 h-3 text-gray-400 inline" />}
+                          {canSeeRead && conv.lastMessage?.read ? <CheckCheck className="w-3 h-3 text-sky-400 inline" /> : conv.lastMessage?.read || conv.user?.isOnline ? <CheckCheck className="w-3 h-3 text-gray-400 inline" /> : <Check className="w-3 h-3 text-gray-400 inline" />}
                         </span>
                       )}
                       {conv.lastMessage?.content?.startsWith("[DELETED]") ? "🚫 Message deleted" : conv.lastMessage?.content?.startsWith("[IMG]") ? "📷 Photo" : conv.lastMessage?.content?.startsWith("[VOICE]") ? "🎤 Voice message" : conv.lastMessage?.content?.startsWith("[GIF]") ? "GIF 🎞️" : conv.lastMessage?.content?.substring(0, 40) || "Start chatting"}

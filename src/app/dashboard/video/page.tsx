@@ -30,6 +30,7 @@ export default function LiveStreamPage() {
   const [tracks, setTracks] = useState<{a:any,v:any}>({a:null,v:null});
   const [err, setErr] = useState("");
   const [goingLive, setGoingLive] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [ended, setEnded] = useState(false);
   const [showGifts, setShowGifts] = useState(false);
   const [coins, setCoins] = useState(0);
@@ -206,12 +207,7 @@ export default function LiveStreamPage() {
       const cr=await fetch("/api/live",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start",title,category})});
       const data=await cr.json();
       if(!cr.ok && data.upgrade) {
-        setErr(""); setGoingLive(false);
-        // Show upgrade prompt instead of generic error
-        if(typeof window!=="undefined") {
-          const go = confirm("🔒 Live streaming requires Plus or Premium plan.\n\nFree users can watch streams but need to upgrade to go live.\n\nWould you like to upgrade now?");
-          if(go) window.location.href = "/dashboard/upgrade";
-        }
+        setErr(""); setGoingLive(false); setShowUpgrade(true);
         return;
       }
       if(!data.stream){setErr("Failed to create stream");setGoingLive(false);return;}
@@ -570,6 +566,30 @@ export default function LiveStreamPage() {
           </div>
           <button onClick={goLive} disabled={!title.trim()||goingLive} className="w-full py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full font-bold text-base disabled:opacity-50 hover:shadow-xl transition-all flex items-center justify-center gap-2">{goingLive?<><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/> Starting...</>:<><Radio className="w-5 h-5"/> Start Streaming</>}</button>
         </div>
+
+        {showUpgrade && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4" onClick={() => setShowUpgrade(false)}>
+            <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="w-16 h-16 mx-auto bg-gradient-to-br from-rose-500 to-purple-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-rose-200/50">
+                <span className="text-3xl">🔴</span>
+              </div>
+              <h3 className="text-xl font-extrabold text-gray-900 mb-2">Go Live Requires Upgrade</h3>
+              <p className="text-sm text-gray-500 mb-5 leading-relaxed">Live streaming is available for Plus and Premium members. Free users can still watch all live streams!</p>
+              <div className="bg-rose-50 rounded-xl p-3 mb-5">
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="text-gray-600">🎥 Start live streams</span>
+                  <span className="text-gray-600">🎤 Co-host with friends</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-600">🎁 Receive gifts</span>
+                  <span className="text-gray-600">👑 Host badge</span>
+                </div>
+              </div>
+              <a href="/dashboard/upgrade" className="block w-full py-3.5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full font-bold text-sm shadow-lg shadow-rose-200/50 hover:shadow-xl transition-all mb-3">See Plans & Pricing</a>
+              <button onClick={() => setShowUpgrade(false)} className="text-xs font-medium text-gray-400">Maybe later</button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

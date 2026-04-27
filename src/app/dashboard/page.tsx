@@ -191,10 +191,26 @@ export default function DiscoverPage() {
       </p>
       {/* Super Like error */}
       {superLikeError && (
-        <div className={"absolute bottom-32 left-4 right-4 z-30 p-4 rounded-2xl text-center shadow-xl border backdrop-blur-sm " + (dc ? "bg-gray-800/95 border-gray-700" : "bg-white/95 border-rose-200")}>
-          <p className={"text-sm font-semibold mb-2 " + (dc ? "text-white" : "text-gray-900")}>{superLikeError}</p>
-          <a href="/dashboard/upgrade" className="inline-block px-6 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-xs font-bold hover:shadow-lg transition-all">Upgrade Now</a>
-          <button onClick={() => setSuperLikeError("")} className={"block mx-auto mt-2 text-xs " + (dc ? "text-gray-500" : "text-gray-400")}>Dismiss</button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSuperLikeError("")}>
+          <div className={(dc ? "bg-gray-900 border-gray-700" : "bg-white border-gray-100") + " rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border"} onClick={e => e.stopPropagation()}>
+            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-rose-200/50">
+              <span className="text-3xl">👑</span>
+            </div>
+            <h3 className={"text-xl font-extrabold mb-2 " + (dc ? "text-white" : "text-gray-900")}>Upgrade Your Experience</h3>
+            <p className={"text-sm mb-5 leading-relaxed " + (dc ? "text-gray-400" : "text-gray-500")}>{superLikeError}</p>
+            <div className={"rounded-xl p-3 mb-5 " + (dc ? "bg-gray-800" : "bg-rose-50")}>
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className={dc ? "text-gray-400" : "text-gray-500"}>✨ Unlimited likes</span>
+                <span className={dc ? "text-gray-400" : "text-gray-500"}>💬 Unlimited messages</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className={dc ? "text-gray-400" : "text-gray-500"}>⭐ Super Likes</span>
+                <span className={dc ? "text-gray-400" : "text-gray-500"}>🔴 Go Live</span>
+              </div>
+            </div>
+            <a href="/dashboard/upgrade" className="block w-full py-3.5 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full font-bold text-sm shadow-lg shadow-rose-200/50 hover:shadow-xl transition-all mb-3">See Plans & Pricing</a>
+            <button onClick={() => setSuperLikeError("")} className={"text-xs font-medium " + (dc ? "text-gray-500" : "text-gray-400")}>Maybe later</button>
+          </div>
         </div>
       )}
 
