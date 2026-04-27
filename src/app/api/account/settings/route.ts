@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       hideOnline: true, hideLastSeen: true, showDistance: true, allowMessages: true,
       emailNotifs: true, pushNotifs: true, notifMatches: true, notifMessages: true,
       notifLikes: true, notifGifts: true, verified: true, tier: true,
-      email: true, phone: true, createdAt: true, lastSeen: true
+      email: true, phone: true, createdAt: true, lastSeen: true, emailVerified: true, phoneVerified: true
     }
   });
 
