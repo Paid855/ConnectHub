@@ -24,26 +24,67 @@ export default function LanguageSelector({ dark }: { dark?: boolean }) {
   const [current, setCurrent] = useState("en");
   const dc = dark;
 
+  // Load Google Translate script + read saved language
   useEffect(() => {
-    setCurrent(localStorage.getItem("ch_lang") || "en");
+    const saved = localStorage.getItem("ch_lang") || "en";
+    setCurrent(saved);
+
+    // Create hidden element for Google Translate
+    if (!document.getElementById("gte")) {
+      const d = document.createElement("div");
+      d.id = "gte";
+      d.style.display = "none";
+      document.body.appendChild(d);
+    }
+
+    // Load the script
+    if (!document.getElementById("gt-script")) {
+      (window as any).googleTranslateElementInit = () => {
+        try {
+          new (window as any).google.translate.TranslateElement(
+            { pageLanguage: "en", autoDisplay: false },
+            "gte"
+          );
+        } catch {}
+      };
+      const s = document.createElement("script");
+      s.id = "gt-script";
+      s.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+      document.body.appendChild(s);
+    }
   }, []);
 
   const switchLang = (code: string) => {
     setCurrent(code);
     setShowAll(false);
     localStorage.setItem("ch_lang", code);
-    // Set googtrans cookie on all domains
+
     const host = location.hostname;
     if (code === "en") {
+      // Clear all googtrans cookies
       document.cookie = "googtrans=;path=/;expires=Thu, 01 Jan 1970 00:00:00 UTC";
-      document.cookie = "googtrans=;path=/;domain=." + host + ";expires=Thu, 01 Jan 1970 00:00:00 UTC";
       document.cookie = "googtrans=;path=/;domain=" + host + ";expires=Thu, 01 Jan 1970 00:00:00 UTC";
-    } else {
-      const val = "/en/" + code;
-      document.cookie = "googtrans=" + val + ";path=/";
-      document.cookie = "googtrans=" + val + ";path=/;domain=." + host;
-      document.cookie = "googtrans=" + val + ";path=/;domain=" + host;
+      document.cookie = "googtrans=;path=/;domain=." + host + ";expires=Thu, 01 Jan 1970 00:00:00 UTC";
+      localStorage.removeItem("ch_lang");
+      location.reload();
+      return;
     }
+
+    // Set googtrans cookie
+    const val = "/en/" + code;
+    document.cookie = "googtrans=" + val + ";path=/";
+    document.cookie = "googtrans=" + val + ";path=/;domain=" + host;
+    document.cookie = "googtrans=" + val + ";path=/;domain=." + host;
+
+    // Try to use the loaded widget's select
+    const sel = document.querySelector("#gte select.goog-te-combo") as HTMLSelectElement;
+    if (sel) {
+      sel.value = code;
+      sel.dispatchEvent(new Event("change"));
+      return;
+    }
+
+    // Fallback: reload so the cookie takes effect
     location.reload();
   };
 
@@ -79,6 +120,16 @@ export default function LanguageSelector({ dark }: { dark?: boolean }) {
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        .goog-te-banner-frame { display: none !important; }
+        body > .skiptranslate { display: none !important; }
+        body { top: 0 !important; }
+        #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+        .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
+        .VIpgJd-ZVi9od-l4eHX-hSRGPd { display: none !important; }
+        #gte { display: none !important; }
+      `}</style>
     </>
   );
 }
