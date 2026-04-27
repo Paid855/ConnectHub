@@ -219,11 +219,16 @@ export default function SignupPage() {
                   <p className="text-xs text-rose-700">3. Start swiping and find your perfect match!</p>
                 </div>
 
-                <a href="/dashboard" className="block w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-center hover:shadow-lg transition-all mb-3">
-                  Start Exploring 💕
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-left">
+                  <p className="text-sm font-bold text-blue-900 mb-1">📧 Verification Code Sent!</p>
+                  <p className="text-xs text-blue-700">Check your email for a 6-digit code to verify your account.</p>
+                </div>
+
+                <a href="/verify-email" className="block w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-center hover:shadow-lg transition-all mb-3">
+                  Verify My Account →
                 </a>
-                <a href="/dashboard/verify" className="block text-xs text-rose-500 hover:text-rose-700 font-medium underline underline-offset-4">
-                  Verify your profile now →
+                <a href="/dashboard" className="block text-xs text-gray-400 hover:text-gray-600 font-medium">
+                  Skip for now
                 </a>
               </div>
             )}

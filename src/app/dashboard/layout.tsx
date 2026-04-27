@@ -325,7 +325,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 notranslate " + (dc?"bg-gray-900":"bg-gray-50")} translate="no"><div className="p-2 sm:p-4 md:p-6 lg:p-8 max-w-6xl mx-auto pb-24 lg:pb-8">{children}</div><PushPrompt />
+        <main className={"flex-1 lg:ml-[230px] pt-14 lg:pt-0 notranslate " + (dc?"bg-gray-900":"bg-gray-50")} translate="no"><div className="p-2 sm:p-4 md:p-6 lg:p-8 max-w-6xl mx-auto pb-24 lg:pb-8">{/* Email verify banner */}
+              {user && !user.emailVerified && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📧</span>
+                    <div>
+                      <p className="text-xs font-bold text-amber-900">Verify your email</p>
+                      <p className="text-[10px] text-amber-700">Secure your account and unlock all features</p>
+                    </div>
+                  </div>
+                  <a href="/verify-email" className="px-3 py-1.5 bg-amber-500 text-white text-[10px] font-bold rounded-full hover:bg-amber-600 transition-all flex-shrink-0">Verify Now</a>
+                </div>
+              )}
+              {children}</div><PushPrompt />
         <LocationDetector /><PushNotifications />
         <IncomingCall /></main>
 

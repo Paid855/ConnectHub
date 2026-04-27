@@ -89,3 +89,9 @@ export async function sendVerifiedEmail(to: string, name: string) {
     return true;
   } catch { return false; }
 }
+
+
+// Generic send email function
+export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+  await transporter.sendMail({ from: FROM, to, subject, html });
+}
