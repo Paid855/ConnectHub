@@ -8,7 +8,7 @@ const verifyTransporter = nodemailer.createTransport({
   secure: true,
   auth: {
     user: "support@connecthub.love",
-    pass: process.env.SUPPORT_EMAIL_PASS || process.env.EMAIL_PASS || "",
+    pass: process.env.EMAIL_PASS || "",
   },
 });
 
