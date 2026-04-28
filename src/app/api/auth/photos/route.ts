@@ -25,12 +25,8 @@ export async function GET(req: NextRequest) {
 
   const photos: string[] = [];
   if (user?.profilePhoto) photos.push(user.profilePhoto);
-  if (user?.photos) {
-    try {
-      const parsed = JSON.parse(user.photos as string);
-      if (Array.isArray(parsed)) photos.push(...parsed);
-    } catch {}
-  }
+  if (Array.isArray(user?.photos)) photos.push(...user.photos);
+
   return NextResponse.json({ photos: [...new Set(photos)] });
 }
 
@@ -45,15 +41,14 @@ export async function POST(req: NextRequest) {
   const { photo, action, index } = body;
 
   const user = await prisma.user.findUnique({ where: { id }, select: { photos: true } });
-  let photos: string[] = [];
-  try { photos = JSON.parse((user?.photos as string) || "[]"); } catch { photos = []; }
+  let photos: string[] = Array.isArray(user?.photos) ? [...user!.photos] : [];
 
   if (action === "add") {
     if (!photo || typeof photo !== "string") {
       return NextResponse.json({ error: "Photo URL required" }, { status: 400 });
     }
     if (photo.startsWith("data:")) {
-      return NextResponse.json({ error: "Direct base64 uploads disabled. Use Cloudinary upload flow." }, { status: 400 });
+      return NextResponse.json({ error: "Direct base64 uploads disabled" }, { status: 400 });
     }
     if (!photo.startsWith("https://")) {
       return NextResponse.json({ error: "Invalid photo URL" }, { status: 400 });
@@ -68,6 +63,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
-  await prisma.user.update({ where: { id }, data: { photos: JSON.stringify(photos) } });
+  try {
+    await prisma.user.update({ where: { id }, data: { photos } });
+  } catch (e: any) {
+    console.error("Photos DB update failed:", e?.message || e);
+    return NextResponse.json({ error: "Database error: " + (e?.message || "unknown") }, { status: 500 });
+  }
+
   return NextResponse.json({ photos, count: photos.length });
 }
