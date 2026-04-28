@@ -4,6 +4,7 @@ import { useUser, TierBadge } from "../layout";
 import { Shield, Camera, Check, Heart, Edit3, Calendar, User, Mail, Crown, Settings, Globe, Gem, Phone, MessageCircle, Rss, Tag, X, AlertTriangle, ChevronDown, Eye, Lock, Coins, Sparkles, MapPin, Star, Zap, Image as ImageIcon, ExternalLink, Award, TrendingUp, Share2, Bookmark, Gift, Verified } from "lucide-react";
 import Link from "next/link";
 import PhotoGallery from "@/components/PhotoGallery";
+import { uploadProfilePhoto } from "@/lib/upload-photo";
 
 const COUNTRIES = ["Afghanistan","Albania","Algeria","Argentina","Australia","Bangladesh","Brazil","Canada","China","Colombia","Egypt","Ethiopia","France","Germany","Ghana","India","Indonesia","Iran","Iraq","Italy","Japan","Kenya","Malaysia","Mexico","Morocco","Nepal","Netherlands","New Zealand","Nigeria","Pakistan","Philippines","Poland","Russia","Saudi Arabia","Singapore","South Africa","South Korea","Spain","Sri Lanka","Sudan","Sweden","Switzerland","Tanzania","Thailand","Turkey","UAE","Uganda","UK","Ukraine","USA","Vietnam","Zimbabwe"];
 const ALL_INTERESTS = ["Travel","Music","Cooking","Fitness","Photography","Art","Reading","Movies","Gaming","Dancing","Yoga","Hiking","Swimming","Football","Basketball","Fashion","Coffee","Wine","Dogs","Cats","Gardening","Meditation","Writing","Singing","Comedy","Cycling","Running","Beach","Mountains","Camping","Foodie","Netflix","Anime","Tech","Startups","Volunteering"];
@@ -64,17 +65,31 @@ export default function ProfilePage() {
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    if (file.size>5*1024*1024) { alert("Max 5MB"); return; }
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert("Photo too large (max 10MB)"); return; }
     setUploading(true);
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      try {
-        const res = await fetch("/api/auth/profile", { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ profilePhoto:ev.target?.result }) });
-        if (res.ok) { reload(); setSuccess("Photo updated!"); setTimeout(()=>setSuccess(""),3000); }
-      } catch {} finally { setUploading(false); }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const cloudUrl = await uploadProfilePhoto(file);
+      const res = await fetch("/api/auth/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profilePhoto: cloudUrl })
+      });
+      if (res.ok) {
+        setSuccess("Photo uploaded!");
+        reload();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to save photo. Please try again.");
+      }
+    } catch (err: any) {
+      console.error("Photo upload error:", err);
+      alert(err?.message || "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
