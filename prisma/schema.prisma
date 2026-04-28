@@ -37,6 +37,12 @@ model User {
   idType             String?
   photos             String[]  @default([])
   coins              Int      @default(0)
+  emailVerified      Boolean  @default(false)
+  emailOtp           String?
+  emailOtpExpiry     DateTime?
+  phoneVerified      Boolean  @default(false)
+  phoneOtp           String?
+  phoneOtpExpiry     DateTime?
   boostedUntil       DateTime?
   lastLoginReward    DateTime?
   referralCode       String?
@@ -259,4 +265,3 @@ model LiveViewer {
 
   @@unique([streamId, userId])
 }
-// force rebuild
