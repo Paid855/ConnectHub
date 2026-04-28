@@ -32,6 +32,9 @@ model User {
   lastActive         DateTime?
   isPrivate          Boolean  @default(false)
   banned             Boolean   @default(false)
+  role               String    @default("user")
+  adminLastLogin     DateTime?
+  adminLastLoginIp   String?
   city               String?
   detectedCity       String?
   detectedCountry    String?
@@ -268,4 +271,34 @@ model LiveViewer {
   createdAt DateTime @default(now())
 
   @@unique([streamId, userId])
+}
+
+
+model AdminLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  adminEmail String
+  action     String
+  targetId   String?
+  targetType String?
+  details    String?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+model AdminLoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ip        String
+  success   Boolean
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
 }

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin, adminAction } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
-function isAdmin(req: NextRequest) { try { return JSON.parse(req.cookies.get("admin_session")?.value || "{}").isAdmin === true; } catch { return false; } }
 export async function GET(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
+  const ctx = await requireAdmin(req);
+  if (ctx instanceof NextResponse) return ctx;
   const reports = await prisma.report.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
   return NextResponse.json({ reports });
 }

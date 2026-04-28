@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin, adminAction } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 
-function isAdmin(req: NextRequest) {
-  try { return JSON.parse(req.cookies.get("admin_session")?.value || "{}").isAdmin === true; }
-  catch { return false; }
-}
 
 export async function GET(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
+  const ctx = await requireAdmin(req);
+  if (ctx instanceof NextResponse) return ctx;
   try {
     let users: any[] = [];
     try {
@@ -27,7 +25,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
+  const ctx = await requireAdmin(req);
+  if (ctx instanceof NextResponse) return ctx;
   try {
     const { userId, action, tier, field, value, coins, coinsAction, editProfile } = await req.json();
     if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });

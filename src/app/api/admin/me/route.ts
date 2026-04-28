@@ -1,31 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import bcrypt from "bcryptjs";
+import { verifyAdminSession } from "@/lib/admin-session";
 
 export async function GET(req: NextRequest) {
-  const s = req.cookies.get("admin_session");
-  if (!s) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
-  try { const d = JSON.parse(s.value); if (!d.isAdmin) throw new Error(); const u = await prisma.user.findUnique({ where: { id: d.id }, select: { id:true, name:true, email:true } }); return NextResponse.json({ user: u }); } catch { return NextResponse.json({ error: "Invalid" }, { status: 401 }); }
-}
+  const token = req.cookies.get("admin_session")?.value;
+  const session = verifyAdminSession(token);
+  if (!session) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
 
-export async function PUT(req: NextRequest) {
-  const s = req.cookies.get("admin_session");
-  if (!s) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
-  try {
-    const d = JSON.parse(s.value);
-    const { currentPassword, newPassword, userId, action, newTier } = await req.json();
-    if (currentPassword && newPassword) {
-      const admin = await prisma.user.findUnique({ where: { id: d.id } });
-      if (!admin) return NextResponse.json({ error: "Not found" }, { status: 404 });
-      const valid = await bcrypt.compare(currentPassword, admin.password);
-      if (!valid) return NextResponse.json({ error: "Current password is wrong" }, { status: 400 });
-      await prisma.user.update({ where: { id: d.id }, data: { password: await bcrypt.hash(newPassword, 12) } });
-      return NextResponse.json({ success: true, message: "Password changed" });
-    }
-    if (userId && action === "changeTier" && newTier) {
-      await prisma.user.update({ where: { id: userId }, data: { tier: newTier } });
-      return NextResponse.json({ success: true });
-    }
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  } catch { return NextResponse.json({ error: "Failed" }, { status: 500 }); }
+  // Re-verify role from DB on every request
+  const u = await prisma.user.findUnique({
+    where: { id: session.id },
+    select: { id: true, name: true, email: true, role: true, banned: true, adminLastLogin: true }
+  });
+  if (!u || u.role !== "admin" || u.banned) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 401 });
+  }
+  return NextResponse.json({ user: u });
 }

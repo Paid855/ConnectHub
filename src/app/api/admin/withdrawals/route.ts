@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin, adminAction } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 
-function isAdmin(req: NextRequest) {
-  try { return JSON.parse(req.cookies.get("admin_session")?.value || "{}").isAdmin === true; }
-  catch { return false; }
-}
 
 export async function GET(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
+  const ctx = await requireAdmin(req);
+  if (ctx instanceof NextResponse) return ctx;
 
   const withdrawals = await prisma.withdrawal.findMany({
     orderBy: { createdAt: "desc" },
@@ -37,7 +35,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
+  const ctx = await requireAdmin(req);
+  if (ctx instanceof NextResponse) return ctx;
 
   const { withdrawalId, action, adminNote } = await req.json();
   if (!withdrawalId || !action) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
