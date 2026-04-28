@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Camera, Plus, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { uploadProfilePhoto } from "@/lib/upload-photo";
 
 export default function PhotoGallery({ userId, editable = false, dark = false }: { userId: string; editable?: boolean; dark?: boolean }) {
   const dc = dark;
@@ -19,30 +20,30 @@ export default function PhotoGallery({ userId, editable = false, dark = false }:
   useEffect(() => { load(); }, [userId]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    if (file.size > 5*1024*1024) { alert("Max 5MB"); return; }
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert("Photo too large (max 10MB)"); return; }
     setUploading(true);
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      try {
-        // Always compress to stay within Vercel 4.5MB body limit
-        let photoData = ev.target?.result as string;
-        const img = new Image();
-        await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = () => reject(); img.src = photoData; });
-        const canvas = document.createElement("canvas");
-        const maxSize = 800;
-        let w = img.width, h = img.height;
-        if (w > maxSize || h > maxSize) { if (w > h) { h = (h / w) * maxSize; w = maxSize; } else { w = (w / h) * maxSize; h = maxSize; } }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext("2d")?.drawImage(img, 0, 0, w, h);
-        photoData = canvas.toDataURL("image/jpeg", 0.7);
-        const res = await fetch("/api/auth/photos", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ photo:photoData, action:"add" }) });
-        if (!res.ok) { const data = await res.json().catch(() => ({})); alert(data.error || "Upload failed. Try again."); } else { await load(); }
-      } catch (e: any) { alert("Upload error: " + (e.message || "Try again")); }
+    try {
+      const cloudUrl = await uploadProfilePhoto(file);
+      const res = await fetch("/api/auth/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photo: cloudUrl, action: "add" })
+      });
+      if (res.ok) {
+        await load();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to save photo. Please try again.");
+      }
+    } catch (err: any) {
+      console.error("Gallery upload error:", err);
+      alert(err?.message || "Upload failed. Please try again.");
+    } finally {
       setUploading(false);
-    };
-    reader.readAsDataURL(file);
-    if (fileRef.current) fileRef.current.value = "";
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const deletePhoto = async (index: number) => {

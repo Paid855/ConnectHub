@@ -1,61 +1,73 @@
-import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { uploadImage } from "@/lib/cloudinary";
 import { getSessionUser } from "@/lib/session";
 
-export async function GET(req: NextRequest) {
+function getId(req: NextRequest): string | null {
   const sessionCookie = req.cookies.get("session");
-  if (!sessionCookie) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+  if (!sessionCookie) return null;
+  const session = getSessionUser(sessionCookie.value);
+  if (session) return session.id;
+  try { return JSON.parse(sessionCookie.value).id; } catch { return null; }
+}
+
+export async function GET(req: NextRequest) {
+  const id = getId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+
   const url = new URL(req.url);
   const userId = url.searchParams.get("userId");
-
-  let id: string;
-  const session = getSessionUser(sessionCookie.value);
-  if (session) id = session.id; else try { id = JSON.parse(sessionCookie.value).id; } catch { return NextResponse.json({ error: "Invalid session" }, { status: 401 }); }
-
   const target = userId || id;
-  const user = await prisma.user.findUnique({ where: { id: target }, select: { photos: true, profilePhoto: true } });
+
+  const user = await prisma.user.findUnique({
+    where: { id: target },
+    select: { photos: true, profilePhoto: true }
+  });
+
   const photos: string[] = [];
   if (user?.profilePhoto) photos.push(user.profilePhoto);
-  if (user?.photos) { try { const parsed = JSON.parse(user.photos as string); if (Array.isArray(parsed)) photos.push(...parsed); } catch {} }
+  if (user?.photos) {
+    try {
+      const parsed = JSON.parse(user.photos as string);
+      if (Array.isArray(parsed)) photos.push(...parsed);
+    } catch {}
+  }
   return NextResponse.json({ photos: [...new Set(photos)] });
 }
 
 export async function POST(req: NextRequest) {
-  const sessionCookie = req.cookies.get("session");
-  if (!sessionCookie) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+  const id = getId(req);
+  if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
-  let id: string;
-  const session = getSessionUser(sessionCookie.value);
-  if (session) id = session.id; else try { id = JSON.parse(sessionCookie.value).id; } catch { return NextResponse.json({ error: "Invalid session" }, { status: 401 }); }
+  let body: any;
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
 
-  const { photo, action, index } = await req.json();
+  const { photo, action, index } = body;
+
   const user = await prisma.user.findUnique({ where: { id }, select: { photos: true } });
   let photos: string[] = [];
   try { photos = JSON.parse((user?.photos as string) || "[]"); } catch { photos = []; }
 
-  if (action === "add" && photo) {
-    // Upload to Cloudinary
-    try {
-      if (photo.startsWith("data:")) {
-        const cloudUrl = await uploadImage(photo, "gallery");
-        if (!cloudUrl) return NextResponse.json({ error: "Upload failed. Try a smaller image." }, { status: 500 });
-        photos.push(cloudUrl);
-      } else {
-        photos.push(photo);
-      }
-    } catch (e: any) {
-      console.error("Photo upload error:", e);
-      return NextResponse.json({ error: "Upload failed: " + (e.message || "Try again") }, { status: 500 });
+  if (action === "add") {
+    if (!photo || typeof photo !== "string") {
+      return NextResponse.json({ error: "Photo URL required" }, { status: 400 });
     }
+    if (photo.startsWith("data:")) {
+      return NextResponse.json({ error: "Direct base64 uploads disabled. Use Cloudinary upload flow." }, { status: 400 });
+    }
+    if (!photo.startsWith("https://")) {
+      return NextResponse.json({ error: "Invalid photo URL" }, { status: 400 });
+    }
+    if (photos.length >= 20) {
+      return NextResponse.json({ error: "Maximum 20 photos" }, { status: 400 });
+    }
+    photos.push(photo);
   } else if (action === "delete" && typeof index === "number") {
-    photos.splice(index, 1);
+    if (index >= 0 && index < photos.length) photos.splice(index, 1);
+  } else {
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
   await prisma.user.update({ where: { id }, data: { photos: JSON.stringify(photos) } });
   return NextResponse.json({ photos, count: photos.length });
 }
-
-
-export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
