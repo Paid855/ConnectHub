@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
         tier: { not: "banned" },
         email: { not: "admin@connecthub.com" }
       },
-      select: { id:true, name:true, age:true, gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, interests:true, lastSeen:true },
+      select: { id:true, name:true, age:true, gender:true, lookingFor:true, bio:true, country:true, city:true, detectedCity:true, detectedCountry:true, profilePhoto:true, tier:true, verified:true, interests:true, lastSeen:true },
       orderBy: { lastSeen: "desc" },
       take: 50
     });

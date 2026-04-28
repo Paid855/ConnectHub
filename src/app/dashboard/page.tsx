@@ -142,7 +142,7 @@ export default function DiscoverPage() {
               <div>
                 <h2 className="text-white text-3xl font-extrabold mb-1">{profile.name}{profile.age ? <span className="font-normal text-2xl">, {profile.age}</span> : ""}</h2>
                 <div className="flex items-center gap-3 text-white/80 text-sm">
-                  {profile.country && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {profile.country}</span>}
+                  {(profile.detectedCity || profile.detectedCountry || profile.country) && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {profile.detectedCity ? profile.detectedCity + ", " + (profile.detectedCountry || profile.country) : profile.detectedCountry || profile.country}</span>}
                   {profile.gender && <span>{profile.gender}</span>}
                 </div>
               </div>

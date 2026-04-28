@@ -33,6 +33,10 @@ model User {
   isPrivate          Boolean  @default(false)
   banned             Boolean   @default(false)
   city               String?
+  detectedCity       String?
+  detectedCountry    String?
+  latitude           Float?
+  longitude          Float?
   idDocumentBack     String?
   idType             String?
   photos             String[]  @default([])

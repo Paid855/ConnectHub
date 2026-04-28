@@ -175,17 +175,33 @@ export default function ProfilePage() {
             {user.bio && <p className={"text-sm mb-4 max-w-md leading-relaxed " + (dc?"text-gray-300":"text-gray-600")}>{user.bio}</p>}
 
             {/* Location & info pills */}
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              {user.country && (
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              {user.detectedCity && user.detectedCountry ? (
+                <span className={"inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold " + (dc?"bg-emerald-500/20 text-emerald-400 border border-emerald-500/30":"bg-emerald-50 text-emerald-700 border border-emerald-200")}>
+                  <MapPin className="w-3 h-3" /> {user.detectedCity}, {user.detectedCountry}
+                </span>
+              ) : user.detectedCountry ? (
+                <span className={"inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold " + (dc?"bg-emerald-500/20 text-emerald-400 border border-emerald-500/30":"bg-emerald-50 text-emerald-700 border border-emerald-200")}>
+                  <MapPin className="w-3 h-3" /> {user.detectedCountry}
+                </span>
+              ) : user.country ? (
                 <span className={"inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold " + (dc?"bg-gray-700 text-gray-300":"bg-gray-100 text-gray-600")}>
                   <MapPin className="w-3 h-3" /> {user.country}
                 </span>
-              )}
+              ) : null}
               {user.gender && (
                 <span className={"inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold " + (dc?"bg-gray-700 text-gray-300":"bg-gray-100 text-gray-600")}>
                   <User className="w-3 h-3" /> {user.gender}
                 </span>
               )}
+            </div>
+            {user.detectedCountry && user.country && user.detectedCountry.toLowerCase() !== user.country.toLowerCase() && (
+              <div className={"flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium mb-2 " + (dc?"bg-amber-500/10 border border-amber-500/30 text-amber-400":"bg-amber-50 border border-amber-200 text-amber-700")}>
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Location mismatch — signed up from {user.country}, detected in {user.detectedCountry}</span>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
               {user.lookingFor && (
                 <span className={"inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold " + (dc?"bg-rose-500/20 text-rose-400":"bg-rose-50 text-rose-600 border border-rose-100")}>
                   <Heart className="w-3 h-3" /> Looking for {user.lookingFor}

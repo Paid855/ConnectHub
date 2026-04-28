@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
           gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true,
           tier:true, verified:true, verificationStatus:true, interests:true,
           coins:true, createdAt:true, lastSeen:true, referralCode:true, boostedUntil:true,
-          emailVerified:true, phoneVerified:true
+          emailVerified:true, phoneVerified:true,
+          detectedCity:true, detectedCountry:true, city:true, latitude:true, longitude:true
         }
       });
     } catch {
@@ -29,7 +30,8 @@ export async function GET(req: NextRequest) {
           id:true, name:true, email:true, username:true, phone:true, age:true,
           gender:true, lookingFor:true, bio:true, country:true, profilePhoto:true,
           tier:true, verified:true, verificationStatus:true, interests:true,
-          coins:true, createdAt:true, lastSeen:true, referralCode:true, boostedUntil:true
+          coins:true, createdAt:true, lastSeen:true, referralCode:true, boostedUntil:true,
+          city:true
         }
       });
     }
