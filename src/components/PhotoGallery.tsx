@@ -24,8 +24,12 @@ export default function PhotoGallery({ userId, editable = false, dark = false }:
     setUploading(true);
     const reader = new FileReader();
     reader.onload = async (ev) => {
-      await fetch("/api/auth/photos", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ photo:ev.target?.result, action:"add" }) });
-      load();
+      try {
+        const res = await fetch("/api/auth/photos", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ photo:ev.target?.result, action:"add" }) });
+        const data = await res.json();
+        if (!res.ok) { alert(data.error || "Upload failed"); }
+        await load();
+      } catch { alert("Upload failed. Check your connection."); }
       setUploading(false);
     };
     reader.readAsDataURL(file);
@@ -45,8 +49,8 @@ export default function PhotoGallery({ userId, editable = false, dark = false }:
     <>
       <div className={"rounded-2xl border p-5 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-sm")}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className={"font-bold text-sm " + (dc?"text-white":"text-gray-900")}>Photos ({photos.length}/6)</h3>
-          {editable && photos.length < 6 && (
+          <h3 className={"font-bold text-sm " + (dc?"text-white":"text-gray-900")}>Photos ({photos.length})</h3>
+          {editable && (
             <button onClick={() => fileRef.current?.click()} disabled={uploading} className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg text-xs font-semibold hover:shadow-lg disabled:opacity-60">
               {uploading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus className="w-3 h-3" />}
               {uploading ? "Uploading..." : "Add Photo"}
@@ -74,7 +78,7 @@ export default function PhotoGallery({ userId, editable = false, dark = false }:
                 )}
               </div>
             ))}
-            {editable && photos.length < 6 && (
+            {editable && (
               <button onClick={() => fileRef.current?.click()} className={"rounded-xl border-2 border-dashed flex items-center justify-center aspect-square " + (dc?"border-gray-600 hover:border-rose-400":"border-gray-200 hover:border-rose-300")}>
                 <Plus className={"w-6 h-6 " + (dc?"text-gray-500":"text-gray-400")} />
               </button>

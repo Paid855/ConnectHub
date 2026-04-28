@@ -36,13 +36,18 @@ export async function POST(req: NextRequest) {
   try { photos = JSON.parse((user?.photos as string) || "[]"); } catch { photos = []; }
 
   if (action === "add" && photo) {
-    // No photo limit — unlimited uploads for all users
     // Upload to Cloudinary
-    if (photo.startsWith("data:")) {
-      const cloudUrl = await uploadImage(photo, "gallery");
-      photos.push(cloudUrl || photo);
-    } else {
-      photos.push(photo);
+    try {
+      if (photo.startsWith("data:")) {
+        const cloudUrl = await uploadImage(photo, "gallery");
+        if (!cloudUrl) return NextResponse.json({ error: "Upload failed. Try a smaller image." }, { status: 500 });
+        photos.push(cloudUrl);
+      } else {
+        photos.push(photo);
+      }
+    } catch (e: any) {
+      console.error("Photo upload error:", e);
+      return NextResponse.json({ error: "Upload failed: " + (e.message || "Try again") }, { status: 500 });
     }
   } else if (action === "delete" && typeof index === "number") {
     photos.splice(index, 1);
