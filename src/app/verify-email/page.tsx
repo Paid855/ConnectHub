@@ -23,9 +23,9 @@ export default function VerifyPage() {
       if (!d.user) { window.location.href = "/login"; return; }
       setUserEmail(d.user.email || "");
       setUserPhone(d.user.phone || "");
-      if (d.user.emailVerified && d.user.phoneVerified) { setStep("done"); }
-      else if (d.user.emailVerified && !d.user.phone) { setStep("done"); }
-      else if (d.user.emailVerified) { setStep("phone"); sendCode("phone"); }
+      if (d.user.emailVerified) { setStep("done"); }
+      
+      
       else { sendCode("email"); }
     }).catch(() => { window.location.href = "/login"; });
   }, []);
@@ -75,8 +75,7 @@ export default function VerifyPage() {
         setSuccess(type === "email" ? "Email verified!" : "Phone verified!");
         setTimeout(() => {
           if (type === "email") {
-            if (userPhone) { setStep("phone"); setSuccess(""); sendCode("phone"); }
-            else { setStep("done"); }
+            setStep("done");
           } else {
             setStep("done");
           }
@@ -204,10 +203,10 @@ export default function VerifyPage() {
         {/* Progress */}
         <div className="flex items-center gap-2 justify-center">
           <div className={"w-8 h-1.5 rounded-full " + (isEmail ? "bg-rose-500" : "bg-emerald-500")} />
-          <div className={"w-8 h-1.5 rounded-full " + (isEmail ? "bg-gray-200" : "bg-emerald-500")} />
+          
         </div>
         <p className="text-center text-[10px] text-gray-400 mt-2">
-          Step {isEmail ? "1" : "2"} of {userPhone ? "2" : "1"} — {isEmail ? "Email Verification" : "Phone Verification"}
+          Email Verification
         </p>
 
         {/* Skip for now */}
