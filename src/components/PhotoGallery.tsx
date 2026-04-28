@@ -25,7 +25,20 @@ export default function PhotoGallery({ userId, editable = false, dark = false }:
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
-        const res = await fetch("/api/auth/photos", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ photo:ev.target?.result, action:"add" }) });
+        // Compress image before upload to stay within Vercel limits
+        let photoData = ev.target?.result as string;
+        if (photoData && file.size > 1024 * 1024) {
+          const img = new Image();
+          await new Promise<void>((resolve) => { img.onload = () => resolve(); img.src = photoData; });
+          const canvas = document.createElement("canvas");
+          const maxSize = 1200;
+          let w = img.width, h = img.height;
+          if (w > maxSize || h > maxSize) { if (w > h) { h = (h / w) * maxSize; w = maxSize; } else { w = (w / h) * maxSize; h = maxSize; } }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d")?.drawImage(img, 0, 0, w, h);
+          photoData = canvas.toDataURL("image/jpeg", 0.8);
+        }
+        const res = await fetch("/api/auth/photos", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ photo:photoData, action:"add" }) });
         const data = await res.json();
         if (!res.ok) { alert(data.error || "Upload failed"); }
         await load();
