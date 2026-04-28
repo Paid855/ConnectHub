@@ -9,7 +9,7 @@ export default function LocationDetector() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const checked = sessionStorage.getItem("location_checked");
+    const checked = sessionStorage.getItem("location_v2");
     if (checked) return;
 
     // Detect location via IP geolocation API
@@ -35,7 +35,7 @@ export default function LocationDetector() {
             body: JSON.stringify({ latitude: data.latitude, longitude: data.longitude, country, city, isVPN })
           });
 
-          sessionStorage.setItem("location_checked", "true");
+          sessionStorage.setItem("location_v2", "true");
           sessionStorage.setItem("user_country", country);
         }
       } catch {}
