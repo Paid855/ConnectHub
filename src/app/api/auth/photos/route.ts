@@ -56,3 +56,6 @@ export async function POST(req: NextRequest) {
   await prisma.user.update({ where: { id }, data: { photos: JSON.stringify(photos) } });
   return NextResponse.json({ photos, count: photos.length });
 }
+
+
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
