@@ -2,7 +2,7 @@
 import { Download, Eye, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUser, TierBadge } from "../layout";
-import { Send, ArrowLeft, Play, Pause, Square, X as XIcon, Phone, Video, MoreVertical, Smile, Image as ImageIcon, Mic, Trash2, Shield, Search, Check, CheckCheck, Lock, Download, Eye } from "lucide-react";
+import { Send, ArrowLeft, Play, Pause, Square, X as XIcon, Phone, Video, MoreVertical, Smile, Image as ImageIcon, Mic, Trash2, Shield, Search, Check, CheckCheck, Lock } from "lucide-react";
 import Link from "next/link";
 
 const EMOJIS = ["😀","😂","🥰","😍","😘","🤗","😊","❤️","🔥","💕","✨","💯","👋","🎉","💐","🌹"];
@@ -448,7 +448,7 @@ export default function MessagesPage() {
     <div className="fixed inset-0 z-[300] bg-black/95 flex flex-col items-center justify-center" onClick={() => setMediaViewer(null)}>
       <div className="absolute top-4 right-4 flex gap-3 z-10">
         <a href={mediaViewer.src} download={"connecthub_" + Date.now() + (mediaViewer.type === "image" ? ".jpg" : ".mp4")} onClick={(e) => e.stopPropagation()} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all border border-white/10">
-          <Download className="w-4 h-4" /> Download
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> Download
         </a>
         <button onClick={() => setMediaViewer(null)} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white p-2.5 rounded-xl transition-all border border-white/10">
           <X className="w-5 h-5" />
@@ -536,7 +536,7 @@ export default function MessagesPage() {
                       <div className="relative group cursor-pointer" onClick={(e) => { e.stopPropagation(); setMediaViewer({ src: imgSrc, type: "image" }); }}>
                         <img src={imgSrc} alt="" className="max-w-full rounded-xl max-h-60 object-cover hover:brightness-90 transition-all" />
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="bg-black/50 backdrop-blur-sm rounded-full p-2"><Eye className="w-5 h-5 text-white" /></div>
+                          <div className="bg-black/50 backdrop-blur-sm rounded-full p-2"><svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg></div>
                         </div>
                       </div>
                     )}
