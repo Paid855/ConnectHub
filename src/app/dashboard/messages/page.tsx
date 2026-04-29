@@ -1,5 +1,5 @@
 "use client";
-import { Download, Eye, useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUser, TierBadge } from "../layout";
 import { Send, ArrowLeft, Play, Pause, Square, X as XIcon, Phone, Video, MoreVertical, Smile, Image as ImageIcon, Mic, Trash2, Shield, Search, Check, CheckCheck, Lock } from "lucide-react";

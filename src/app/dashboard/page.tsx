@@ -22,6 +22,7 @@ export default function DiscoverPage() {
 
   const [matchPopup, setMatchPopup] = useState<any>(null);
   const [superLikeError, setSuperLikeError] = useState("");
+  const [superLikeAnim, setSuperLikeAnim] = useState(false);
 
   const handleAction = async (type: string) => {
     if (!profiles[current]) return;
@@ -86,8 +87,14 @@ export default function DiscoverPage() {
             {matchPopup.profilePhoto ? <img src={matchPopup.profilePhoto} className="w-full h-full rounded-full object-cover" /> : matchPopup.name?.[0] || "?"}
           </div>
         </div>
-        <p className="text-4xl mb-3 animate-heartbeat">💕</p>
-        <h2 className={"text-2xl font-extrabold mb-2 " + (dc ? "text-white" : "text-gray-900")}>It&apos;s a Match!</h2>
+        <div className="relative">
+          <p className="text-5xl mb-2 animate-bounce">💕</p>
+          <span className="absolute -top-2 -left-4 text-2xl animate-ping" style={{animationDuration:"1.5s"}}>💖</span>
+          <span className="absolute -top-1 -right-3 text-xl animate-ping" style={{animationDuration:"2s"}}>💗</span>
+          <span className="absolute top-4 -right-6 text-lg animate-ping" style={{animationDuration:"2.5s"}}>✨</span>
+          <span className="absolute top-3 -left-5 text-lg animate-ping" style={{animationDuration:"1.8s"}}>💘</span>
+        </div>
+        <h2 className={"text-3xl font-extrabold mb-2 bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent"}>It&apos;s a Match!</h2>
         <p className={"text-sm mb-6 " + (dc ? "text-gray-400" : "text-gray-500")}>You and {matchPopup.name} liked each other</p>
         <div className="flex gap-3">
           <Link href={"/dashboard/messages?chat=" + matchPopup.id} className="flex-1 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm hover:shadow-lg transition-all">Send Message</Link>

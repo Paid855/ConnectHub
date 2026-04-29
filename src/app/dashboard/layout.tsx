@@ -336,6 +336,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <a href="/verify-email" className="px-3 py-1.5 bg-amber-500 text-white text-[10px] font-bold rounded-full hover:bg-amber-600 transition-all flex-shrink-0">Verify Now</a>
                 </div>
               )}
+              {user && (!user.bio || !user.profilePhoto || !user.interests?.length) && (
+                <div className={"rounded-2xl border p-3 mb-4 flex items-center justify-between " + (dc?"bg-rose-500/5 border-rose-500/20":"bg-gradient-to-r from-rose-50 to-pink-50 border-rose-100")}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">✨</span>
+                    <div>
+                      <p className={"text-xs font-bold " + (dc?"text-rose-400":"text-rose-700")}>Complete your profile</p>
+                      <p className={"text-[10px] " + (dc?"text-rose-500/70":"text-rose-500")}>
+                        {[!user.profilePhoto && "Add photo", !user.bio && "Write bio", !user.interests?.length && "Add interests"].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                  </div>
+                  <a href="/dashboard/profile" className="px-3 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-[10px] font-bold rounded-full hover:shadow-lg transition-all flex-shrink-0">Complete</a>
+                </div>
+              )}
               {children}</div><PushPrompt />
         <LocationDetector /><PushNotifications />
         <IncomingCall /></main>
