@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { Download, Eye, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUser, TierBadge } from "../layout";
 import { Send, ArrowLeft, Play, Pause, Square, X as XIcon, Phone, Video, MoreVertical, Smile, Image as ImageIcon, Mic, Trash2, Shield, Search, Check, CheckCheck, Lock } from "lucide-react";
@@ -157,6 +157,7 @@ export default function MessagesPage() {
   const [recording, setRecording] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [showConvMenu, setShowConvMenu] = useState<string|null>(null);
+  const [mediaViewer, setMediaViewer] = useState<{src: string; type: "image"|"video"}|null>(null);
   const [reactions, setReactions] = useState<Record<string, {emoji:string;count:number;mine:boolean}[]>>({});
   const [showReactions, setShowReactions] = useState<string|null>(null);
   const [showGif, setShowGif] = useState(false);
@@ -442,10 +443,33 @@ export default function MessagesPage() {
     c.user?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Media viewer modal
+  const MediaViewerModal = () => mediaViewer ? (
+    <div className="fixed inset-0 z-[300] bg-black/95 flex flex-col items-center justify-center" onClick={() => setMediaViewer(null)}>
+      <div className="absolute top-4 right-4 flex gap-3 z-10">
+        <a href={mediaViewer.src} download={"connecthub_" + Date.now() + (mediaViewer.type === "image" ? ".jpg" : ".mp4")} onClick={(e) => e.stopPropagation()} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all border border-white/10">
+          <Download className="w-4 h-4" /> Download
+        </a>
+        <button onClick={() => setMediaViewer(null)} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white p-2.5 rounded-xl transition-all border border-white/10">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      <div className="max-w-[95vw] max-h-[85vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+        {mediaViewer.type === "image" ? (
+          <img src={mediaViewer.src} alt="" className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl" />
+        ) : (
+          <video src={mediaViewer.src} controls autoPlay className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl" />
+        )}
+      </div>
+      <p className="text-white/40 text-xs mt-4">Tap outside to close</p>
+    </div>
+  ) : null;
+
   // Chat view
   if (chatWith) {
     return (
       <div className={"flex flex-col h-[calc(100vh-5rem)] " + (dc ? "bg-gray-900" : "bg-white")}>
+        <MediaViewerModal />
         {/* Chat header */}
         <div className={"flex items-center gap-3 px-4 py-3 border-b " + (dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white")}>
           <button onClick={() => { setChatWith(null); setChatUser(null); setMessages([]); setIsTyping(false); loadConversations(); }} className={"p-2 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}>
@@ -508,9 +532,16 @@ export default function MessagesPage() {
                   <div className={"relative max-w-[75%] rounded-2xl px-3.5 py-2 " + (isDeleted ? (dc ? "bg-gray-800 border border-gray-700" : "bg-gray-100 border border-gray-200") : isMine ? "bg-gradient-to-br from-rose-500 to-pink-500 text-white" : (dc ? "bg-gray-800 text-white" : "bg-white text-gray-800 shadow-sm border border-gray-100"))}>
                     {isDeleted && <p className={"text-xs italic " + (dc ? "text-gray-500" : "text-gray-400")}>🚫 This message was deleted</p>}
                     {content && <p className="text-[14px] leading-relaxed whitespace-pre-wrap break-words">{content}</p>}
-                    {imgSrc && <img src={imgSrc} alt="" className="max-w-full rounded-xl max-h-60 object-cover" />}
+                    {imgSrc && (
+                      <div className="relative group cursor-pointer" onClick={(e) => { e.stopPropagation(); setMediaViewer({ src: imgSrc, type: "image" }); }}>
+                        <img src={imgSrc} alt="" className="max-w-full rounded-xl max-h-60 object-cover hover:brightness-90 transition-all" />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="bg-black/50 backdrop-blur-sm rounded-full p-2"><Eye className="w-5 h-5 text-white" /></div>
+                        </div>
+                      </div>
+                    )}
                     {msg.content?.startsWith("[GIF]") && (
-                      <img src={msg.content.replace("[GIF]", "")} alt="GIF" className="max-w-[220px] rounded-xl" loading="lazy" />
+                      <img src={msg.content.replace("[GIF]", "")} alt="GIF" className="max-w-[220px] rounded-xl cursor-pointer hover:brightness-90 transition-all" loading="lazy" onClick={(e) => { e.stopPropagation(); setMediaViewer({ src: msg.content.replace("[GIF]", ""), type: "image" }); }} />
                     )}
                     {voiceSrc && (
                       <VoicePlayer src={voiceSrc} msgId={msg.id} isMine={isMine} dark={dc} />
