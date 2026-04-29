@@ -108,15 +108,14 @@ export default function DiscoverPage() {
 
   return (
     <div className="max-w-lg mx-auto">
-      {/* Top bar */}
-      <div className="flex items-center justify-between mb-4">
+      {/* Greeting */}
+      <div className="mb-5">
         <h1 className={"text-xl font-extrabold " + (dc?"text-white":"text-gray-900")}>
-          <span className="bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">Discover</span>
+          {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, <span className="bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">{user?.name?.split(" ")[0] || "there"}</span> 👋
         </h1>
-        <div className={"flex items-center gap-2 text-xs " + (dc?"text-gray-500":"text-gray-400")}>
-          <Sparkles className="w-4 h-4 text-rose-500" />
-          {profiles.length - current} left today
-        </div>
+        <p className={"text-sm mt-1 " + (dc?"text-gray-500":"text-gray-400")}>
+          {profiles.length - current > 0 ? <><Sparkles className="w-3.5 h-3.5 text-rose-500 inline mr-1" />{profiles.length - current} people waiting to meet you</> : "Check back soon for new matches!"}
+        </p>
       </div>
 
       {/* Main card */}
