@@ -160,7 +160,7 @@ export default function LiveStreamPage() {
   const connectAgoraAsHost = async(s:any)=>{
     const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
     AgoraRTC.setLogLevel(4);
-    const c=AgoraRTC.createClient({mode:"live",codec:"vp8"});
+    const c=AgoraRTC.createClient({mode:"live",codec:"vp9"});
     await c.setClientRole("host");
 
     const ch=`stream_${s.id}`;
@@ -168,7 +168,18 @@ export default function LiveStreamPage() {
     if(tk.error) throw new Error(tk.error);
     await c.join(tk.appId,ch,tk.token,tk.uid);
 
-    const[at,vt]=await AgoraRTC.createMicrophoneAndCameraTracks({encoderConfig:"high_quality"},{encoderConfig:"720p_2"});
+    const[at,vt]=await AgoraRTC.createMicrophoneAndCameraTracks({encoderConfig:{
+        sampleRate:48000,
+        stereo:true,
+        bitrate:128
+      }},{encoderConfig:{
+        width:1920,
+        height:1080,
+        frameRate:30,
+        bitrateMin:2000,
+        bitrateMax:5000,
+        optimizationMode:"detail"
+      }});
     setTracks({a:at,v:vt});
     await c.publish([at,vt]);
 
@@ -247,7 +258,7 @@ export default function LiveStreamPage() {
       const AgoraRTC=(await import("agora-rtc-sdk-ng")).default;
       AgoraRTC.setLogLevel(4);
       console.log("[Live] Step 2: Creating client...");
-      const c=AgoraRTC.createClient({mode:"live",codec:"vp8"});
+      const c=AgoraRTC.createClient({mode:"live",codec:"vp9"});
       await c.setClientRole("audience");
       console.log("[Live] Step 3: Getting token...");
       const ch=`stream_${s.id}`;
