@@ -349,8 +349,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {[
               { href:"/dashboard", icon:Compass, label:"Discover" },
               { href:"/dashboard/messages", icon:MessageCircle, label:"Messages" },
+              { href:"/dashboard/notifications", icon:Bell, label:"Alerts" },
               { href:"/dashboard/feed", icon:Rss, label:"Feed" },
-              { href:"/dashboard/friends", icon:Users, label:"Friends" },
               { href:"/dashboard/profile", icon:User, label:"Profile" },
             ].map(item => {
               const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
