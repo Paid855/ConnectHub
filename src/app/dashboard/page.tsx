@@ -90,7 +90,7 @@ export default function DiscoverPage() {
         <h2 className={"text-2xl font-extrabold mb-2 " + (dc ? "text-white" : "text-gray-900")}>It&apos;s a Match!</h2>
         <p className={"text-sm mb-6 " + (dc ? "text-gray-400" : "text-gray-500")}>You and {matchPopup.name} liked each other</p>
         <div className="flex gap-3">
-          <Link href={"/dashboard/messages?user=" + matchPopup.id} className="flex-1 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm hover:shadow-lg transition-all">Send Message</Link>
+          <Link href={"/dashboard/messages?chat=" + matchPopup.id} className="flex-1 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm hover:shadow-lg transition-all">Send Message</Link>
           <button onClick={() => setMatchPopup(null)} className={"flex-1 py-3 rounded-full font-bold text-sm border-2 " + (dc ? "border-gray-600 text-gray-400" : "border-gray-200 text-gray-600")}>Keep Swiping</button>
         </div>
       </div>
