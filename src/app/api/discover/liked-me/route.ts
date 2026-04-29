@@ -23,18 +23,34 @@ export async function GET(req: NextRequest) {
     take: 50,
   });
 
+  // Get likes I SENT — so we can filter out mutual likes (matches)
+  const myLikes = await prisma.like.findMany({
+    where: { fromUserId: id },
+    select: { toUserId: true },
+  });
+  const myLikedIds = new Set(myLikes.map(l => l.toUserId));
+
+  // Filter out users I already liked back (they're matches now, not pending likes)
+  const pendingLikes = likes.filter(l => !myLikedIds.has(l.fromUserId));
+
+  // Get blocked users
+  const blocked = await prisma.block.findMany({ where: { OR: [{ blockerId: id }, { blockedId: id }] } });
+  const blockedIds = new Set(blocked.map(b => b.blockerId === id ? b.blockedId : b.blockerId));
+
+  // Filter out blocked users
+  const filteredLikes = pendingLikes.filter(l => !blockedIds.has(l.fromUserId));
+
   // Get user details for each liker
-  const likerIds = likes.map(l => l.fromUserId);
+  const likerIds = filteredLikes.map(l => l.fromUserId);
   const likers = await prisma.user.findMany({
-    where: { id: { in: likerIds } },
+    where: { id: { in: likerIds }, tier: { not: "banned" }, email: { not: "admin@connecthub.com" } },
     select: { id: true, name: true, profilePhoto: true, age: true, gender: true, bio: true, tier: true, verified: true, city: true, country: true, lastActive: true },
   });
 
-  const results = likes.map(l => {
+  const results = filteredLikes.map(l => {
     const liker = likers.find(u => u.id === l.fromUserId);
     if (!liker) return null;
 
-    // Free users see blurred profiles (just count), Plus/Premium see full details
     const canSee = user?.tier === "plus" || user?.tier === "premium" || user?.tier === "gold";
 
     return {

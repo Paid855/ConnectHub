@@ -10,9 +10,14 @@ export async function GET(req: NextRequest) {
     const blocked = await prisma.block.findMany({ where: { OR: [{ blockerId: id }, { blockedId: id }] } });
     const blockedIds = blocked.map(b => b.blockerId === id ? b.blockedId : b.blockerId);
 
+    // Get users I already liked — exclude from discover feed
+    const myLikes = await prisma.like.findMany({ where: { fromUserId: id }, select: { toUserId: true } });
+    const likedIds = myLikes.map(l => l.toUserId);
+    const excludeIds = [...blockedIds, ...likedIds];
+
     const users = await prisma.user.findMany({
       where: {
-        id: { not: id, notIn: blockedIds },
+        id: { not: id, notIn: excludeIds },
         tier: { not: "banned" },
         email: { not: "admin@connecthub.com" }
       },
