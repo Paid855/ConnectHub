@@ -268,6 +268,15 @@ export default function AdminDashboard() {
   };
 
   const realUsers = users.filter(u => u.email !== "admin@connecthub.com");
+  const now = Date.now();
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
+  const activeUsers = realUsers.filter(u => !u.banned);
+  const bannedUsers = realUsers.filter(u => u.banned);
+  const onlineUsers = realUsers.filter(u => u.lastSeen && now - new Date(u.lastSeen).getTime() < 5 * 60 * 1000);
+  const todaySignups = realUsers.filter(u => new Date(u.createdAt) >= todayStart);
+  const weekSignups = realUsers.filter(u => new Date(u.createdAt) >= weekStart);
+  const suspiciousNames: [string, string[]][] = Object.entries(realUsers.reduce<Record<string, string[]>>((acc, u) => { const n = (u.name || "").toLowerCase().trim(); if (n) { acc[n] = acc[n] || []; acc[n].push(u.id); } return acc; }, {})).filter(([_, ids]) => ids.length > 1);
   const filteredUsers = realUsers.filter(u => {
     const ms = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()) || (u.username || "").toLowerCase().includes(search.toLowerCase());
     let mt = true;
@@ -284,15 +293,7 @@ export default function AdminDashboard() {
     return ms && mt;
   });
 
-  const now = Date.now();
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
-  const activeUsers = realUsers.filter(u => !u.banned);
-  const bannedUsers = realUsers.filter(u => u.banned);
-  const onlineUsers = realUsers.filter(u => u.lastSeen && now - new Date(u.lastSeen).getTime() < 5 * 60 * 1000);
-  const todaySignups = realUsers.filter(u => new Date(u.createdAt) >= todayStart);
-  const weekSignups = realUsers.filter(u => new Date(u.createdAt) >= weekStart);
-  const suspiciousNames = Object.entries(realUsers.reduce((acc: Record<string, string[]>, u) => { const n = (u.name || "").toLowerCase().trim(); if (n) { acc[n] = acc[n] || []; acc[n].push(u.id); } return acc; }, {})).filter(([_, ids]) => ids.length > 1);
+
   const stats = {
     total: activeUsers.length,
     allTotal: realUsers.length,
@@ -396,7 +397,7 @@ export default function AdminDashboard() {
               <p className="text-gray-500 text-sm mt-1">
                 {tab === "overview" && "Platform overview"}
                 {tab === "users" && `${filteredUsers.length} of ${stats.total} active users`}
-                {tab === "verifications" && `${stats.pendingVerif} pending`}
+                {tab === "verifications" && `${stats.pendingVerif} pending · ${stats.verified} verified`}
                 {tab === "reports" && `${stats.reports} reports`}
                 {tab === "withdrawals" && `${withdrawalStats.pending || 0} pending`}
                 {tab === "settings" && "Account settings"}
