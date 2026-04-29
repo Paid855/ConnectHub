@@ -78,6 +78,32 @@ export default function BrowsePage() {
       </div>
 
       {/* Results count */}
+      {/* Online Now bar */}
+      {(() => {
+        const onlineUsers = profiles.filter(p => isOnline(p.lastSeen) && p.profilePhoto);
+        if (onlineUsers.length === 0) return null;
+        return (
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+              <h2 className={"text-sm font-bold " + (dc?"text-white":"text-gray-900")}>Online Now</h2>
+              <span className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>{onlineUsers.length}</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+              {onlineUsers.map(u => (
+                <Link key={u.id} href={"/dashboard/user?id=" + u.id} className="flex-shrink-0 text-center group">
+                  <div className="relative">
+                    <img src={u.profilePhoto} className="w-16 h-16 rounded-full object-cover border-2 border-emerald-400 group-hover:scale-105 transition-transform" alt={u.name} />
+                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white dark:border-gray-900" />
+                  </div>
+                  <p className={"text-[10px] font-medium mt-1 truncate max-w-[70px] " + (dc?"text-gray-300":"text-gray-700")}>{u.name?.split(" ")[0]}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       <p className={"text-xs font-medium mb-4 " + (dc?"text-gray-500":"text-gray-400")}>{filtered.length} result{filtered.length!==1?"s":""} found</p>
 
       {loading ? (

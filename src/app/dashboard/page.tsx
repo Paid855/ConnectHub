@@ -118,6 +118,31 @@ export default function DiscoverPage() {
         </p>
       </div>
 
+      {/* Online Now */}
+      {(() => {
+        const onlineNow = profiles.filter(p => p.lastSeen && Date.now() - new Date(p.lastSeen).getTime() < 300000 && p.profilePhoto);
+        if (onlineNow.length === 0) return null;
+        return (
+          <div className="mb-4 -mx-1">
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+              <span className={"text-xs font-bold " + (dc?"text-gray-300":"text-gray-700")}>Online Now</span>
+            </div>
+            <div className="flex gap-2.5 overflow-x-auto pb-2 px-1 scrollbar-none">
+              {onlineNow.slice(0, 10).map(u => (
+                <Link key={u.id} href={"/dashboard/user?id=" + u.id} className="flex-shrink-0 text-center">
+                  <div className="relative">
+                    <img src={u.profilePhoto} className="w-14 h-14 rounded-full object-cover border-2 border-emerald-400" alt="" />
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white" />
+                  </div>
+                  <p className={"text-[9px] font-medium mt-1 truncate max-w-[60px] " + (dc?"text-gray-400":"text-gray-600")}>{u.name?.split(" ")[0]}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Main card */}
       <div className={"relative rounded-3xl overflow-hidden shadow-2xl border mx-auto max-w-sm sm:max-w-md " + (dc?"border-gray-700 shadow-black/50":"border-gray-100 shadow-rose-100/50") + " " + (action==="like"?"translate-x-20 rotate-6 opacity-0":action==="pass"?"-translate-x-20 -rotate-6 opacity-0":"") + " transition-all duration-500"}>
         {/* Photo */}

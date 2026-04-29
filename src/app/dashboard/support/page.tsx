@@ -9,7 +9,7 @@ const CATEGORIES = [
     { q: "How do I change my profile photo?", a: "Go to Profile → click your photo → upload a new one. Photos should be under 5MB." },
     { q: "How do I change my username?", a: "Username cannot be changed after registration to prevent impersonation. Contact support if you need help." },
     { q: "How do I delete my account?", a: "Go to Profile → Settings tab → Delete Account. Enter your password and type 'DELETE MY ACCOUNT' to confirm. Note: You cannot create a new account with the same email for 30 days." },
-    { q: "Why is my account banned?", a: "Accounts are banned for violating community guidelines (harassment, fake profiles, spam, inappropriate content). Contact support@connecthub.com to appeal." },
+    { q: "Why is my account banned?", a: "Accounts are banned for violating community guidelines (harassment, fake profiles, spam, inappropriate content). Contact support@connecthub.love to appeal." },
   ]},
   { icon: Shield, title: "Verification", color: "text-emerald-500", bg: "bg-emerald-500/10", items: [
     { q: "How do I get verified?", a: "Go to Dashboard → Verify. You'll complete a face scan (4 poses) and upload a government ID. Our admin team reviews and approves within 24 hours." },
@@ -18,7 +18,7 @@ const CATEGORIES = [
   ]},
   { icon: Coins, title: "Coins & Payments", color: "text-amber-500", bg: "bg-amber-500/10", items: [
     { q: "How do I buy coins?", a: "Go to Dashboard → Coins → Buy Coins. We accept cards, bank transfer, USSD, and mobile money via Flutterwave." },
-    { q: "I paid but didn't receive coins", a: "Coins are delivered automatically after payment. If you don't see them within 5 minutes, refresh the page. Still missing? Email support@connecthub.com with your payment reference." },
+    { q: "I paid but didn't receive coins", a: "Coins are delivered automatically after payment. If you don't see them within 5 minutes, refresh the page. Still missing? Email support@connecthub.love with your payment reference." },
     { q: "Can I get a refund?", a: "Coin purchases are non-refundable as stated in our Terms of Service. However, if there was a technical error, contact support." },
     { q: "What can I do with coins?", a: "Send gifts to other users, upgrade to Premium or Gold, boost your profile for more visibility, and more." },
   ]},
@@ -81,7 +81,7 @@ export default function SupportPage() {
         <MessageCircle className={"w-10 h-10 mx-auto mb-3 " + (dc?"text-rose-400":"text-rose-500")} />
         <h3 className={"font-bold mb-2 " + (dc?"text-white":"text-gray-900")}>Still need help?</h3>
         <p className={"text-sm mb-4 " + (dc?"text-gray-400":"text-gray-500")}>Our support team is here for you</p>
-        <a href="mailto:support@connecthub.com" className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-semibold hover:shadow-lg"><Mail className="w-4 h-4" /> support@connecthub.com</a>
+        <a href="mailto:support@connecthub.love" className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-semibold hover:shadow-lg"><Mail className="w-4 h-4" /> support@connecthub.love</a>
       </div>
     </div>
   );
