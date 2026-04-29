@@ -158,6 +158,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const nav = [
     { href:"/dashboard", label:"Discover", icon:Compass },
     { href:"/dashboard/messages", label:"Messages", icon:MessageCircle, badge:unread },
+    { href:"/dashboard/notifications", label:"Notifications", icon:Bell },
     { href:"/dashboard/feed", label:"Feed", icon:Rss },
     { href:"/dashboard/friends", label:"Friends", icon:Users },
     { href:"/dashboard/profile", label:"Profile", icon:User },
