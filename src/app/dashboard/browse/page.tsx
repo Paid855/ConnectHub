@@ -29,6 +29,15 @@ export default function BrowsePage() {
 
   useEffect(() => { fetch("/api/users").then(r=>r.json()).then(d=>{setProfiles(d.users||[]);setLoading(false);}).catch(()=>setLoading(false)); }, []);
 
+  const timeAgo = (d: string|null|undefined) => {
+    if (!d) return "";
+    const ms = Date.now() - new Date(d).getTime();
+    if (ms < 300000) return "";
+    if (ms < 3600000) return Math.floor(ms / 60000) + "m ago";
+    if (ms < 86400000) return Math.floor(ms / 3600000) + "h ago";
+    if (ms < 604800000) return Math.floor(ms / 86400000) + "d ago";
+    return "";
+  };
   const isOnline = (d: string|null|undefined) => d ? Date.now() - new Date(d).getTime() < 5*60*1000 : false;
 
   const filtered = profiles.filter(p => {
@@ -149,6 +158,7 @@ export default function BrowsePage() {
                   <div className="flex items-center gap-2 text-xs text-white/70">
                     {p.country && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{p.country}</span>}
                     {p.gender && <span>{p.gender}</span>}
+                    {!isOnline(p.lastSeen) && timeAgo(p.lastSeen) && <span className="text-white/50">{timeAgo(p.lastSeen)}</span>}
                   </div>
                 </div>
               </Link>
