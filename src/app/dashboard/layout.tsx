@@ -189,7 +189,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href:"/dashboard/stories", label:"Stories", icon:Camera },
     { href:"/dashboard/video", label:"Live Streams", icon:Video },
     { href:"/dashboard/browse", label:"Browse People", icon:Search },
-    { href:"/dashboard/search", label:"Advanced Search", icon:Filter },
+    { href:"/dashboard/search", label:"Advanced Search", icon:Search },
     { href:"/dashboard/friends", label:"Friends", icon:Users },
     { href:"/dashboard/profile", label:"Profile", icon:User },
   ];
