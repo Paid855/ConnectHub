@@ -476,7 +476,7 @@ export default function MessagesPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           {chatUser && (
-            <Link href={"/dashboard/profile/" + chatUser.id} className="flex items-center gap-3 flex-1 min-w-0">
+            <Link href={"/dashboard/user?id=" + chatUser.id} className="flex items-center gap-3 flex-1 min-w-0">
               <div className="relative flex-shrink-0">
                 <img src={chatUser.profilePhoto || "/default-avatar.png"} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-rose-100" />
                 <div className={"absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 " + (dc ? "border-gray-800" : "border-white") + (chatUser.isOnline ? " bg-emerald-400" : " bg-gray-300")} />
@@ -767,7 +767,7 @@ export default function MessagesPage() {
               </button>
               {showConvMenu === conv.user.id && (
                 <div className={"absolute right-4 top-12 z-20 rounded-xl shadow-xl border overflow-hidden min-w-[150px] " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
-                  <Link href={"/dashboard/profile/" + conv.user.id} className={"flex items-center gap-2 px-4 py-2.5 text-sm " + (dc ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-50")} onClick={() => setShowConvMenu(null)}>View Profile</Link>
+                  <Link href={"/dashboard/user?id=" + conv.user.id} className={"flex items-center gap-2 px-4 py-2.5 text-sm " + (dc ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-50")} onClick={() => setShowConvMenu(null)}>View Profile</Link>
                   <button onClick={() => clearChat(conv.user.id)} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-50">Clear Chat</button>
                 </div>
               )}
