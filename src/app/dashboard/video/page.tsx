@@ -317,7 +317,18 @@ export default function LiveStreamPage() {
       await agoraClient.setClientRole("host");
 
       // Create own camera + mic
-      const[at,vt]=await AgoraRTC.createMicrophoneAndCameraTracks();
+      const[at,vt]=await AgoraRTC.createMicrophoneAndCameraTracks({encoderConfig:{
+        sampleRate:48000,
+        stereo:true,
+        bitrate:128
+      }},{encoderConfig:{
+        width:1920,
+        height:1080,
+        frameRate:30,
+        bitrateMin:2000,
+        bitrateMax:5000,
+        optimizationMode:"detail"
+      }});
       setTracks({a:at,v:vt});
       await agoraClient.publish([at,vt]);
 
