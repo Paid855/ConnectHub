@@ -10,20 +10,15 @@ export async function GET(req: NextRequest) {
     const blocked = await prisma.block.findMany({ where: { OR: [{ blockerId: id }, { blockedId: id }] } });
     const blockedIds = blocked.map(b => b.blockerId === id ? b.blockedId : b.blockerId);
 
-    // Get users I already liked — exclude from discover feed
-    const myLikes = await prisma.like.findMany({ where: { fromUserId: id }, select: { toUserId: true } });
-    const likedIds = myLikes.map(l => l.toUserId);
-    const excludeIds = [...blockedIds, ...likedIds];
-
     const users = await prisma.user.findMany({
       where: {
-        id: { not: id, notIn: excludeIds },
+        id: { not: id, notIn: blockedIds },
         tier: { not: "banned" },
         email: { not: "admin@connecthub.com" }
       },
       select: { id:true, name:true, age:true, gender:true, lookingFor:true, bio:true, country:true, city:true, detectedCity:true, detectedCountry:true, profilePhoto:true, tier:true, verified:true, interests:true, lastSeen:true },
       orderBy: { lastSeen: "desc" },
-      take: 50
+      take: 500
     });
 
     // Simple sort: online first, then verified, then has photo
