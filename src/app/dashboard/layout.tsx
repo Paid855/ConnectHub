@@ -159,26 +159,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href:"/dashboard", label:"Discover", icon:Compass },
     { href:"/dashboard/messages", label:"Messages", icon:MessageCircle, badge:unread },
     { href:"/dashboard/notifications", label:"Notifications", icon:Bell },
+    { href:"/dashboard/liked", label:"Who Likes You", icon:Heart },
     { href:"/dashboard/feed", label:"Feed", icon:Rss },
+    { href:"/dashboard/stories", label:"Stories", icon:Camera },
+    { href:"/dashboard/video", label:"Live Streams", icon:Video },
+    { href:"/dashboard/browse", label:"Browse People", icon:Search },
     { href:"/dashboard/friends", label:"Friends", icon:Users },
     { href:"/dashboard/profile", label:"Profile", icon:User },
   ];
 
   // Everything else goes in avatar dropdown menu
   const menuItems = [
-    { section: "Activity" },
-    { href:"/dashboard/liked", label:"Who Likes You", icon:Heart },
+    { section: "Quick Access" },
     { href:"/dashboard/views", label:"Who Viewed Me", icon:Eye },
-    { href:"/dashboard/video", label:"Live Streams", icon:Video },
-    { href:"/dashboard/stories", label:"Stories", icon:Camera },
-    { href:"/dashboard/browse", label:"Browse People", icon:Search },
-    { section: "Money" },
-    { href:"/dashboard/wallet", label:"Wallet & Earnings", icon:Wallet },
-    { href:"/dashboard/coins", label:"Buy Coins", icon:Coins },
+    { href:"/dashboard/verify", label:"Get Verified", icon:Shield },
+    { href:"/dashboard/upgrade", label:"Upgrade Plan", icon:Crown },
     { section: "Account" },
-    { href:"/dashboard/verify", label:"Verification", icon:Shield },
     { href:"/dashboard/settings", label:"Settings", icon:Lock },
-    { href:"/dashboard/referral", label:"Invite Friends", icon:Gift },
     { href:"/dashboard/blocked", label:"Blocked Users", icon:Ban },
     { href:"/dashboard/support", label:"Help & Support", icon:HelpCircle },
   ];
@@ -349,9 +346,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {[
               { href:"/dashboard", icon:Compass, label:"Discover" },
               { href:"/dashboard/messages", icon:MessageCircle, label:"Messages" },
+              { href:"/dashboard/liked", icon:Heart, label:"Likes" },
               { href:"/dashboard/notifications", icon:Bell, label:"Alerts" },
-              { href:"/dashboard/feed", icon:Rss, label:"Feed" },
-              { href:"/dashboard/profile", icon:User, label:"Profile" },
+              { href:"/dashboard/profile", icon:User, label:"Me" },
             ].map(item => {
               const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
               return (
