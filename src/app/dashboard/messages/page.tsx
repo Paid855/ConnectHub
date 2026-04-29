@@ -465,6 +465,22 @@ export default function MessagesPage() {
     </div>
   ) : null;
 
+
+
+  const ICEBREAKERS = [
+    "What's something on your bucket list? ✈️",
+    "If you could have dinner with anyone, who would it be? 🍽️",
+    "What's the best trip you've ever taken? 🌍",
+    "What's your go-to comfort food? 🍕",
+    "Morning person or night owl? 🌅",
+    "What song is stuck in your head right now? 🎵",
+    "What's your hidden talent? ✨",
+    "Best movie you've watched recently? 🎬",
+    "What's your idea of a perfect date? 💕",
+    "If you won the lottery, what's the first thing you'd do? 💰",
+  ];
+  const [randomBreakers] = useState(() => ICEBREAKERS.sort(() => Math.random() - 0.5).slice(0, 3));
+
   // Chat view
   if (chatWith) {
     return (
@@ -508,6 +524,26 @@ export default function MessagesPage() {
 
         {/* Messages area */}
         <div className={"flex-1 overflow-y-auto px-4 py-4 space-y-1 " + (dc ? "bg-gray-900" : "bg-gradient-to-b from-rose-50/30 to-white")}>
+          {messages.length === 0 && chatUser && (
+            <div className={"text-center py-8 px-4"}>
+              <div className="mb-4">
+                {chatUser.profilePhoto ? (
+                  <img src={chatUser.profilePhoto} className="w-16 h-16 rounded-full object-cover mx-auto border-4 border-rose-100" alt="" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white text-2xl font-bold mx-auto">{chatUser.name?.[0]}</div>
+                )}
+              </div>
+              <p className={"text-sm font-bold mb-1 " + (dc ? "text-white" : "text-gray-900")}>Start a conversation with {chatUser.name?.split(" ")[0]}</p>
+              <p className={"text-xs mb-5 " + (dc ? "text-gray-500" : "text-gray-400")}>Break the ice with a fun question!</p>
+              <div className="space-y-2 max-w-sm mx-auto">
+                {randomBreakers.map((q: string, i: number) => (
+                  <button key={i} onClick={() => { setMsg(q); }} className={"w-full text-left px-4 py-3 rounded-2xl text-sm transition-all border " + (dc ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-750 hover:border-rose-500/30" : "bg-white border-gray-100 text-gray-700 hover:bg-rose-50 hover:border-rose-200 shadow-sm")}>
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {messages.map((msg: any, i: number) => {
             const isMine = msg.senderId === user.id;
             const isDeleted = msg.content?.startsWith("[DELETED]");

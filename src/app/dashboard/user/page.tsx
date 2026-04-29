@@ -166,6 +166,25 @@ export default function UserProfilePage() {
         </div>
       )}
 
+      {/* Compatibility Hint */}
+      {profile.interests && profile.interests.length > 0 && user.interests && user.interests.length > 0 && (() => {
+        const shared = profile.interests.filter((i: string) => user.interests?.includes(i));
+        if (shared.length === 0) return null;
+        const pct = Math.round((shared.length / Math.max(profile.interests.length, user.interests.length || 1)) * 100);
+        return (
+          <div className={"mt-4 rounded-2xl border p-5 " + (dc ? "bg-gradient-to-br from-rose-500/5 to-pink-500/5 border-rose-500/20" : "bg-gradient-to-br from-rose-50 to-pink-50 border-rose-100")}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className={"text-sm font-bold " + (dc ? "text-rose-400" : "text-rose-600")}>Compatibility</h3>
+              <span className={"text-lg font-extrabold " + (pct >= 50 ? "text-emerald-500" : pct >= 25 ? "text-amber-500" : "text-gray-400")}>{pct}%</span>
+            </div>
+            <div className={"w-full h-2 rounded-full " + (dc ? "bg-gray-700" : "bg-gray-200")}>
+              <div className={"h-2 rounded-full transition-all duration-500 " + (pct >= 50 ? "bg-gradient-to-r from-emerald-400 to-teal-500" : pct >= 25 ? "bg-gradient-to-r from-amber-400 to-orange-500" : "bg-gray-400")} style={{width: pct + "%"}} />
+            </div>
+            <p className={"text-xs mt-2 " + (dc ? "text-gray-400" : "text-gray-500")}>You share {shared.length} interest{shared.length > 1 ? "s" : ""}: {shared.join(", ")}</p>
+          </div>
+        );
+      })()}
+
       {/* Interests */}
       {profile.interests && profile.interests.length > 0 && (
         <div className={"mt-4 rounded-2xl border p-5 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100")}>
