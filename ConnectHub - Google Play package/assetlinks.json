@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "love.connecthub.app",
+        "sha256_cert_fingerprints": ["09:FC:B2:65:79:31:23:10:CC:9D:2E:48:F9:5B:23:9F:00:83:EB:90:B2:DC:87:A7:A3:5C:CF:62:D2:78:F1:D6"]
+      }
+    }]
