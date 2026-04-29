@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) return NextResponse.json({ error: "No account found" }, { status: 401 });
-    if (user.tier === "banned") return NextResponse.json({ error: "Account suspended" }, { status: 403 });
+    if (user.tier === "banned" || user.banned) return NextResponse.json({ error: "Your account has been suspended for violating our community guidelines. If you believe this is an error, contact support@connecthub.love" }, { status: 403 });
 
     const valid = await bcrypt.compare(pwd, user.password);
     if (!valid) return NextResponse.json({ error: "Incorrect password" }, { status: 401 });

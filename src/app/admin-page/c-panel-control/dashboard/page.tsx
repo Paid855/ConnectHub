@@ -270,19 +270,42 @@ export default function AdminDashboard() {
   const realUsers = users.filter(u => u.email !== "admin@connecthub.com");
   const filteredUsers = realUsers.filter(u => {
     const ms = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()) || (u.username || "").toLowerCase().includes(search.toLowerCase());
-    const mt = filterTier === "all" || u.tier === filterTier;
+    let mt = true;
+    if (filterTier === "all") mt = !u.banned;
+    else if (filterTier === "banned") mt = u.banned;
+    else if (filterTier === "online") mt = !u.banned && u.lastSeen != null && Date.now() - new Date(u.lastSeen).getTime() < 5 * 60 * 1000;
+    else if (filterTier === "suspicious") {
+      const suspIds = suspiciousNames.flatMap(([_, ids]) => ids);
+      mt = suspIds.includes(u.id);
+    }
+    else if (filterTier === "today") mt = new Date(u.createdAt) >= todayStart;
+    else if (filterTier === "week") mt = new Date(u.createdAt) >= weekStart;
+    else mt = u.tier === filterTier && !u.banned;
     return ms && mt;
   });
 
+  const now = Date.now();
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
+  const activeUsers = realUsers.filter(u => !u.banned);
+  const bannedUsers = realUsers.filter(u => u.banned);
+  const onlineUsers = realUsers.filter(u => u.lastSeen && now - new Date(u.lastSeen).getTime() < 5 * 60 * 1000);
+  const todaySignups = realUsers.filter(u => new Date(u.createdAt) >= todayStart);
+  const weekSignups = realUsers.filter(u => new Date(u.createdAt) >= weekStart);
+  const suspiciousNames = Object.entries(realUsers.reduce((acc: Record<string, string[]>, u) => { const n = (u.name || "").toLowerCase().trim(); if (n) { acc[n] = acc[n] || []; acc[n].push(u.id); } return acc; }, {})).filter(([_, ids]) => ids.length > 1);
   const stats = {
-    total: realUsers.length,
-    verified: realUsers.filter(u => u.verified).length,
-    premium: realUsers.filter(u => u.tier === "premium").length,
-    gold: realUsers.filter(u => u.tier === "gold").length,
-    banned: realUsers.filter(u => u.banned).length,
-    online: realUsers.filter(u => u.lastSeen && Date.now() - new Date(u.lastSeen).getTime() < 5 * 60 * 1000).length,
+    total: activeUsers.length,
+    allTotal: realUsers.length,
+    verified: activeUsers.filter(u => u.verified).length,
+    premium: activeUsers.filter(u => u.tier === "premium").length,
+    gold: activeUsers.filter(u => u.tier === "gold").length,
+    banned: bannedUsers.length,
+    online: onlineUsers.length,
     pendingVerif: verifications.length,
     reports: reports.length,
+    todaySignups: todaySignups.length,
+    weekSignups: weekSignups.length,
+    suspicious: suspiciousNames.length,
   };
 
   const ago = (d: string) => {
@@ -372,7 +395,7 @@ export default function AdminDashboard() {
               <h2 className="text-2xl font-bold">{TABS.find(t => t.id === tab)?.label}</h2>
               <p className="text-gray-500 text-sm mt-1">
                 {tab === "overview" && "Platform overview"}
-                {tab === "users" && `${stats.total} registered users`}
+                {tab === "users" && `${filteredUsers.length} of ${stats.total} active users`}
                 {tab === "verifications" && `${stats.pendingVerif} pending`}
                 {tab === "reports" && `${stats.reports} reports`}
                 {tab === "withdrawals" && `${withdrawalStats.pending || 0} pending`}
@@ -387,17 +410,20 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: "Total Users", value: stats.total, icon: Users, color: "bg-blue-500/10 text-blue-400", border: "border-blue-500/20" },
-                  { label: "Online Now", value: stats.online, icon: Activity, color: "bg-emerald-500/10 text-emerald-400", border: "border-emerald-500/20" },
-                  { label: "Verified", value: stats.verified, icon: UserCheck, color: "bg-purple-500/10 text-purple-400", border: "border-purple-500/20" },
-                  { label: "Pending Verify", value: stats.pendingVerif, icon: Shield, color: "bg-amber-500/10 text-amber-400", border: "border-amber-500/20" },
-                  { label: "Premium", value: stats.premium, icon: Crown, color: "bg-pink-500/10 text-pink-400", border: "border-pink-500/20" },
-                  { label: "Gold", value: stats.gold, icon: Gem, color: "bg-yellow-500/10 text-yellow-400", border: "border-yellow-500/20" },
-                  { label: "Banned", value: stats.banned, icon: Ban, color: "bg-red-500/10 text-red-400", border: "border-red-500/20" },
-                  { label: "Reports", value: stats.reports, icon: AlertTriangle, color: "bg-orange-500/10 text-orange-400", border: "border-orange-500/20" },
-                  { label: "Withdrawals", value: withdrawalStats.pending || 0, icon: Wallet, color: "bg-green-500/10 text-green-400", border: "border-green-500/20" },
+                  { label: "Active Users", value: stats.total, icon: Users, color: "bg-blue-500/10 text-blue-400", border: "border-blue-500/20", click: () => { setTab("users"); setFilterTier("all"); } },
+                  { label: "Online Now", value: stats.online, icon: Activity, color: "bg-emerald-500/10 text-emerald-400", border: "border-emerald-500/20", click: () => { setTab("users"); setFilterTier("online"); } },
+                  { label: "Verified", value: stats.verified, icon: UserCheck, color: "bg-purple-500/10 text-purple-400", border: "border-purple-500/20", click: () => { setTab("verifications"); } },
+                  { label: "Pending Verify", value: stats.pendingVerif, icon: Shield, color: "bg-amber-500/10 text-amber-400", border: "border-amber-500/20", click: () => { setTab("verifications"); } },
+                  { label: "Premium", value: stats.premium, icon: Crown, color: "bg-pink-500/10 text-pink-400", border: "border-pink-500/20", click: () => { setTab("users"); setFilterTier("premium"); } },
+                  { label: "Gold", value: stats.gold, icon: Gem, color: "bg-yellow-500/10 text-yellow-400", border: "border-yellow-500/20", click: () => { setTab("users"); setFilterTier("gold"); } },
+                  { label: "Banned", value: stats.banned, icon: Ban, color: "bg-red-500/10 text-red-400", border: "border-red-500/20", click: () => { setTab("users"); setFilterTier("banned"); } },
+                  { label: "Reports", value: stats.reports, icon: AlertTriangle, color: "bg-orange-500/10 text-orange-400", border: "border-orange-500/20", click: () => { setTab("reports"); } },
+                  { label: "Signups Today", value: stats.todaySignups, icon: Calendar, color: "bg-cyan-500/10 text-cyan-400", border: "border-cyan-500/20", click: () => { setTab("users"); setFilterTier("today"); } },
+                  { label: "This Week", value: stats.weekSignups, icon: Calendar, color: "bg-indigo-500/10 text-indigo-400", border: "border-indigo-500/20", click: () => { setTab("users"); setFilterTier("week"); } },
+                  { label: "Suspicious", value: stats.suspicious, icon: AlertTriangle, color: "bg-rose-500/10 text-rose-400", border: "border-rose-500/20", click: () => { setTab("users"); setFilterTier("suspicious"); } },
+                  { label: "Withdrawals", value: withdrawalStats.pending || 0, icon: Wallet, color: "bg-green-500/10 text-green-400", border: "border-green-500/20", click: () => { setTab("withdrawals"); } },
                 ].map((s, i) => (
-                  <div key={i} className={"bg-gray-900 rounded-2xl p-5 border " + s.border}>
+                  <div key={i} onClick={s.click} className={"bg-gray-900 rounded-2xl p-5 border cursor-pointer hover:bg-gray-800 transition-all " + s.border}>
                     <div className={"w-10 h-10 rounded-xl flex items-center justify-center mb-3 " + s.color}><s.icon className="w-5 h-5" /></div>
                     <p className="text-2xl font-bold">{s.value}</p>
                     <p className="text-gray-500 text-xs mt-1">{s.label}</p>
@@ -433,10 +459,16 @@ export default function AdminDashboard() {
                   <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email..." className="w-full bg-gray-900 border border-gray-800 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none" />
                 </div>
                 <select value={filterTier} onChange={e => setFilterTier(e.target.value)} className="bg-gray-900 border border-gray-800 rounded-xl py-2.5 px-4 text-sm focus:border-blue-500 focus:outline-none">
-                  <option value="all">All Tiers</option>
+                  <option value="all">All Active</option>
                   <option value="free">Free</option>
+                  <option value="basic">Basic</option>
                   <option value="premium">Premium</option>
                   <option value="gold">Gold</option>
+                  <option value="online">🟢 Online Now</option>
+                  <option value="banned">🚫 Banned</option>
+                  <option value="suspicious">⚠️ Suspicious</option>
+                  <option value="today">📅 Joined Today</option>
+                  <option value="week">📅 This Week</option>
                 </select>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -447,7 +479,11 @@ export default function AdminDashboard() {
                         {u.profilePhoto ? <img src={u.profilePhoto} className="w-full h-full object-cover" alt="" /> : <Users className="w-5 h-5 text-gray-500 m-auto mt-3.5" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{u.name} {u.verified && <CheckCircle className="w-3.5 h-3.5 text-blue-400 inline ml-1" />}</p>
+                        <p className="font-medium text-sm truncate">
+                          {u.lastSeen && Date.now() - new Date(u.lastSeen).getTime() < 300000 && <span className="inline-block w-2 h-2 bg-emerald-400 rounded-full mr-1.5 animate-pulse" />}
+                          {u.name} {u.verified && <CheckCircle className="w-3.5 h-3.5 text-blue-400 inline ml-1" />}
+                          {u.banned && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded ml-1">BANNED</span>}
+                        </p>
                         <p className="text-xs text-gray-500 truncate">{u.email}</p>
                       </div>
                     </div>
