@@ -155,7 +155,7 @@ export default function HomePage() {
       )}
 
       {/* ═══ HERO ═══ */}
-      <section className="relative min-h-[90vh] sm:min-h-screen flex items-center overflow-hidden">
+      <section className="relative min-h-0 sm:min-h-screen flex items-center overflow-hidden pt-24 pb-12 sm:pt-0 sm:pb-0">
         <div className="absolute inset-0 bg-gradient-to-br from-rose-50 via-white to-pink-50/60" />
         <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-gradient-to-br from-rose-200/30 to-pink-200/20 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-purple-200/20 to-pink-100/20 rounded-full blur-3xl animate-float-slow" />
