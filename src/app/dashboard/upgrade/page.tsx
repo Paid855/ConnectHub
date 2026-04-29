@@ -17,6 +17,13 @@ export default function UpgradePage() {
       const amount = plan === "gold" ? (yearly ? 39 * 12 * 0.8 : 49) : plan === "premium" ? (yearly ? 23 * 12 * 0.8 : 29) : 0;
       if (amount === 0) { setUpgrading(""); return; }
 
+      // Payment system maintenance check
+      const maintenanceMode = true; // TODO: Remove when KoraPay is live
+      if (maintenanceMode) {
+        alert("💳 Payment system is being upgraded for a better experience. Please try again soon!");
+        setUpgrading("");
+        return;
+      }
       const res = await fetch("/api/flutterwave/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

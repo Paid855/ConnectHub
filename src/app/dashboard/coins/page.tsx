@@ -54,6 +54,13 @@ export default function CoinsPage() {
   const handleBuyCoins = async (packageId: string, amount: number) => {
     setBuying(packageId); setErr("");
     try {
+      // Payment system maintenance check
+      const maintenanceMode = true; // TODO: Remove when KoraPay is live
+      if (maintenanceMode) {
+        alert("💳 Payment system is being upgraded for a better experience. Please try again soon!");
+        setBuying("");
+        return;
+      }
       const res = await fetch("/api/flutterwave", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ type:"coins", coinPackage: packageId })
