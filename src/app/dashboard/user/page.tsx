@@ -4,10 +4,12 @@ import { useSearchParams } from "next/navigation";
 import { useUser, TierBadge } from "../layout";
 import { Heart, MessageCircle, Shield, MapPin, ArrowLeft, UserPlus, Ban, Flag, Calendar, Users, Sparkles, Star, Crown, Gem, Camera, X, Globe, Check } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function UserProfilePage() {
   const { user, dark } = useUser();
   const dc = dark;
+  const router = useRouter();
   const params = useSearchParams();
   const viewId = params.get("id");
   const [profile, setProfile] = useState<any>(null);
@@ -89,9 +91,9 @@ export default function UserProfilePage() {
       )}
 
       {/* Back button */}
-      <Link href="/dashboard/browse" className={"inline-flex items-center gap-2 mb-4 text-sm font-medium " + (dc ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-800")}>
+      <button onClick={() => router.back()} className={"inline-flex items-center gap-2 mb-4 text-sm font-medium " + (dc ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-800")}>
         <ArrowLeft className="w-4 h-4" /> Back
-      </Link>
+      </button>
 
       {/* Hero photo section */}
       <div className={"rounded-3xl overflow-hidden border shadow-xl " + (dc ? "border-gray-700 shadow-black/50" : "border-gray-100 shadow-rose-100/30")}>
