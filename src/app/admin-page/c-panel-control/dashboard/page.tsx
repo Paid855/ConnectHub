@@ -84,7 +84,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const check = async () => {
       const res = await fetch("/api/admin/me");
-      if (!res.ok) { router.push("/admin-page/c-panel-control"); return; }
+      if (!res.ok) { router.push("/" + window.location.pathname.split("/")[1]); return; }
       setAdmin(await res.json());
       await loadAll();
       setLoading(false);
@@ -107,7 +107,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     await fetch("/api/admin/logout", { method: "POST" });
-    router.push("/admin-page/c-panel-control");
+    router.push("/" + window.location.pathname.split("/")[1]);
   };
 
   const handleUserAction = async (userId: string, action: string) => {
@@ -992,7 +992,7 @@ export default function AdminDashboard() {
                 <div className="mt-4 space-y-3 text-sm">
                   <div className="flex justify-between"><span className="text-gray-500">Name</span><span>{admin?.name}</span></div>
                   <div className="flex justify-between"><span className="text-gray-500">Email</span><span>{admin?.email}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Admin URL</span><span className="text-blue-400 text-xs">/admin-page/c-panel-control</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Admin URL</span><span className="text-blue-400 text-xs">admin.connecthub.love/[secured]</span></div>
                 </div>
               </div>
             </div>

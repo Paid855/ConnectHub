@@ -23,7 +23,11 @@ export default function AdminLogin() {
       });
       const data = await res.json();
       if (res.ok) {
-        router.push("/admin-page/c-panel-control/dashboard");
+        (() => {
+          // Extract slug from current URL path (e.g., /x7fdde2b81ed32ed8-vault-95df8c5e -> slug)
+          const slug = window.location.pathname.split("/")[1];
+          router.push("/" + slug + "/dashboard");
+        })();
       } else {
         setError(data.error || "Login failed");
       }
