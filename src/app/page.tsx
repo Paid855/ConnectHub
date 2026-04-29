@@ -605,6 +605,7 @@ export default function HomePage() {
                 <Link href="/help" className="block text-gray-400 text-sm hover:text-rose-400 transition-colors">Help Center</Link>
                 <Link href="/terms" className="block text-gray-400 text-sm hover:text-rose-400 transition-colors">Terms of Service</Link>
                 <Link href="/privacy" className="block text-gray-400 text-sm hover:text-rose-400 transition-colors">Privacy Policy</Link>
+                <Link href="/child-safety" className="block text-gray-400 text-sm hover:text-rose-400 transition-colors">Child Safety</Link>
               </div>
             </div>
             <div>

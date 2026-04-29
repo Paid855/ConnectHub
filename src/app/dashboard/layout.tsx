@@ -12,10 +12,14 @@ type UserData = { id:string; name:string; email:string; username?:string; age:nu
 const UserCtx = createContext<{ user:UserData|null; reload:()=>void; unread:number; dark:boolean; setDark:(v:boolean)=>void }>({ user:null, reload:()=>{}, unread:0, dark:false, setDark:()=>{} });
 export const useUser = () => useContext(UserCtx);
 
-function TierBadge({ tier }: { tier: string }) {
-  if (tier === "gold") return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border border-amber-200"><Crown className="w-3 h-3" />Gold</span>;
-  if (tier === "premium") return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-100 to-pink-100 text-rose-600 border border-rose-200"><Gem className="w-3 h-3" />Premium</span>;
-  return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500"><Sparkles className="w-3 h-3" />Basic</span>;
+function TierBadge({ tier, createdAt }: { tier: string; createdAt?: string }) {
+  const isNew = createdAt && Date.now() - new Date(createdAt).getTime() < 7 * 24 * 60 * 60 * 1000;
+  const badge = tier === "gold" 
+    ? <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-white shadow-sm shadow-amber-200"><Crown className="w-3 h-3" />GOLD</span>
+    : tier === "premium" || tier === "plus"
+    ? <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-sm shadow-rose-200"><Gem className="w-3 h-3" />PRO</span>
+    : <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Free</span>;
+  return <span className="inline-flex items-center gap-1.5">{badge}{isNew && <span className="inline-flex items-center text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 text-white animate-pulse">NEW</span>}</span>;
 }
 export { TierBadge };
 
