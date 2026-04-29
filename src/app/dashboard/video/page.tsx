@@ -197,10 +197,23 @@ export default function LiveStreamPage() {
     setAgoraClient(c);
     setStream(s); setRole("host"); setPage("live");
 
-    requestAnimationFrame(()=>{requestAnimationFrame(()=>{
-      const el=document.getElementById("host-video");
-      if(el&&vt){vt.play(el,{fit:"cover",mirror:true});}
-    });});
+    // Reliable video play — retry until DOM element exists
+    const playHost = () => {
+      let attempts = 0;
+      const tryPlay = () => {
+        const el = document.getElementById("host-video");
+        if (el && vt) {
+          vt.play(el, {fit: "cover", mirror: true});
+          console.log("[Live] Host video playing!");
+          return;
+        }
+        attempts++;
+        if (attempts < 30) setTimeout(tryPlay, 100);
+        else console.log("[Live] Host video element not found after 3s");
+      };
+      tryPlay();
+    };
+    playHost();
 
     return { client: c, audioTrack: at, videoTrack: vt };
   };
@@ -225,6 +238,7 @@ export default function LiveStreamPage() {
 
       await connectAgoraAsHost(data.stream);
       setMyActiveStream(null);
+      setGoingLive(false);
       toast("You are now live!","🔴");
     }catch(e:any){
       const errMsg = e.message?.toLowerCase() || ""; setErr(errMsg.includes("permission") || errMsg.includes("denied") || errMsg.includes("notallowed") ? "Camera/mic access denied. Please allow access in your browser settings and try again." : "Failed to start stream: " + (e.message || "Please check camera & microphone permissions"));
