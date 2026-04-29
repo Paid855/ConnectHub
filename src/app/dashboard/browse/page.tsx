@@ -16,6 +16,15 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("");
+  const [heartAnim, setHeartAnim] = useState<string|null>(null);
+
+  const doubleTapLike = async (userId: string) => {
+    setHeartAnim(userId);
+    try {
+      await fetch("/api/discover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId: userId, type: "like" }) });
+    } catch {}
+    setTimeout(() => setHeartAnim(null), 1500);
+  };
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => { fetch("/api/users").then(r=>r.json()).then(d=>{setProfiles(d.users||[]);setLoading(false);}).catch(()=>setLoading(false)); }, []);
@@ -83,7 +92,13 @@ export default function BrowsePage() {
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filtered.map((p,i) => (
             <div key={p.id} className={"rounded-2xl border overflow-hidden hover:shadow-xl transition-all duration-300 group " + (dc?"bg-gray-800 border-gray-700 hover:border-rose-500/30":"bg-white border-gray-100 hover:border-rose-200")}>
-              <Link href={"/dashboard/user?id="+p.id} className="block relative aspect-[4/5]">
+              <Link href={"/dashboard/user?id="+p.id} className="block relative aspect-[4/5]" onDoubleClick={(e) => { e.preventDefault(); doubleTapLike(p.id); }}>
+                {/* Double-tap heart animation */}
+                {heartAnim === p.id && (
+                  <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                    <Heart className="w-20 h-20 text-rose-500 fill-rose-500 animate-ping" style={{animationDuration:"0.8s"}} />
+                  </div>
+                )}
                 {p.profilePhoto ? (
                   <img src={p.profilePhoto} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
