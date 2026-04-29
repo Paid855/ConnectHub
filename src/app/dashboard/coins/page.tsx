@@ -81,6 +81,13 @@ export default function CoinsPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className={"text-2xl font-bold mb-2 " + (dc?"text-white":"text-gray-900")}>Upgrade & Coins</h1>
+      <div className={"rounded-2xl border p-4 mb-4 flex items-center gap-3 " + (dc?"bg-amber-500/10 border-amber-500/20":"bg-amber-50 border-amber-200")}>
+        <span className="text-2xl">💳</span>
+        <div>
+          <p className={"text-sm font-medium " + (dc?"text-amber-400":"text-amber-700")}>Payment system upgrading</p>
+          <p className={"text-xs " + (dc?"text-amber-500/70":"text-amber-600/70")}>Purchases will be available again very soon!</p>
+        </div>
+      </div>
       <p className={"text-sm mb-6 " + (dc?"text-gray-400":"text-gray-500")}>Current plan: <span className="font-bold capitalize">{currentTier}</span> · Balance: <span className="font-bold">{user.coins || 0} coins</span></p>
 
       {err && <div className={"mb-4 px-4 py-3 rounded-xl text-sm " + (dc?"bg-red-500/10 text-red-400 border border-red-500/30":"bg-red-50 text-red-600 border border-red-200")}>{err}</div>}
