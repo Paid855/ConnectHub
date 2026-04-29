@@ -56,20 +56,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [pathname]);
 
   // === AUTO-LOGOUT AFTER 10 MIN INACTIVITY (#3) ===
+  const lastActivity = useRef(Date.now());
   useEffect(() => {
     const TIMEOUT = 10 * 60 * 1000; // 10 minutes
+
     const resetTimer = () => {
+      lastActivity.current = Date.now();
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
       inactivityTimer.current = setTimeout(async () => {
         await fetch("/api/auth/logout", { method: "POST" });
         router.push("/login?reason=inactive");
       }, TIMEOUT);
     };
+
+    // When user returns to tab (mobile: reopens app), check if timed out
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        const elapsed = Date.now() - lastActivity.current;
+        if (elapsed >= TIMEOUT) {
+          fetch("/api/auth/logout", { method: "POST" }).then(() => {
+            router.push("/login?reason=inactive");
+          });
+        } else {
+          resetTimer();
+        }
+      }
+    };
+
     const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
     events.forEach(e => window.addEventListener(e, resetTimer));
+    document.addEventListener("visibilitychange", handleVisibility);
     resetTimer();
+
     return () => {
       events.forEach(e => window.removeEventListener(e, resetTimer));
+      document.removeEventListener("visibilitychange", handleVisibility);
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     };
   }, [router]);
