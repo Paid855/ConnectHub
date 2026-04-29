@@ -451,7 +451,7 @@ export default function MessagesPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> Download
         </a>
         <button onClick={() => setMediaViewer(null)} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white p-2.5 rounded-xl transition-all border border-white/10">
-          <X className="w-5 h-5" />
+          <XIcon className="w-5 h-5" />
         </button>
       </div>
       <div className="max-w-[95vw] max-h-[85vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
