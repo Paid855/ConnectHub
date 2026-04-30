@@ -183,8 +183,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const today = new Date().toDateString();
     const last = typeof window !== "undefined" ? localStorage.getItem("lastRewardCheck") : null;
     if (last === today) return;
-    if (typeof window !== "undefined") localStorage.setItem("lastRewardCheck", today);
-    setTimeout(() => setShowReward(true), 2000);
+    // Check server first — don't show if already claimed on another device
+    try {
+      const res = await fetch("/api/daily-reward", { method: "POST" });
+      const data = await res.json();
+      if (typeof window !== "undefined") localStorage.setItem("lastRewardCheck", today);
+      if (res.ok && data.reward > 0) {
+        setRewardCoins(data.reward);
+        setRewardStreak(data.streak || 1);
+        setRewardClaimed(true);
+        loadUser();
+        setTimeout(() => setShowReward(true), 2000);
+      }
+      // If already claimed (400), just save to localStorage so it doesn't ask again
+    } catch {}
   };
   const claimReward = async () => {
     try {
