@@ -59,11 +59,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const lastActivity = useRef(Date.now());
   useEffect(() => {
     const TIMEOUT = 10 * 60 * 1000; // 10 minutes
+    const STORAGE_KEY = "ch_last_active";
+
+    // Check if user was inactive before page reload (mobile browser kills page)
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const elapsed = Date.now() - parseInt(stored, 10);
+      if (elapsed >= TIMEOUT) {
+        localStorage.removeItem(STORAGE_KEY);
+        fetch("/api/auth/logout", { method: "POST" }).then(() => {
+          router.push("/login?reason=inactive");
+        });
+        return;
+      }
+    }
 
     const resetTimer = () => {
       lastActivity.current = Date.now();
+      localStorage.setItem(STORAGE_KEY, String(Date.now()));
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
       inactivityTimer.current = setTimeout(async () => {
+        localStorage.removeItem(STORAGE_KEY);
         await fetch("/api/auth/logout", { method: "POST" });
         router.push("/login?reason=inactive");
       }, TIMEOUT);
@@ -72,8 +88,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // When user returns to tab (mobile: reopens app), check if timed out
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        const elapsed = Date.now() - lastActivity.current;
+        const last = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10) || lastActivity.current;
+        const elapsed = Date.now() - last;
         if (elapsed >= TIMEOUT) {
+          localStorage.removeItem(STORAGE_KEY);
           fetch("/api/auth/logout", { method: "POST" }).then(() => {
             router.push("/login?reason=inactive");
           });
