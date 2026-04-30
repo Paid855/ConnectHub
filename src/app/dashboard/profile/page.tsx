@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useUser, TierBadge } from "../layout";
-import { Shield, Camera, Check, Heart, Edit3, Calendar, User, Mail, Crown, Settings, Globe, Gem, Phone, MessageCircle, Rss, Tag, X, AlertTriangle, ChevronDown, Eye, Lock, Coins, Sparkles, MapPin, Star, Zap, Image as ImageIcon, ExternalLink, Award, TrendingUp, Share2, Bookmark, Gift, Verified } from "lucide-react";
+import { Shield, Trash2, Camera, Check, Heart, Edit3, Calendar, User, Mail, Crown, Settings, Globe, Gem, Phone, MessageCircle, Rss, Tag, X, AlertTriangle, ChevronDown, Eye, Lock, Coins, Sparkles, MapPin, Star, Zap, Image as ImageIcon, ExternalLink, Award, TrendingUp, Share2, Bookmark, Gift, Verified } from "lucide-react";
 import Link from "next/link";
 import { uploadProfilePhoto } from "@/lib/upload-photo";
 
@@ -92,6 +92,12 @@ export default function ProfilePage() {
   const [myPosts, setMyPosts] = useState<any[]>([]);
   const [viewCount, setViewCount] = useState(0);
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
+  const [voiceIntro, setVoiceIntro] = useState<string|null>(null);
+  const [recordingVoice, setRecordingVoice] = useState(false);
+  const [voiceTime, setVoiceTime] = useState(0);
+  const voiceRecorder = useRef<MediaRecorder|null>(null);
+  const voiceTimer = useRef<NodeJS.Timeout|null>(null);
+  const voiceStream = useRef<MediaStream|null>(null);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [viewPhoto, setViewPhoto] = useState<string|null>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -116,6 +122,7 @@ export default function ProfilePage() {
     }
     fetch("/api/feed").then(r=>r.json()).then(d=>{ const mine = (d.feed||[]).filter((p:any)=>p.userId===user?.id); setPostCount(mine.length); setMyPosts(mine.slice(0,10)); }).catch(()=>{});
     fetch("/api/friends").then(r=>r.json()).then(d=>{ setFriendCount((d.friends||[]).length); }).catch(()=>{});
+    if (user?.voiceIntro) setVoiceIntro(user.voiceIntro);
     fetch("/api/auth/photos?userId=" + user?.id).then(r => r.json()).then(d => {
       // Exclude profile photo from gallery (it's shown separately)
       const gallery = (d.photos || []).filter((p: string) => p !== user?.profilePhoto);
@@ -200,6 +207,70 @@ export default function ProfilePage() {
       body: JSON.stringify({ action: "delete", index: idx })
     });
     setGalleryPhotos(prev => prev.filter(p => p !== url));
+  };
+
+  const startVoiceIntro = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceStream.current = stream;
+      const mimeType = ["audio/mp4","audio/webm;codecs=opus","audio/webm"].find(t => MediaRecorder.isTypeSupported(t)) || "";
+      const mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        voiceStream.current = null;
+        if (voiceTimer.current) clearInterval(voiceTimer.current);
+        setVoiceTime(0);
+        setRecordingVoice(false);
+        if (chunks.length === 0) return;
+        const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+        if (blob.size < 2000) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          if (ev.target?.result) {
+            const dataUrl = ev.target.result as string;
+            const res = await fetch("/api/auth/profile", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ voiceIntro: dataUrl })
+            });
+            if (res.ok) {
+              setVoiceIntro(dataUrl);
+              setSuccess("Voice bio saved! Others can now hear your voice ✨");
+              setTimeout(() => setSuccess(""), 3000);
+            }
+          }
+        };
+        reader.readAsDataURL(blob);
+      };
+      mr.start(100);
+      voiceRecorder.current = mr;
+      setRecordingVoice(true);
+      setVoiceTime(0);
+      voiceTimer.current = setInterval(() => {
+        setVoiceTime(p => {
+          if (p >= 30) { mr.stop(); return 0; }
+          return p + 1;
+        });
+      }, 1000);
+    } catch { alert("Microphone access required"); }
+  };
+
+  const stopVoiceIntro = () => {
+    if (voiceRecorder.current?.state === "recording") voiceRecorder.current.stop();
+  };
+
+  const deleteVoiceIntro = async () => {
+    if (!confirm("Remove your voice bio?")) return;
+    await fetch("/api/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voiceIntro: "" })
+    });
+    setVoiceIntro(null);
+    setSuccess("Voice bio removed");
+    setTimeout(() => setSuccess(""), 3000);
   };
 
   const setAsProfilePhoto = async (url: string) => {
@@ -571,6 +642,55 @@ export default function ProfilePage() {
             </div>
           )}
         </>
+      )}
+
+      {/* ═══ VOICE BIO ═══ */}
+      {activeTab === "about" && (
+        <div className={"rounded-2xl border p-6 mb-5 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-sm")}>
+          <h3 className={"text-xs font-extrabold uppercase tracking-[0.2em] mb-4 flex items-center gap-2 " + (dc?"text-gray-500":"text-gray-400")}>
+            <span className="text-orange-500">🎙️</span> Voice Bio
+          </h3>
+
+          {voiceIntro ? (
+            <div className="flex items-center gap-3">
+              <div className={"flex-1 rounded-2xl p-3 flex items-center gap-3 " + (dc?"bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20":"bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200")}>
+                <div className={"w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 " + (dc?"bg-orange-500/20":"bg-orange-100")}>
+                  <span className="text-lg">🎙️</span>
+                </div>
+                <div className="flex-1">
+                  <p className={"text-sm font-bold " + (dc?"text-white":"text-gray-900")}>Your voice intro</p>
+                  <p className={"text-xs " + (dc?"text-gray-400":"text-gray-500")}>Tap play to preview</p>
+                </div>
+                <button onClick={() => { const a = new Audio(voiceIntro); a.play(); }} className={"w-10 h-10 rounded-full flex items-center justify-center " + (dc?"bg-orange-500/20 text-orange-400 hover:bg-orange-500/30":"bg-orange-100 text-orange-600 hover:bg-orange-200") + " transition-all"}>
+                  <span className="text-lg ml-0.5">▶</span>
+                </button>
+              </div>
+              <button onClick={deleteVoiceIntro} className={"p-2.5 rounded-xl " + (dc?"text-gray-500 hover:text-red-400 hover:bg-gray-700":"text-gray-400 hover:text-red-500 hover:bg-red-50") + " transition-all"}>
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ) : recordingVoice ? (
+            <div className={"rounded-2xl p-4 " + (dc?"bg-gray-700":"bg-gray-50")}>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                <span className={"text-sm font-bold tabular-nums " + (dc?"text-white":"text-gray-900")}>{voiceTime}s / 30s</span>
+                <div className="flex-1 h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
+                  <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all" style={{width: (voiceTime / 30 * 100) + "%"}} />
+                </div>
+                <button onClick={stopVoiceIntro} className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full text-xs font-bold hover:shadow-lg transition-all">
+                  Done ✓
+                </button>
+              </div>
+              <p className={"text-xs mt-2 text-center " + (dc?"text-gray-400":"text-gray-500")}>Say something about yourself — your voice makes you unique!</p>
+            </div>
+          ) : (
+            <button onClick={startVoiceIntro} className={"w-full py-4 rounded-2xl border-2 border-dashed flex flex-col items-center gap-2 transition-all " + (dc?"border-gray-600 hover:border-orange-500/50 text-gray-400 hover:text-orange-400":"border-gray-200 hover:border-orange-300 text-gray-400 hover:text-orange-600")}>
+              <span className="text-3xl">🎙️</span>
+              <span className="text-sm font-medium">Record a 30-second voice intro</span>
+              <span className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>Let others hear your voice — profiles with voice bios get 4x more matches!</span>
+            </button>
+          )}
+        </div>
       )}
 
       {/* ═══ PHOTO GALLERY (visible on About tab) ═══ */}

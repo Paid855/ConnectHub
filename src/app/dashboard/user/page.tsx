@@ -223,6 +223,24 @@ export default function UserProfilePage() {
         </div>
       )}
 
+      {/* Voice Bio */}
+      {profile.voiceIntro && (
+        <div className={"mt-4 rounded-2xl border overflow-hidden " + (dc ? "bg-gradient-to-r from-orange-500/5 to-amber-500/5 border-orange-500/20" : "bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200")}>
+          <button onClick={() => { const a = new Audio(profile.voiceIntro); a.play(); }} className="w-full p-4 flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className={"w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 " + (dc?"bg-orange-500/20":"bg-orange-100")}>
+              <span className="text-2xl">🎙️</span>
+            </div>
+            <div className="flex-1 text-left">
+              <p className={"text-sm font-bold " + (dc ? "text-white" : "text-gray-900")}>Hear {profile.name?.split(" ")[0]}&apos;s voice</p>
+              <p className={"text-xs " + (dc ? "text-gray-400" : "text-gray-500")}>Tap to play voice intro</p>
+            </div>
+            <div className={"w-10 h-10 rounded-full flex items-center justify-center " + (dc?"bg-orange-500/30 text-orange-300":"bg-orange-200 text-orange-700")}>
+              <span className="text-lg ml-0.5">▶</span>
+            </div>
+          </button>
+        </div>
+      )}
+
       {/* Vibe Status */}
       {profile.vibeStatus && (
         <div className={"mt-4 rounded-2xl border px-5 py-3.5 " + (dc ? "bg-purple-500/5 border-purple-500/20" : "bg-gradient-to-r from-purple-50 to-pink-50 border-purple-100")}>

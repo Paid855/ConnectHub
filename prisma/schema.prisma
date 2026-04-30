@@ -58,6 +58,7 @@ model User {
   prompts            String?
   loginStreak        Int       @default(0)
   vibeStatus         String?
+  voiceIntro         String?
   lastSeen           DateTime @default(now())
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

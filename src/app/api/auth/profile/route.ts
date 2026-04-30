@@ -71,6 +71,11 @@ export async function PUT(req: NextRequest) {
     updateData.photos = (currentUser?.photos || []).filter((p: string) => p !== body.removePhoto);
   }
 
+  // Handle voice intro
+  if (body.voiceIntro !== undefined) {
+    updateData.voiceIntro = body.voiceIntro || null;
+  }
+
   // Handle vibe status
   if (body.vibeStatus !== undefined) {
     updateData.vibeStatus = body.vibeStatus ? sanitize(body.vibeStatus.trim().substring(0, 100)) : null;
