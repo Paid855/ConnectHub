@@ -25,7 +25,7 @@ type UserData = {
   photos: string[] | null;
 };
 
-type Tab = "overview" | "users" | "verifications" | "reports" | "withdrawals" | "broadcast" | "settings";
+type Tab = "overview" | "users" | "verifications" | "reports" | "withdrawals" | "broadcast" | "content" | "settings";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -44,6 +44,10 @@ export default function AdminDashboard() {
   const [broadcastMsg, setBroadcastMsg] = useState("");
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastResult, setBroadcastResult] = useState<any>(null);
+  const [contentPosts, setContentPosts] = useState<any[]>([]);
+  const [contentStories, setContentStories] = useState<any[]>([]);
+  const [contentTab, setContentTab] = useState<"posts"|"stories">("posts");
+  const [contentLoading, setContentLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [filterTier, setFilterTier] = useState("all");
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
@@ -339,6 +343,7 @@ export default function AdminDashboard() {
     { id: "reports", label: "Reports", icon: AlertTriangle, badge: stats.reports },
     { id: "withdrawals", label: "Withdrawals", icon: Wallet, badge: withdrawalStats.pending || 0 },
     { id: "broadcast", label: "Broadcast", icon: Radio },
+    { id: "content", label: "Content", icon: Eye },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -1068,7 +1073,103 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ═══ BROADCAST TAB ═══ */}
+          {/* ═══ CONTENT MODERATION TAB ═══ */}
+      {tab === "content" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold flex items-center gap-2"><Eye className="w-5 h-5 text-purple-400" /> Content Moderation</h3>
+            <button onClick={async () => {
+              setContentLoading(true);
+              try {
+                const [p, s] = await Promise.all([
+                  fetch("/api/admin/content?type=posts").then(r => r.json()),
+                  fetch("/api/admin/content?type=stories").then(r => r.json()),
+                ]);
+                setContentPosts(p.posts || []);
+                setContentStories(s.stories || []);
+              } catch {} finally { setContentLoading(false); }
+            }} className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-xl text-sm font-bold hover:bg-purple-500/30 transition-all">
+              {contentLoading ? "Loading..." : "🔄 Refresh"}
+            </button>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={() => setContentTab("posts")} className={"px-4 py-2 rounded-xl text-sm font-bold transition-all " + (contentTab === "posts" ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "text-gray-400 hover:bg-gray-800")}>
+              Posts ({contentPosts.length})
+            </button>
+            <button onClick={() => setContentTab("stories")} className={"px-4 py-2 rounded-xl text-sm font-bold transition-all " + (contentTab === "stories" ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "text-gray-400 hover:bg-gray-800")}>
+              Stories ({contentStories.length})
+            </button>
+          </div>
+
+          {contentPosts.length === 0 && contentStories.length === 0 && !contentLoading && (
+            <div className="text-center py-12 bg-gray-800 rounded-2xl border border-gray-700">
+              <p className="text-gray-500 mb-3">Click Refresh to load content</p>
+              <button onClick={async () => {
+                setContentLoading(true);
+                try {
+                  const [p, s] = await Promise.all([
+                    fetch("/api/admin/content?type=posts").then(r => r.json()),
+                    fetch("/api/admin/content?type=stories").then(r => r.json()),
+                  ]);
+                  setContentPosts(p.posts || []);
+                  setContentStories(s.stories || []);
+                } catch {} finally { setContentLoading(false); }
+              }} className="px-6 py-3 bg-purple-500 text-white rounded-xl font-bold hover:bg-purple-600 transition-all">Load Content</button>
+            </div>
+          )}
+
+          {contentTab === "posts" && contentPosts.length > 0 && (
+            <div className="space-y-3">
+              {contentPosts.map((post: any) => (
+                <div key={post.id} className="bg-gray-800 rounded-2xl border border-gray-700 p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    {post.user?.profilePhoto ? <img src={post.user.profilePhoto} className="w-10 h-10 rounded-full object-cover" /> : <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-sm font-bold">{post.user?.name?.[0] || "?"}</div>}
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-white">{post.user?.name || "Unknown"}</p>
+                      <p className="text-xs text-gray-500">{post.user?.email} · {new Date(post.createdAt).toLocaleString()}</p>
+                    </div>
+                    <button onClick={async () => {
+                      if (!confirm("Delete this post permanently?")) return;
+                      await fetch("/api/admin/content", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", id: post.id, type: "post" }) });
+                      setContentPosts(prev => prev.filter(p => p.id !== post.id));
+                    }} className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/30 transition-all">
+                      🗑️ Delete
+                    </button>
+                  </div>
+                  {post.content && <p className="text-sm text-gray-300 mb-2">{post.content}</p>}
+                  {post.image && !post.image.startsWith("[VID]") && <img src={post.image.replace("[IMG]", "")} className="w-full max-h-48 object-cover rounded-xl" />}
+                  {post.image && post.image.startsWith("[VID]") && <video src={post.image.replace("[VID]", "")} controls className="w-full max-h-48 rounded-xl" />}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {contentTab === "stories" && contentStories.length > 0 && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {contentStories.map((story: any) => (
+                <div key={story.id} className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+                  {story.image && <img src={story.image} className="w-full h-40 object-cover" />}
+                  <div className="p-3">
+                    <p className="text-xs font-bold text-white truncate">{story.user?.name || "Unknown"}</p>
+                    <p className="text-[10px] text-gray-500">{new Date(story.createdAt).toLocaleString()}</p>
+                    {story.text && <p className="text-xs text-gray-400 mt-1 truncate">{story.text}</p>}
+                    <button onClick={async () => {
+                      if (!confirm("Delete this story?")) return;
+                      await fetch("/api/admin/content", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", id: story.id, type: "story" }) });
+                      setContentStories(prev => prev.filter(s => s.id !== story.id));
+                    }} className="mt-2 w-full py-1.5 bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold hover:bg-red-500/30 transition-all">
+                      🗑️ Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ BROADCAST TAB ═══ */}
       {tab === "broadcast" && (
         <div className="space-y-6">
           <div className="bg-gray-800 rounded-2xl border border-gray-700 p-6">
