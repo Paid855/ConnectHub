@@ -67,7 +67,7 @@ export default function NotificationsPage() {
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-3 mb-4">
-        {[{ k:"all", label:"All", count:notifs.length }, { k:"unread", label:"Unread", count:unreadCount }, { k:"match", label:"Matches" }, { k:"like", label:"Likes" }, { k:"message", label:"Messages" }, { k:"gift", label:"Gifts", "Whispers" }].map(f => (
+        {[{ k:"all", label:"All", count:notifs.length }, { k:"unread", label:"Unread", count:unreadCount }, { k:"match", label:"Matches" }, { k:"like", label:"Likes" }, { k:"message", label:"Messages" }, { k:"gift", label:"Gifts" }, { k:"whisper", label:"Whispers" }].map(f => (
           <button key={f.k} onClick={() => setFilter(f.k)} className={"px-3.5 py-2 rounded-xl text-xs font-medium border transition-all whitespace-nowrap " + (filter === f.k ? (dc ? "bg-rose-500/20 border-rose-500/50 text-rose-400" : "bg-rose-50 border-rose-200 text-rose-600") : (dc ? "bg-gray-800 border-gray-700 text-gray-400" : "bg-white border-gray-200 text-gray-600"))}>
             {f.label} {f.count !== undefined && <span className="ml-1 opacity-60">{f.count}</span>}
           </button>
