@@ -57,6 +57,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === "cancel") {
+    await prisma.friend.deleteMany({ where: { userId: id, friendId, status: "pending" } });
+    return NextResponse.json({ success: true });
+  }
+
   // Check existing
   const existing = await prisma.friend.findFirst({ where: { OR: [{ userId: id, friendId }, { userId: friendId, friendId: id }] } });
   if (existing) return NextResponse.json({ exists: true, status: existing.status });

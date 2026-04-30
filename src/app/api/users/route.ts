@@ -10,9 +10,19 @@ export async function GET(req: NextRequest) {
     const blocked = await prisma.block.findMany({ where: { OR: [{ blockerId: id }, { blockedId: id }] } });
     const blockedIds = blocked.map(b => b.blockerId === id ? b.blockedId : b.blockerId);
 
+    // Exclude users already liked/passed/super-liked
+    const myLikes = await prisma.like.findMany({ where: { fromUserId: id }, select: { toUserId: true } });
+    const likedIds = myLikes.map(l => l.toUserId);
+
+    // Exclude friends
+    const myFriends = await prisma.friend.findMany({ where: { OR: [{ userId: id, status: "accepted" }, { friendId: id, status: "accepted" }] } });
+    const friendIds = myFriends.map(f => f.userId === id ? f.friendId : f.userId);
+
+    const excludeIds = [...new Set([...blockedIds, ...likedIds, ...friendIds])];
+
     const users = await prisma.user.findMany({
       where: {
-        id: { not: id, notIn: blockedIds },
+        id: { not: id, notIn: excludeIds },
         tier: { not: "banned" },
         email: { not: "admin@connecthub.com" }
       },

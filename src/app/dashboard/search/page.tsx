@@ -102,6 +102,25 @@ export default function SearchPage() {
           <p className={"text-sm mb-3 " + (dc?"text-gray-400":"text-gray-500")}>{results.length} {results.length === 1 ? "user" : "users"} found</p>
           {results.length === 0 ? (
             <div className={"text-center py-12 rounded-2xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}><Search className={"w-10 h-10 mx-auto mb-3 " + (dc?"text-gray-600":"text-gray-300")} /><p className={dc?"text-gray-500":"text-gray-400"}>No users found</p></div>
+          ) : !isPaid ? (
+            <div className="relative">
+              <div className="space-y-2 opacity-40 blur-[2px] pointer-events-none">
+                {results.slice(0, 3).map(u => (
+                  <div key={u.id} className={"flex items-center gap-3 p-4 rounded-xl border " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100")}>
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-400 to-pink-400" />
+                    <div className="flex-1"><div className={"h-4 w-24 rounded " + (dc?"bg-gray-700":"bg-gray-200")} /><div className={"h-3 w-16 rounded mt-2 " + (dc?"bg-gray-700":"bg-gray-200")} /></div>
+                  </div>
+                ))}
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className={"rounded-2xl border p-8 text-center max-w-sm shadow-xl backdrop-blur-sm " + (dc?"bg-gray-800/90 border-gray-700":"bg-white/90 border-gray-200")}>
+                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg"><span className="text-3xl">🔍</span></div>
+                  <h3 className={"text-lg font-extrabold mb-2 " + (dc?"text-white":"text-gray-900")}>{results.length} Users Found!</h3>
+                  <p className={"text-sm mb-5 " + (dc?"text-gray-400":"text-gray-500")}>Upgrade to Plus or Premium to unlock search results and find your perfect match.</p>
+                  <a href="/dashboard/coins" className="block w-full py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm hover:shadow-lg transition-all">Upgrade Now</a>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="space-y-2">
               {results.map(u => (

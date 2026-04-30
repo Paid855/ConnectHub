@@ -131,7 +131,22 @@ export default function FriendsPage() {
                   </Link>
                 )}
                 {tab === "sent" && (
-                  <span className={"text-xs font-medium px-3 py-1.5 rounded-full " + (dc?"bg-amber-500/20 text-amber-400":"bg-amber-50 text-amber-600")}>Pending</span>
+                  <div className="flex items-center gap-2">
+                    <span className={"text-xs font-medium px-3 py-1.5 rounded-full " + (dc?"bg-amber-500/20 text-amber-400":"bg-amber-50 text-amber-600")}>Pending</span>
+                    {(user?.tier === "plus" || user?.tier === "premium" || user?.tier === "gold") ? (
+                      <button onClick={async () => {
+                        if (!confirm("Cancel this friend request?")) return;
+                        await fetch("/api/friends", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ friendId: p.id, action: "cancel" }) });
+                        load();
+                      }} className={"w-10 h-10 border-2 rounded-xl flex items-center justify-center hover:bg-red-50 transition-all " + (dc?"border-gray-600 text-red-400 hover:border-red-500":"border-gray-200 text-red-400 hover:border-red-400")}>
+                        <UserX className="w-5 h-5" />
+                      </button>
+                    ) : (
+                      <button onClick={() => alert("Upgrade to Plus or Premium to cancel friend requests")} className={"w-10 h-10 border-2 rounded-xl flex items-center justify-center opacity-50 " + (dc?"border-gray-600 text-gray-500":"border-gray-200 text-gray-400")}>
+                        <Crown className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

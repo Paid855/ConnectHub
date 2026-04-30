@@ -27,6 +27,17 @@ export default function DiscoverPage() {
   const [todayPasses, setTodayPasses] = useState(0);
   const [superLikeAnim, setSuperLikeAnim] = useState(false);
 
+  const rewind = () => {
+    if (lastPassed === null) return;
+    if (user?.tier === "free" || user?.tier === "basic") {
+      setSuperLikeError("Rewind is a Premium feature. Upgrade to undo your last swipe!");
+      return;
+    }
+    setCurrent(lastPassed);
+    setLastPassed(null);
+    setAction("");
+  };
+
   const handleAction = async (type: string) => {
     if (!profiles[current]) return;
     setAction(type);
@@ -110,7 +121,7 @@ export default function DiscoverPage() {
   const tierGrad = profile.tier==="gold"?"from-amber-400 to-orange-500":profile.tier==="premium"?"from-rose-500 to-purple-500":"from-rose-400 to-pink-500";
 
   return (
-    <div className="max-w-lg lg:max-w-4xl mx-auto">
+    <div className="max-w-lg lg:max-w-4xl mx-auto pt-2">
       {/* Greeting */}
       <div className="mb-5">
         <h1 className={"text-xl font-extrabold " + (dc?"text-white":"text-gray-900")}>
@@ -300,7 +311,7 @@ export default function DiscoverPage() {
           else if (data.upgrade) { setSuperLikeError("Profile boost requires Plus or Premium. Upgrade to stand out!"); }
           else { alert(data.error || "Could not boost"); }
         }} className={"flex-1 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border transition-all hover:shadow-md " + (dc?"bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20":"bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 text-amber-600 hover:bg-amber-100")}>
-          <Zap className="w-4 h-4" /> Boost Profile
+          <Zap className="w-4 h-4" /> Boost {user?.tier === "free" || user?.tier === "basic" ? "👑" : ""}
         </button>
         <Link href="/dashboard/liked" className={"flex-1 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border transition-all hover:shadow-md " + (dc?"bg-gradient-to-r from-rose-500/10 to-pink-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20":"bg-gradient-to-r from-rose-50 to-pink-50 border-rose-200 text-rose-600 hover:bg-rose-100")}>
           <Heart className="w-4 h-4" /> Who Likes Me
