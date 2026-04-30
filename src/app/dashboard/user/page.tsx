@@ -19,6 +19,7 @@ export default function UserProfilePage() {
   const [likeAnim, setLikeAnim] = useState(false);
 
   const [mutualFriends, setMutualFriends] = useState<any[]>([]);
+  const [viewingPhoto, setViewingPhoto] = useState<string|null>(null);
 
   useEffect(() => {
     if (!viewId) { setLoading(false); return; }
@@ -222,6 +223,20 @@ export default function UserProfilePage() {
           </div>
         );
       })()}
+
+      {/* Photo Gallery */}
+      {profile.photos && profile.photos.length > 0 && (
+        <div className={"mt-4 rounded-2xl border p-5 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100")}>
+          <h3 className={"text-sm font-bold mb-3 flex items-center gap-2 " + (dc ? "text-gray-300" : "text-gray-800")}><span className="text-purple-500">📸</span> Photos <span className={"text-xs font-normal " + (dc?"text-gray-500":"text-gray-400")}>{profile.photos.length}</span></h3>
+          <div className="grid grid-cols-3 gap-1.5">
+            {profile.photos.map((photo: string, i: number) => (
+              <div key={i} className="relative rounded-lg overflow-hidden aspect-square cursor-pointer group" onClick={() => setViewingPhoto(photo)}>
+                <img src={photo} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Prompts */}
       {profile.prompts && (() => {

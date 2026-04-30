@@ -1,5 +1,4 @@
 import { getUserId } from "@/lib/auth";
-import { rateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -31,16 +30,21 @@ export async function GET(req: NextRequest) {
   }
   if (interest) where.interests = { has: interest };
   if (gender) where.gender = gender;
-  if (country) where.country = { contains: country, mode: "insensitive" };
+  if (country && !q) where.country = { contains: country, mode: "insensitive" };
+  if (country && q) { where.AND = [...(where.AND || []), { country: { contains: country, mode: "insensitive" } }]; }
   if (ageMin > 0) where.age = { ...(where.age || {}), gte: ageMin };
   if (ageMax > 0) where.age = { ...(where.age || {}), lte: ageMax };
 
-  const users = await prisma.user.findMany({
-    where,
-    select: { id:true, name:true, username:true, age:true, gender:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, interests:true, lastSeen:true },
-    take: 30,
-    orderBy: { lastSeen: "desc" }
-  });
-
-  return NextResponse.json({ users });
+  try {
+    const users = await prisma.user.findMany({
+      where,
+      select: { id:true, name:true, username:true, age:true, gender:true, bio:true, country:true, profilePhoto:true, tier:true, verified:true, interests:true, lastSeen:true },
+      take: 30,
+      orderBy: { lastSeen: "desc" }
+    });
+    return NextResponse.json({ users });
+  } catch (e: any) {
+    console.error("Search API error:", e?.message);
+    return NextResponse.json({ users: [], error: "Search failed" });
+  }
 }

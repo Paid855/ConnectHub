@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   // Build photos array
   let photos: string[] = [];
   if (user.profilePhoto) photos.push(user.profilePhoto);
-  try { const p = JSON.parse(user.photos as string || "[]"); if (Array.isArray(p)) photos.push(...p); } catch {}
+  if (Array.isArray(user.photos)) photos.push(...user.photos);
 
   // Get stats
   const [postCount, friendCount] = await Promise.all([
@@ -60,6 +60,9 @@ export async function GET(req: NextRequest) {
       postCount, friendCount,
       friendshipStatus: friendship?.status || null,
       isFriend: friendship?.status === "accepted",
+      prompts: user.prompts || null,
+      detectedCity: user.detectedCity || null,
+      detectedCountry: user.detectedCountry || null,
     }
   });
 }

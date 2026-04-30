@@ -27,7 +27,15 @@ export default function BrowsePage() {
   };
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => { fetch("/api/users").then(r=>r.json()).then(d=>{setProfiles(d.users||[]);setLoading(false);}).catch(()=>setLoading(false)); }, []);
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetch("/api/users").then(r=>r.json()).then(d=>{setProfiles(d.users||[]);setLoading(false);}).catch(()=>setLoading(false));
+    fetch("/api/friends").then(r=>r.json()).then(d=>{
+      const ids = (d.friends||[]).map((f:any) => f.user?.id).filter(Boolean);
+      setFriendIds(new Set(ids));
+    }).catch(()=>{});
+  }, []);
 
   const timeAgo = (d: string|null|undefined) => {
     if (!d) return "";
@@ -51,7 +59,7 @@ export default function BrowsePage() {
 
   const sendMessage = async (receiverId: string) => {
     await fetch("/api/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ receiverId, content:"Hey! I saw your profile and wanted to say hi! 👋" }) });
-    router.push("/dashboard/messages");
+    router.push("/dashboard/messages?chat=" + receiverId);
   };
 
   const sendLike = async (friendId: string) => {
@@ -172,13 +180,27 @@ export default function BrowsePage() {
                     {p.interests.length > 3 && <span className={"text-[10px] font-semibold px-2 py-0.5 rounded-full " + (dc?"bg-gray-700 text-gray-400":"bg-gray-100 text-gray-500")}>+{p.interests.length-3}</span>}
                   </div>
                 )}
+                {/* Friend status */}
+                {friendIds.has(p.id) && (
+                  <div className={"flex items-center gap-1.5 mb-2 px-2.5 py-1 rounded-full w-fit text-[10px] font-bold " + (dc?"bg-emerald-500/20 text-emerald-400":"bg-emerald-50 text-emerald-600")}>
+                    <span>✓</span> Friends
+                  </div>
+                )}
                 <div className="flex gap-2">
-                  <button onClick={()=>sendMessage(p.id)} className="flex-1 py-2 sm:py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1 sm:gap-1.5 hover:shadow-lg hover:shadow-rose-200/30 transition-all">
-                    <MessageCircle className="w-4 h-4" />Say Hi
-                  </button>
-                  <button onClick={()=>sendLike(p.id)} className={"w-11 h-11 border-2 rounded-xl flex items-center justify-center transition-all hover:scale-110 " + (dc?"border-gray-600 text-gray-400 hover:border-rose-500 hover:text-rose-500":"border-gray-200 text-gray-400 hover:border-rose-400 hover:text-rose-500")}>
-                    <Heart className="w-5 h-5" />
-                  </button>
+                  {friendIds.has(p.id) ? (
+                    <Link href={"/dashboard/messages?chat=" + p.id} className="flex-1 py-2 sm:py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1 sm:gap-1.5 hover:shadow-lg transition-all">
+                      <MessageCircle className="w-4 h-4" />Message
+                    </Link>
+                  ) : (
+                    <button onClick={()=>sendMessage(p.id)} className="flex-1 py-2 sm:py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1 sm:gap-1.5 hover:shadow-lg hover:shadow-rose-200/30 transition-all">
+                      <MessageCircle className="w-4 h-4" />Say Hi
+                    </button>
+                  )}
+                  {!friendIds.has(p.id) && (
+                    <button onClick={()=>sendLike(p.id)} className={"w-11 h-11 border-2 rounded-xl flex items-center justify-center transition-all hover:scale-110 " + (dc?"border-gray-600 text-gray-400 hover:border-rose-500 hover:text-rose-500":"border-gray-200 text-gray-400 hover:border-rose-400 hover:text-rose-500")}>
+                      <Heart className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -92,6 +92,10 @@ export default function ProfilePage() {
   const [postCount, setPostCount] = useState(0);
   const [myPosts, setMyPosts] = useState<any[]>([]);
   const [viewCount, setViewCount] = useState(0);
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [viewPhoto, setViewPhoto] = useState<string|null>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -113,6 +117,7 @@ export default function ProfilePage() {
     }
     fetch("/api/feed").then(r=>r.json()).then(d=>{ const mine = (d.feed||[]).filter((p:any)=>p.userId===user?.id); setPostCount(mine.length); setMyPosts(mine.slice(0,10)); }).catch(()=>{});
     fetch("/api/friends").then(r=>r.json()).then(d=>{ setFriendCount((d.friends||[]).length); }).catch(()=>{});
+    if (user?.photos) setGalleryPhotos(user.photos);
     fetch("/api/profile-views").then(r=>r.json()).then(d=>{ setViewCount(d.total || 0); }).catch(()=>{});
   }, [user]);
 
@@ -154,6 +159,56 @@ export default function ProfilePage() {
       alert(err?.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert("Photo too large (max 10MB)"); return; }
+    if (galleryPhotos.length >= 16) { alert("Maximum 16 photos. Remove one first."); return; }
+    setUploadingGallery(true);
+    try {
+      const cloudUrl = await uploadProfilePhoto(file);
+      const res = await fetch("/api/auth/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addPhoto: cloudUrl })
+      });
+      if (res.ok) {
+        setGalleryPhotos(prev => [...prev, cloudUrl]);
+        setSuccess("Photo added to gallery!");
+        setTimeout(() => setSuccess(""), 3000);
+      }
+    } catch (err: any) {
+      alert("Upload failed. Please try again.");
+    } finally {
+      setUploadingGallery(false);
+      if (galleryRef.current) galleryRef.current.value = "";
+    }
+  };
+
+  const removeGalleryPhoto = async (url: string) => {
+    if (!confirm("Remove this photo from your gallery?")) return;
+    await fetch("/api/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ removePhoto: url })
+    });
+    setGalleryPhotos(prev => prev.filter(p => p !== url));
+  };
+
+  const setAsProfilePhoto = async (url: string) => {
+    if (!confirm("Set this as your main profile picture?")) return;
+    const res = await fetch("/api/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profilePhoto: url })
+    });
+    if (res.ok) {
+      setSuccess("Profile picture updated!");
+      reload();
+      setTimeout(() => setSuccess(""), 3000);
     }
   };
 
@@ -513,6 +568,76 @@ export default function ProfilePage() {
             </div>
           )}
         </>
+      )}
+
+      {/* ═══ PHOTO GALLERY (visible on About tab) ═══ */}
+      {activeTab === "about" && (
+        <div className={"rounded-2xl border p-6 mb-5 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-sm")}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={"text-xs font-extrabold uppercase tracking-[0.2em] flex items-center gap-2 " + (dc?"text-gray-500":"text-gray-400")}>
+              <Camera className="w-3.5 h-3.5 text-purple-500" /> My Photos
+              <span className={"text-[10px] font-medium " + (dc?"text-gray-600":"text-gray-400")}>{galleryPhotos.length}/16</span>
+            </h3>
+            <button onClick={() => galleryRef.current?.click()} disabled={uploadingGallery || galleryPhotos.length >= 16} className={"px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-40 " + (dc?"bg-purple-500/20 text-purple-400 hover:bg-purple-500/30":"bg-purple-50 text-purple-600 hover:bg-purple-100")}>
+              {uploadingGallery ? "Uploading..." : "+ Add Photo"}
+            </button>
+          </div>
+          <input ref={galleryRef} type="file" accept="image/*" onChange={handleGalleryUpload} className="hidden" />
+
+          {galleryPhotos.length === 0 ? (
+            <div className={"text-center py-8 rounded-xl border-2 border-dashed " + (dc?"border-gray-700":"border-gray-200")} onClick={() => galleryRef.current?.click()}>
+              <Camera className={"w-8 h-8 mx-auto mb-2 " + (dc?"text-gray-600":"text-gray-300")} />
+              <p className={"text-sm font-medium " + (dc?"text-gray-500":"text-gray-400")}>Add photos to your gallery</p>
+              <p className={"text-xs mt-1 " + (dc?"text-gray-600":"text-gray-400")}>Show more of yourself — profiles with photos get 5x more matches!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {galleryPhotos.map((photo, i) => (
+                <div key={i} className="relative group rounded-xl overflow-hidden aspect-square">
+                  <img src={photo} className="w-full h-full object-cover cursor-pointer" onClick={() => setViewPhoto(photo)} />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="flex gap-1.5">
+                      <button onClick={() => setAsProfilePhoto(photo)} className="p-2 bg-white/90 rounded-lg hover:bg-white transition-all" title="Set as profile photo">
+                        <User className="w-4 h-4 text-rose-500" />
+                      </button>
+                      <button onClick={() => setViewPhoto(photo)} className="p-2 bg-white/90 rounded-lg hover:bg-white transition-all" title="View">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                      </button>
+                      <button onClick={() => removeGalleryPhoto(photo)} className="p-2 bg-white/90 rounded-lg hover:bg-white transition-all" title="Remove">
+                        <X className="w-4 h-4 text-red-500" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {galleryPhotos.length < 16 && (
+                <div className={"rounded-xl border-2 border-dashed aspect-square flex items-center justify-center cursor-pointer transition-all " + (dc?"border-gray-700 hover:border-purple-500/50":"border-gray-200 hover:border-purple-300")} onClick={() => galleryRef.current?.click()}>
+                  <div className="text-center">
+                    <span className={"text-2xl " + (dc?"text-gray-600":"text-gray-300")}>+</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Photo viewer */}
+      {viewPhoto && (
+        <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center" onClick={() => setViewPhoto(null)}>
+          <button onClick={() => setViewPhoto(null)} className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 text-white hover:bg-white/20 z-10">
+            <X className="w-6 h-6" />
+          </button>
+          <img src={viewPhoto} className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" onClick={e => e.stopPropagation()} />
+          <div className="absolute bottom-6 flex gap-3" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setAsProfilePhoto(viewPhoto)} className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-bold hover:shadow-lg transition-all">
+              Set as Profile Picture
+            </button>
+            <a href={viewPhoto} download className="px-5 py-2.5 bg-white/10 text-white rounded-full text-sm font-bold hover:bg-white/20 transition-all border border-white/20">
+              Download
+            </a>
+          </div>
+        </div>
       )}
 
       {/* ═══ POSTS TAB ═══ */}

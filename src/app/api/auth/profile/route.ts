@@ -50,6 +50,32 @@ export async function PUT(req: NextRequest) {
     }
   }
 
+  // Handle photos gallery
+  if (body.photos !== undefined && Array.isArray(body.photos)) {
+    updateData.photos = body.photos.slice(0, 16); // max 16 photos
+  }
+
+  // Add single photo to gallery
+  if (body.addPhoto !== undefined && typeof body.addPhoto === "string") {
+    const currentUser = await prisma.user.findUnique({ where: { id }, select: { photos: true } });
+    const currentPhotos = currentUser?.photos || [];
+    if (currentPhotos.length >= 16) {
+      return NextResponse.json({ error: "Maximum 16 photos allowed" }, { status: 400 });
+    }
+    updateData.photos = [...currentPhotos, body.addPhoto];
+  }
+
+  // Remove photo from gallery
+  if (body.removePhoto !== undefined && typeof body.removePhoto === "string") {
+    const currentUser = await prisma.user.findUnique({ where: { id }, select: { photos: true } });
+    updateData.photos = (currentUser?.photos || []).filter((p: string) => p !== body.removePhoto);
+  }
+
+  // Handle prompts
+  if (body.prompts !== undefined) {
+    updateData.prompts = body.prompts;
+  }
+
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json({ error: "No changes" }, { status: 400 });
   }
