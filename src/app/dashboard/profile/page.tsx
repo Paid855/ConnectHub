@@ -33,6 +33,62 @@ export default function ProfilePage() {
   const [phoneSearch, setPhoneSearch] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("about");
+  const [prompts, setPrompts] = useState<{question:string;answer:string}[]>([]);
+  const [editingPrompt, setEditingPrompt] = useState<number|null>(null);
+  const [promptAnswer, setPromptAnswer] = useState("");
+
+  const PROMPT_OPTIONS = [
+    "My ideal first date would be...",
+    "The way to win me over is...",
+    "I'm looking for someone who...",
+    "Two truths and a lie...",
+    "My love language is...",
+    "A fun fact about me...",
+    "I geek out on...",
+    "The most spontaneous thing I've done...",
+    "My simple pleasures are...",
+    "I'm convinced that...",
+    "My go-to karaoke song is...",
+    "The key to my heart is...",
+    "On a Sunday morning you'll find me...",
+    "My biggest pet peeve is...",
+    "I'll know it's love when...",
+  ];
+
+  useEffect(() => {
+    fetch("/api/auth/profile").then(r => r.json()).then(d => {
+      if (d.user?.prompts) {
+        try { setPrompts(JSON.parse(d.user.prompts)); } catch {}
+      }
+    }).catch(() => {});
+  }, []);
+
+  const savePrompt = async (question: string, answer: string, index?: number) => {
+    const updated = [...prompts];
+    if (index !== undefined && index < updated.length) {
+      updated[index] = { question, answer };
+    } else {
+      updated.push({ question, answer });
+    }
+    setPrompts(updated);
+    setEditingPrompt(null);
+    setPromptAnswer("");
+    await fetch("/api/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompts: JSON.stringify(updated) }),
+    });
+  };
+
+  const removePrompt = async (index: number) => {
+    const updated = prompts.filter((_, i) => i !== index);
+    setPrompts(updated);
+    await fetch("/api/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompts: JSON.stringify(updated) }),
+    });
+  };
   const [postCount, setPostCount] = useState(0);
   const [myPosts, setMyPosts] = useState<any[]>([]);
   const [showDelete, setShowDelete] = useState(false);
@@ -320,6 +376,51 @@ export default function ProfilePage() {
             <p className={"leading-relaxed " + (dc?"text-gray-300":"text-gray-700") + (user.bio ? " text-sm" : " text-sm italic text-gray-400")}>
               {user.bio || "No bio yet — click Edit to share your story!"}
             </p>
+          </div>
+
+          {/* ═══ PROFILE PROMPTS ═══ */}
+          <div className={"rounded-2xl border p-6 mb-5 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-sm")}>
+            <h3 className={"text-xs font-extrabold uppercase tracking-[0.2em] mb-4 flex items-center gap-2 " + (dc?"text-gray-500":"text-gray-400")}>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" /> My Prompts
+            </h3>
+
+            {/* Existing prompts */}
+            {prompts.map((p, i) => (
+              <div key={i} className={"rounded-xl p-4 mb-3 group relative " + (dc?"bg-gray-700/50 border border-gray-600":"bg-gradient-to-br from-rose-50/50 to-pink-50/50 border border-rose-100")}>
+                <p className={"text-xs font-bold uppercase tracking-wider mb-2 " + (dc?"text-rose-400":"text-rose-500")}>{p.question}</p>
+                <p className={"text-sm leading-relaxed " + (dc?"text-gray-200":"text-gray-700")}>{p.answer}</p>
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                  <button onClick={() => { setEditingPrompt(i); setPromptAnswer(p.answer); }} className={"p-1.5 rounded-lg " + (dc?"hover:bg-gray-600":"hover:bg-rose-100")}><Edit3 className="w-3 h-3 text-gray-400" /></button>
+                  <button onClick={() => removePrompt(i)} className={"p-1.5 rounded-lg " + (dc?"hover:bg-red-500/20":"hover:bg-red-50")}><X className="w-3 h-3 text-red-400" /></button>
+                </div>
+              </div>
+            ))}
+
+            {/* Add/Edit prompt */}
+            {editingPrompt !== null ? (
+              <div className={"rounded-xl border p-4 " + (dc?"bg-gray-700 border-gray-600":"bg-white border-gray-200")}>
+                <p className={"text-xs font-bold mb-2 " + (dc?"text-rose-400":"text-rose-500")}>{editingPrompt < prompts.length ? prompts[editingPrompt].question : PROMPT_OPTIONS[editingPrompt]}</p>
+                <textarea value={promptAnswer} onChange={e => setPromptAnswer(e.target.value)} placeholder="Write your answer..." className={"w-full px-3 py-2.5 rounded-lg border text-sm resize-none h-20 outline-none " + (dc?"bg-gray-800 border-gray-600 text-white":"bg-gray-50 border-gray-200 focus:ring-2 focus:ring-rose-200")} maxLength={200} />
+                <div className="flex justify-between items-center mt-2">
+                  <span className={"text-[10px] " + (dc?"text-gray-500":"text-gray-400")}>{promptAnswer.length}/200</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setEditingPrompt(null); setPromptAnswer(""); }} className={"px-3 py-1.5 text-xs font-bold rounded-lg " + (dc?"text-gray-400 hover:bg-gray-600":"text-gray-500 hover:bg-gray-100")}>Cancel</button>
+                    <button onClick={() => savePrompt(editingPrompt < prompts.length ? prompts[editingPrompt].question : PROMPT_OPTIONS[editingPrompt], promptAnswer, editingPrompt < prompts.length ? editingPrompt : undefined)} disabled={!promptAnswer.trim()} className="px-4 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-lg disabled:opacity-40 hover:shadow-lg transition-all">Save</button>
+                  </div>
+                </div>
+              </div>
+            ) : prompts.length < 3 && (
+              <div>
+                <p className={"text-xs mb-3 " + (dc?"text-gray-500":"text-gray-400")}>Add up to 3 prompts to make your profile stand out</p>
+                <div className="flex flex-wrap gap-2">
+                  {PROMPT_OPTIONS.filter(q => !prompts.find(p => p.question === q)).slice(0, 6).map((q, i) => (
+                    <button key={i} onClick={() => { setEditingPrompt(prompts.length + i); setPromptAnswer(""); }} className={"px-3 py-2 rounded-xl text-xs font-medium border transition-all " + (dc?"bg-gray-700 border-gray-600 text-gray-300 hover:border-rose-500/50":"bg-white border-gray-200 text-gray-600 hover:border-rose-300 hover:bg-rose-50")}>
+                      + {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-5">

@@ -185,6 +185,27 @@ export default function UserProfilePage() {
         );
       })()}
 
+      {/* Prompts */}
+      {profile.prompts && (() => {
+        try {
+          const prompts = JSON.parse(profile.prompts);
+          if (!Array.isArray(prompts) || prompts.length === 0) return null;
+          return (
+            <div className={"mt-4 rounded-2xl border p-5 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100")}>
+              <h3 className={"text-sm font-bold mb-3 flex items-center gap-2 " + (dc ? "text-gray-300" : "text-gray-800")}><span className="text-amber-500">✨</span> Prompts</h3>
+              <div className="space-y-3">
+                {prompts.map((p: any, i: number) => (
+                  <div key={i} className={"rounded-xl p-4 " + (dc ? "bg-gray-700/50 border border-gray-600" : "bg-gradient-to-br from-rose-50/50 to-pink-50/50 border border-rose-100")}>
+                    <p className={"text-xs font-bold uppercase tracking-wider mb-1.5 " + (dc ? "text-rose-400" : "text-rose-500")}>{p.question}</p>
+                    <p className={"text-sm leading-relaxed " + (dc ? "text-gray-200" : "text-gray-700")}>{p.answer}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        } catch { return null; }
+      })()}
+
       {/* Interests */}
       {profile.interests && profile.interests.length > 0 && (
         <div className={"mt-4 rounded-2xl border p-5 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100")}>

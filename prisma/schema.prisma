@@ -55,6 +55,7 @@ model User {
   referralCode       String?
   referredBy         String?
   interests          String[]  @default([])
+  prompts            String?
   lastSeen           DateTime @default(now())
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
