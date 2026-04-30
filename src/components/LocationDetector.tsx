@@ -162,15 +162,32 @@ export default function LocationDetector() {
                 });
                 sessionStorage.setItem("location_gps_v3", "done");
               },
-              () => { setDismissed(true); },
+              () => {
+                // GPS denied again — silently fallback to IP
+                setShowPrompt(false);
+                setDismissed(true);
+                fetch("https://ipapi.co/json/").then(r => r.json()).then(data => {
+                  fetch("/api/location", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      detectedCity: data.city || "",
+                      detectedCountry: data.country_name || "",
+                      countryCode: data.country_code || "",
+                      latitude: data.latitude || 0,
+                      longitude: data.longitude || 0,
+                      source: "ip_fallback"
+                    }),
+                  });
+                  sessionStorage.setItem("location_gps_v3", "done");
+                }).catch(() => {});
+              },
               { enableHighAccuracy: true, timeout: 15000 }
             );
           }} className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm hover:shadow-lg transition-all mb-3">
             Allow Location Access
           </button>
-          <button onClick={() => setDismissed(true)} className="text-xs text-gray-400 hover:text-gray-600">
-            Skip for now
-          </button>
+          <p className="text-[10px] text-rose-400 font-medium mt-1">Location is required for safety verification</p>
           <p className="text-[10px] text-gray-400 mt-3">Your exact address is never shared. Only your city is shown on your profile.</p>
         </div>
       </div>

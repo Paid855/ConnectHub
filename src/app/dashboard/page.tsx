@@ -107,7 +107,7 @@ export default function DiscoverPage() {
   const tierGrad = profile.tier==="gold"?"from-amber-400 to-orange-500":profile.tier==="premium"?"from-rose-500 to-purple-500":"from-rose-400 to-pink-500";
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="max-w-lg lg:max-w-4xl mx-auto">
       {/* Greeting */}
       <div className="mb-5">
         <h1 className={"text-xl font-extrabold " + (dc?"text-white":"text-gray-900")}>
@@ -173,8 +173,9 @@ export default function DiscoverPage() {
         </div>
       )}
 
-      {/* Main card */}
-      <div className={"relative rounded-3xl overflow-hidden shadow-2xl border mx-auto max-w-sm sm:max-w-md " + (dc?"border-gray-700 shadow-black/50":"border-gray-100 shadow-rose-100/50") + " " + (action==="like"?"translate-x-20 rotate-6 opacity-0":action==="pass"?"-translate-x-20 -rotate-6 opacity-0":"") + " transition-all duration-500"}>
+      {/* Main cards — two side by side on desktop */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-6">
+      <div className={"relative rounded-3xl overflow-hidden shadow-2xl border mx-auto max-w-sm sm:max-w-md lg:max-w-none " + (dc?"border-gray-700 shadow-black/50":"border-gray-100 shadow-rose-100/50") + " " + (action==="like"?"translate-x-20 rotate-6 opacity-0":action==="pass"?"-translate-x-20 -rotate-6 opacity-0":"") + " transition-all duration-500"}>
         {/* Photo */}
         <div className="relative aspect-[3/4]" onClick={()=>setShowDetails(!showDetails)}>
           {profile.profilePhoto ? (
