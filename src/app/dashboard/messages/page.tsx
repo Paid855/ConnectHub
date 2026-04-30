@@ -165,6 +165,12 @@ export default function MessagesPage() {
   const [gifs, setGifs] = useState<string[]>([]);
   const [gifLoading, setGifLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const notifSound = useRef<HTMLAudioElement|null>(null);
+
+  useEffect(() => {
+    notifSound.current = new Audio("/sounds/notify.wav");
+    notifSound.current.volume = 0.4;
+  }, []);
   const mediaRecorder = useRef<MediaRecorder|null>(null);
   const typingTimeout = useRef<NodeJS.Timeout|null>(null);
   const lastTypingSent = useRef(0);
@@ -180,6 +186,7 @@ export default function MessagesPage() {
     } catch { setLoading(false); }
   };
 
+  const prevMsgCount = useRef(0);
   const loadMessages = async (userId: string) => {
     try {
       const res = await fetch("/api/messages?with=" + userId);

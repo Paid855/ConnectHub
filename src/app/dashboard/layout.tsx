@@ -31,6 +31,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [pageLoading, setPageLoading] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const prevUnread = useRef(0);
+  const layoutNotifSound = useRef<HTMLAudioElement|null>(null);
+
+  useEffect(() => {
+    layoutNotifSound.current = new Audio("/sounds/notify.wav");
+    layoutNotifSound.current.volume = 0.3;
+  }, []);
+
+  useEffect(() => {
+    if (unread > prevUnread.current && prevUnread.current >= 0) {
+      layoutNotifSound.current?.play().catch(() => {});
+    }
+    prevUnread.current = unread;
+  }, [unread]);
   const [dark, setDark] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const lastReadTime = useRef(0);
