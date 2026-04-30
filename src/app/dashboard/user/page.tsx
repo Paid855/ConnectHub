@@ -18,12 +18,28 @@ export default function UserProfilePage() {
   const [photoViewer, setPhotoViewer] = useState<string | null>(null);
   const [likeAnim, setLikeAnim] = useState(false);
 
+  const [mutualFriends, setMutualFriends] = useState<any[]>([]);
+
   useEffect(() => {
     if (!viewId) { setLoading(false); return; }
     fetch("/api/users/profile?id=" + viewId).then(r => r.json()).then(d => {
       if (d.user) setProfile(d.user);
       setLoading(false);
     }).catch(() => setLoading(false));
+
+    // Track profile view
+    fetch("/api/profile-views", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ viewedId: viewId }) }).catch(() => {});
+
+    // Load mutual friends
+    fetch("/api/friends").then(r => r.json()).then(d => {
+      const myFriends = (d.friends || []).map((f: any) => f.id);
+      fetch("/api/users/profile?id=" + viewId).then(r => r.json()).then(d2 => {
+        if (d2.user?.friends) {
+          const mutual = d2.user.friends.filter((f: any) => myFriends.includes(f.id));
+          setMutualFriends(mutual);
+        }
+      }).catch(() => {});
+    }).catch(() => {});
   }, [viewId]);
 
   const sendFriendReq = async () => {
@@ -157,6 +173,28 @@ export default function UserProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Mutual Friends */}
+      {mutualFriends.length > 0 && (
+        <div className={"mt-4 rounded-2xl border p-4 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100")}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm">🤝</span>
+            <h3 className={"text-sm font-bold " + (dc ? "text-gray-300" : "text-gray-800")}>{mutualFriends.length} Mutual Friend{mutualFriends.length > 1 ? "s" : ""}</h3>
+          </div>
+          <div className="flex -space-x-2">
+            {mutualFriends.slice(0, 5).map((f: any) => (
+              <div key={f.id} className="relative" title={f.name}>
+                {f.profilePhoto ? (
+                  <img src={f.profilePhoto} className="w-8 h-8 rounded-full object-cover border-2 border-white dark:border-gray-800" alt={f.name} />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white text-xs font-bold border-2 border-white dark:border-gray-800">{f.name?.[0]}</div>
+                )}
+              </div>
+            ))}
+            {mutualFriends.length > 5 && <div className={"w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 " + (dc ? "bg-gray-700 border-gray-800 text-gray-400" : "bg-gray-100 border-white text-gray-500")}>+{mutualFriends.length - 5}</div>}
+          </div>
+        </div>
+      )}
 
       {/* Bio */}
       {profile.bio && (

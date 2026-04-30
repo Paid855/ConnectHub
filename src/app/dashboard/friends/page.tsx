@@ -126,7 +126,7 @@ export default function FriendsPage() {
                   </>
                 )}
                 {tab === "friends" && (
-                  <Link href={"/dashboard/messages?user="+p.id} className="w-10 h-10 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl flex items-center justify-center hover:shadow-lg transition-all">
+                  <Link href={"/dashboard/messages?chat="+p.id} className="w-10 h-10 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl flex items-center justify-center hover:shadow-lg transition-all">
                     <MessageCircle className="w-5 h-5" />
                   </Link>
                 )}
