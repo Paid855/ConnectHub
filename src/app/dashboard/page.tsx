@@ -247,6 +247,38 @@ export default function DiscoverPage() {
         </Link>
       </div>
 
+      {/* Second card — desktop only */}
+      {profiles[current + 1] && (
+        <div className={"hidden lg:block relative rounded-3xl overflow-hidden shadow-2xl border " + (dc?"border-gray-700 shadow-black/50":"border-gray-100 shadow-rose-100/50")}>
+          {(() => {
+            const p2 = profiles[current + 1];
+            const t2 = p2.tier==="gold"?"from-amber-400 to-orange-500":p2.tier==="premium"?"from-rose-500 to-purple-500":"from-rose-400 to-pink-500";
+            return (
+              <>
+                <div className="relative aspect-[3/4] cursor-pointer" onClick={() => setCurrent(current + 1)}>
+                  {p2.profilePhoto ? <img src={p2.profilePhoto} className="w-full h-full object-cover" /> : <div className={"w-full h-full bg-gradient-to-br " + t2 + " flex items-center justify-center"}><span className="text-8xl font-bold text-white/20">{p2.name[0]}</span></div>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  {p2.lastSeen && Date.now() - new Date(p2.lastSeen).getTime() < 300000 && <div className="absolute top-4 left-4 bg-emerald-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"><span className="w-2 h-2 bg-white rounded-full animate-pulse" /> Online</div>}
+                  {p2.verified && <div className="absolute top-4 right-4 bg-blue-500/90 backdrop-blur text-white text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" /> Verified</div>}
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <h2 className="text-white text-3xl font-extrabold mb-1">{p2.name}{p2.age ? <span className="font-normal text-2xl">, {p2.age}</span> : ""}</h2>
+                    <div className="flex items-center gap-3 text-white/80 text-sm">
+                      {(p2.detectedCity || p2.country) && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {p2.detectedCity || p2.country}</span>}
+                      {p2.gender && <span>{p2.gender}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className={"p-4 flex justify-center gap-3 " + (dc?"bg-gray-800":"bg-white")}>
+                  <button onClick={() => { setCurrent(c => c + 1); }} className={"w-12 h-12 rounded-full flex items-center justify-center border-2 hover:scale-110 transition-transform " + (dc?"border-gray-600 text-gray-400 hover:border-red-500 hover:text-red-500":"border-gray-200 text-gray-400 hover:border-red-500 hover:text-red-500")}><X className="w-6 h-6" /></button>
+                  <button onClick={async () => { const res = await fetch("/api/discover", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({targetId:p2.id, type:"like"}) }); const data = await res.json(); if(data.match) setMatchPopup(p2); setCurrent(c => c + 1); }} className="w-14 h-14 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 text-white flex items-center justify-center shadow-lg shadow-rose-300/40 hover:scale-110 transition-transform"><Heart className="w-7 h-7" /></button>
+                  <Link href={"/dashboard/user?id=" + p2.id} className={"w-12 h-12 rounded-full flex items-center justify-center border-2 hover:scale-110 transition-transform " + (dc?"border-gray-600 text-blue-400":"border-gray-200 text-blue-500")}><Eye className="w-5 h-5" /></Link>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+      </div>
       {/* Navigation hint */}
       <p className={"text-center text-xs mt-4 " + (dc?"text-gray-600":"text-gray-400")}>
         Tap photo to see details · {current + 1} of {profiles.length}
