@@ -317,3 +317,14 @@ model QotdAnswer {
 
   @@unique([userId, date])
 }
+
+
+model Whisper {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  message    String
+  liked      Boolean  @default(false)
+  revealed   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}

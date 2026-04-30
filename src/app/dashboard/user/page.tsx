@@ -19,6 +19,29 @@ export default function UserProfilePage() {
   const [likeAnim, setLikeAnim] = useState(false);
 
   const [mutualFriends, setMutualFriends] = useState<any[]>([]);
+  const [showWhisper, setShowWhisper] = useState(false);
+  const [whisperMsg, setWhisperMsg] = useState("");
+  const [whisperSending, setWhisperSending] = useState(false);
+  const [whisperSent, setWhisperSent] = useState(false);
+
+  const sendWhisper = async () => {
+    if (!whisperMsg.trim() || whisperSending) return;
+    setWhisperSending(true);
+    const res = await fetch("/api/whisper", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "send", toUserId: viewId, message: whisperMsg.trim() })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setWhisperSent(true);
+      setWhisperMsg("");
+      setTimeout(() => { setShowWhisper(false); setWhisperSent(false); }, 2000);
+    } else {
+      alert(data.error || "Failed to send");
+    }
+    setWhisperSending(false);
+  };
   const [viewingPhoto, setViewingPhoto] = useState<string|null>(null);
 
   useEffect(() => {
@@ -161,6 +184,9 @@ export default function UserProfilePage() {
             <Link href={"/dashboard/messages?chat=" + viewId} className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30 hover:scale-110 transition-transform">
               <MessageCircle className="w-6 h-6 text-white" />
             </Link>
+            <button onClick={() => setShowWhisper(true)} className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg shadow-purple-500/30 hover:scale-110 transition-transform" title="Send anonymous whisper">
+              <span className="text-white text-lg">🤫</span>
+            </button>
             {!profile.isFriend && profile.friendshipStatus !== "pending" && (
               <button onClick={sendFriendReq} disabled={actionLoading === "friend"} className={"w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform " + (dc ? "bg-gray-700 shadow-gray-900/30" : "bg-gray-100 shadow-gray-200/30")}>
                 <UserPlus className={"w-5 h-5 " + (dc ? "text-gray-300" : "text-gray-600")} />
