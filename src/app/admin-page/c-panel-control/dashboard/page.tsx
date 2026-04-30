@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Radio, useState, useEffect } from "react";
+import { Radio, useRouter } from "next/navigation";
 import {
   Users, Shield, AlertTriangle, LogOut, Search,
   Ban, Check, X, Trash2, Crown, Gem, Camera,
@@ -25,7 +25,7 @@ type UserData = {
   photos: string[] | null;
 };
 
-type Tab = "overview" | "users" | "verifications" | "reports" | "withdrawals" | "settings";
+type Tab = "overview" | "users" | "verifications" | "reports" | "withdrawals" | "broadcast" | "settings";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -39,6 +39,11 @@ export default function AdminDashboard() {
   const [withdrawalNote, setWithdrawalNote] = useState("");
   const [resetReason, setResetReason] = useState("");
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastMsg, setBroadcastMsg] = useState("");
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [broadcastResult, setBroadcastResult] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [filterTier, setFilterTier] = useState("all");
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
@@ -93,6 +98,7 @@ export default function AdminDashboard() {
   }, []);
 
   const loadAll = async () => {
+    fetch("/api/admin/analytics", { headers: { Cookie: document.cookie } }).then(r => r.ok ? r.json() : null).then(d => { if (d) setAnalytics(d); }).catch(() => {});
     const [u, v, rp, wd] = await Promise.allSettled([
       fetch("/api/admin/users").then(r => r.ok ? r.json() : null),
       fetch("/api/admin/verifications").then(r => r.ok ? r.json() : null),
@@ -332,6 +338,7 @@ export default function AdminDashboard() {
     { id: "verifications", label: "Verify", icon: Shield, badge: stats.pendingVerif },
     { id: "reports", label: "Reports", icon: AlertTriangle, badge: stats.reports },
     { id: "withdrawals", label: "Withdrawals", icon: Wallet, badge: withdrawalStats.pending || 0 },
+    { id: "broadcast", label: "Broadcast", icon: Radio },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -449,6 +456,83 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* ═══ ANALYTICS ═══ */}
+            {analytics && (
+              <div className="space-y-6 mt-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Messages Today</p>
+                    <p className="text-3xl font-extrabold text-white">{analytics.realtime?.messagesToday?.toLocaleString() || 0}</p>
+                  </div>
+                  <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Likes Today</p>
+                    <p className="text-3xl font-extrabold text-rose-400">{analytics.realtime?.likesToday?.toLocaleString() || 0}</p>
+                  </div>
+                  <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Matches Today</p>
+                    <p className="text-3xl font-extrabold text-emerald-400">{analytics.realtime?.matchesToday?.toLocaleString() || 0}</p>
+                  </div>
+                  <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Total Coins Given</p>
+                    <p className="text-3xl font-extrabold text-amber-400">{analytics.coinStats?.totalCoinsGiven?.toLocaleString() || 0}</p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
+                  <h3 className="text-sm font-bold text-gray-300 mb-4">📈 Signups This Week</h3>
+                  <div className="flex items-end gap-3 h-40">
+                    {analytics.signupsByDay && Object.entries(analytics.signupsByDay).map(([day, count]: [string, any]) => {
+                      const max = Math.max(...Object.values(analytics.signupsByDay).map(Number), 1);
+                      return (
+                        <div key={day} className="flex-1 flex flex-col items-center gap-2">
+                          <div className="w-full bg-gradient-to-t from-blue-500 to-cyan-400 rounded-t-lg transition-all" style={{height: Math.max(8, (Number(count) / max) * 120) + "px"}} />
+                          <span className="text-[10px] text-gray-500 font-bold">{day}</span>
+                          <span className="text-[10px] text-gray-400">{String(count)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
+                    <h3 className="text-sm font-bold text-gray-300 mb-4">👥 User Tiers</h3>
+                    <div className="space-y-3">
+                      {analytics.tiers && Object.entries(analytics.tiers).map(([tier, count]: [string, any]) => {
+                        const total = Object.values(analytics.tiers).reduce((a: any, b: any) => Number(a) + Number(b), 0) as number;
+                        const pct = total > 0 ? Math.round((Number(count) / total) * 100) : 0;
+                        const colors: Record<string,string> = { free: "bg-gray-500", plus: "bg-blue-500", premium: "bg-rose-500", gold: "bg-amber-500" };
+                        return (
+                          <div key={tier}>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-gray-400 capitalize font-medium">{tier}</span>
+                              <span className="text-white font-bold">{String(count)} ({pct}%)</span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-700 rounded-full"><div className={(colors[tier] || "bg-gray-500") + " h-2 rounded-full transition-all"} style={{width: pct + "%"}} /></div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
+                    <h3 className="text-sm font-bold text-gray-300 mb-4">🆕 Latest Signups</h3>
+                    <div className="space-y-2.5">
+                      {(analytics.recentSignups || []).map((u: any) => (
+                        <div key={u.id} className="flex items-center gap-3">
+                          {u.profilePhoto ? <img src={u.profilePhoto} className="w-8 h-8 rounded-lg object-cover" /> : <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold">{u.name?.[0]}</div>}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white truncate">{u.name}</p>
+                            <p className="text-[10px] text-gray-500">{new Date(u.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <span className={"text-[10px] font-bold px-2 py-0.5 rounded-full " + (u.tier === "gold" ? "bg-amber-500/20 text-amber-400" : u.tier === "premium" ? "bg-rose-500/20 text-rose-400" : "bg-gray-700 text-gray-400")}>{u.tier}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           )}
 
           {/* ========== USERS LIST ========== */}
@@ -984,7 +1068,78 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {tab === "settings" && (
+          {/* ═══ BROADCAST TAB ═══ */}
+      {tab === "broadcast" && (
+        <div className="space-y-6">
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 p-6">
+            <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2"><Radio className="w-5 h-5 text-blue-400" /> Broadcast to All Users</h3>
+            <p className="text-sm text-gray-400 mb-6">Send a notification to every active user on ConnectHub</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-1.5">Title</label>
+                <input value={broadcastTitle} onChange={e => setBroadcastTitle(e.target.value)} placeholder="e.g. New Feature Alert! 🚀" className="w-full px-4 py-3 rounded-xl bg-gray-700 border border-gray-600 text-white outline-none focus:border-blue-500" maxLength={100} />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-1.5">Message</label>
+                <textarea value={broadcastMsg} onChange={e => setBroadcastMsg(e.target.value)} placeholder="Write your announcement..." className="w-full px-4 py-3 rounded-xl bg-gray-700 border border-gray-600 text-white outline-none focus:border-blue-500 h-32 resize-none" maxLength={500} />
+                <p className="text-xs text-gray-500 mt-1 text-right">{broadcastMsg.length}/500</p>
+              </div>
+              {broadcastResult && (
+                <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4">
+                  <p className="text-emerald-400 font-bold">✅ Broadcast sent to {broadcastResult.sent} / {broadcastResult.total} users</p>
+                </div>
+              )}
+              <button onClick={async () => {
+                if (!broadcastTitle.trim() || !broadcastMsg.trim()) return;
+                if (!confirm("Send this to ALL users?")) return;
+                setBroadcasting(true); setBroadcastResult(null);
+                try {
+                  const res = await fetch("/api/admin/broadcast", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: broadcastTitle, message: broadcastMsg, type: "announcement" }) });
+                  const data = await res.json();
+                  if (res.ok) { setBroadcastResult(data); setBroadcastTitle(""); setBroadcastMsg(""); }
+                  else alert(data.error || "Failed");
+                } catch {} finally { setBroadcasting(false); }
+              }} disabled={!broadcastTitle.trim() || !broadcastMsg.trim() || broadcasting} className="w-full py-3.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-bold disabled:opacity-40 hover:shadow-lg transition-all">
+                {broadcasting ? "Sending..." : "🚀 Send Broadcast to All Users"}
+              </button>
+            </div>
+          </div>
+
+          {/* Quick broadcasts */}
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 p-6">
+            <h3 className="text-sm font-bold text-gray-300 mb-4">Quick Broadcasts</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { title: "Welcome! 🎉", msg: "Welcome to ConnectHub! Complete your profile and start finding your match today.", label: "Welcome New Users" },
+                { title: "Go Live! 🔴", msg: "Live streaming is now available! Go to Live Streams to start broadcasting and connect face-to-face.", label: "Promote Live Streams" },
+                { title: "Weekend Vibes 💕", msg: "It's the weekend! Set your vibe status and let people know what you're looking for today.", label: "Weekend Engagement" },
+                { title: "Update Alert 🚀", msg: "We just added amazing new features! Check out Voice Bio, Whisper Mode, and Question of the Day.", label: "Feature Announcement" },
+              ].map((q, i) => (
+                <button key={i} onClick={() => { setBroadcastTitle(q.title); setBroadcastMsg(q.msg); }} className="text-left p-4 rounded-xl bg-gray-700/50 border border-gray-600 hover:border-blue-500/50 transition-all">
+                  <p className="text-sm font-bold text-white mb-1">{q.label}</p>
+                  <p className="text-xs text-gray-400 line-clamp-2">{q.msg}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ EXPORT USERS ═══ */}
+      {tab === "users" && users.length > 0 && (
+        <div className="mb-4 flex justify-end">
+          <button onClick={() => {
+            const csv = "Name,Email,Username,Gender,Country,Tier,Verified,Coins,Joined\n" + users.map(u => [u.name,u.email,u.username||"",u.gender||"",u.country||"",u.tier,u.verified?"Yes":"No",u.coins||0,new Date(u.createdAt).toLocaleDateString()].join(",")).join("\n");
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a"); a.href = url; a.download = "connecthub-users-" + new Date().toISOString().split("T")[0] + ".csv"; a.click();
+          }} className="px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-sm font-bold hover:bg-emerald-500/30 transition-all">
+            📥 Export CSV
+          </button>
+        </div>
+      )}
+
+      {tab === "settings" && (
             <div className="max-w-lg space-y-6">
               <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
                 <h3 className="font-bold mb-1">Change Password</h3>
