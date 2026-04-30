@@ -229,10 +229,8 @@ export default function DiscoverPage() {
             {profile.lookingFor && <p className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>Looking for: <span className="font-semibold">{profile.lookingFor}</span></p>}
           </div>
         )}
-      </div>
-
       {/* Action buttons */}
-      <div className="flex items-center justify-center gap-4 mt-6">
+      <div className="flex items-center justify-center gap-4 mt-4 pb-4">
         <button onClick={()=>handleAction("pass")} className={"w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center border-2 transition-all hover:scale-110 " + (dc?"border-gray-600 text-gray-400 hover:border-red-500 hover:text-red-500 bg-gray-800":"border-gray-200 text-gray-400 hover:border-red-400 hover:text-red-500 bg-white shadow-lg")}>
           <X className="w-7 h-7" />
         </button>
@@ -245,6 +243,7 @@ export default function DiscoverPage() {
         <Link href={"/dashboard/messages"} className={"w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all hover:scale-110 " + (dc?"border-gray-600 text-gray-400 hover:border-purple-500 hover:text-purple-400 bg-gray-800":"border-gray-200 text-gray-400 hover:border-purple-400 hover:text-purple-500 bg-white shadow-lg")}>
           <MessageCircle className="w-6 h-6" />
         </Link>
+      </div>
       </div>
 
       {/* Second card — desktop only */}
