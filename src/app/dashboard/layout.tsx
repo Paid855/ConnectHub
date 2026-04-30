@@ -67,9 +67,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const elapsed = Date.now() - parseInt(stored, 10);
       if (elapsed >= TIMEOUT) {
         localStorage.removeItem(STORAGE_KEY);
-        fetch("/api/auth/logout", { method: "POST" }).then(() => {
-          router.push("/login?reason=inactive");
-        });
+        document.cookie = "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        window.location.href = "/login?reason=inactive";
         return;
       }
     }
@@ -80,8 +79,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
       inactivityTimer.current = setTimeout(async () => {
         localStorage.removeItem(STORAGE_KEY);
+        document.cookie = "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         await fetch("/api/auth/logout", { method: "POST" });
-        router.push("/login?reason=inactive");
+        window.location.href = "/login?reason=inactive";
       }, TIMEOUT);
     };
 
@@ -92,8 +92,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const elapsed = Date.now() - last;
         if (elapsed >= TIMEOUT) {
           localStorage.removeItem(STORAGE_KEY);
+          document.cookie = "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
           fetch("/api/auth/logout", { method: "POST" }).then(() => {
-            router.push("/login?reason=inactive");
+            window.location.href = "/login?reason=inactive";
           });
         } else {
           resetTimer();
