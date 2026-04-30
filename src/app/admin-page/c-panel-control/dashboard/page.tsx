@@ -532,6 +532,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+            </div>
           )}
 
           {/* ========== USERS LIST ========== */}
