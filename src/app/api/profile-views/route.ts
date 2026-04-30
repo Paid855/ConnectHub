@@ -23,12 +23,15 @@ export async function GET(req: NextRequest) {
     select: { id: true, name: true, profilePhoto: true, age: true, country: true, tier: true, verified: true, lastSeen: true }
   }) : [];
 
-  const enriched = views.map(v => ({
-    id: v.id,
-    viewerId: v.viewerId,
-    createdAt: v.createdAt,
-    viewer: isPremium ? viewers.find(u => u.id === v.viewerId) || null : null,
-  }));
+  const enriched = views.map(v => {
+    const viewer = viewers.find(u => u.id === v.viewerId);
+    return {
+      id: v.id,
+      viewerId: v.viewerId,
+      createdAt: v.createdAt,
+      viewer: viewer ? (isPremium ? viewer : { id: viewer.id, name: viewer.name, profilePhoto: viewer.profilePhoto }) : null,
+    };
+  });
 
   return NextResponse.json({ views: enriched, total: views.length, isPremium });
 }

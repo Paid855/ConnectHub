@@ -193,6 +193,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
   }, []);
 
+  // Check for recent profile views and show toast
+  const lastViewCheck = useRef(0);
+  const shownViewIds = useRef<Set<string>>(new Set());
+
+  const checkProfileViews = async () => {
+    try {
+      const res = await fetch("/api/profile-views");
+      if (!res.ok) return;
+      const data = await res.json();
+      const views = data.views || [];
+      const now = Date.now();
+
+      // Show toast for views in last 2 minutes that we haven't shown yet
+      views.slice(0, 3).forEach((v: any) => {
+        if (shownViewIds.current.has(v.id)) return;
+        const viewTime = new Date(v.createdAt).getTime();
+        if (now - viewTime < 120000) {
+          shownViewIds.current.add(v.id);
+          // Don't use alert — use a custom toast via state
+          setViewToast({ name: v.viewer?.name || "Someone", photo: v.viewer?.profilePhoto, id: v.viewer?.id });
+          setTimeout(() => setViewToast(null), 5000);
+        }
+      });
+    } catch {}
+  };
+
+  const [viewToast, setViewToast] = useState<{name:string;photo?:string;id?:string}|null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(checkProfileViews, 30000);
+    setTimeout(checkProfileViews, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const checkDailyReward = async () => {
     const today = new Date().toDateString();
     const last = typeof window !== "undefined" ? localStorage.getItem("lastRewardCheck") : null;
@@ -482,6 +517,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             })}
           </div>
         </nav>
+
+        {/* Profile View Toast */}
+        {viewToast && (
+          <div className="fixed top-20 right-4 z-[100] animate-slide-in-right" onClick={() => setViewToast(null)}>
+            <Link href={viewToast.id ? "/dashboard/user?id=" + viewToast.id : "/dashboard/views"} className={"flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border backdrop-blur-xl " + (dc?"bg-gray-800/95 border-gray-700":"bg-white/95 border-rose-100")}>
+              {viewToast.photo ? (
+                <img src={viewToast.photo} className="w-10 h-10 rounded-full object-cover border-2 border-rose-200" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{viewToast.name[0]}</div>
+              )}
+              <div>
+                <p className={"text-sm font-bold " + (dc?"text-white":"text-gray-900")}>{viewToast.name}</p>
+                <p className={"text-xs " + (dc?"text-rose-400":"text-rose-500")}>is checking out your profile 👀</p>
+              </div>
+              <span className="text-rose-500 ml-2">→</span>
+            </Link>
+          </div>
+        )}
 
         {showReward && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => { if(rewardClaimed) setShowReward(false); }}>
