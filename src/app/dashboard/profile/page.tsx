@@ -116,7 +116,11 @@ export default function ProfilePage() {
     }
     fetch("/api/feed").then(r=>r.json()).then(d=>{ const mine = (d.feed||[]).filter((p:any)=>p.userId===user?.id); setPostCount(mine.length); setMyPosts(mine.slice(0,10)); }).catch(()=>{});
     fetch("/api/friends").then(r=>r.json()).then(d=>{ setFriendCount((d.friends||[]).length); }).catch(()=>{});
-    if (user?.photos) setGalleryPhotos(user.photos);
+    fetch("/api/auth/photos?userId=" + user?.id).then(r => r.json()).then(d => {
+      // Exclude profile photo from gallery (it's shown separately)
+      const gallery = (d.photos || []).filter((p: string) => p !== user?.profilePhoto);
+      setGalleryPhotos(gallery);
+    }).catch(() => {});
     fetch("/api/profile-views").then(r=>r.json()).then(d=>{ setViewCount(d.total || 0); }).catch(()=>{});
   }, [user]);
 
@@ -169,10 +173,10 @@ export default function ProfilePage() {
     setUploadingGallery(true);
     try {
       const cloudUrl = await uploadProfilePhoto(file);
-      const res = await fetch("/api/auth/profile", {
-        method: "PUT",
+      const res = await fetch("/api/auth/photos", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ addPhoto: cloudUrl })
+        body: JSON.stringify({ action: "add", photo: cloudUrl })
       });
       if (res.ok) {
         setGalleryPhotos(prev => [...prev, cloudUrl]);
@@ -189,10 +193,11 @@ export default function ProfilePage() {
 
   const removeGalleryPhoto = async (url: string) => {
     if (!confirm("Remove this photo from your gallery?")) return;
-    await fetch("/api/auth/profile", {
-      method: "PUT",
+    const idx = galleryPhotos.indexOf(url);
+    await fetch("/api/auth/photos", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ removePhoto: url })
+      body: JSON.stringify({ action: "delete", index: idx })
     });
     setGalleryPhotos(prev => prev.filter(p => p !== url));
   };

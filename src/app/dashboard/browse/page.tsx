@@ -30,7 +30,7 @@ export default function BrowsePage() {
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetch("/api/users").then(r=>r.json()).then(d=>{setProfiles(d.users||[]);setLoading(false);}).catch(()=>setLoading(false));
+    fetch("/api/users?all=1").then(r=>r.json()).then(d=>{setProfiles(d.users||[]);setLoading(false);}).catch(()=>setLoading(false));
     fetch("/api/friends").then(r=>r.json()).then(d=>{
       const ids = (d.friends||[]).map((f:any) => f.user?.id).filter(Boolean);
       setFriendIds(new Set(ids));

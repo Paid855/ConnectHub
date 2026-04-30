@@ -7,18 +7,24 @@ export async function GET(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
   try {
+    const url = new URL(req.url);
+    const showAll = url.searchParams.get("all") === "1";
+
     const blocked = await prisma.block.findMany({ where: { OR: [{ blockerId: id }, { blockedId: id }] } });
     const blockedIds = blocked.map(b => b.blockerId === id ? b.blockedId : b.blockerId);
 
-    // Exclude users already liked/passed/super-liked
-    const myLikes = await prisma.like.findMany({ where: { fromUserId: id }, select: { toUserId: true } });
-    const likedIds = myLikes.map(l => l.toUserId);
+    let excludeIds = [...blockedIds];
 
-    // Exclude friends
-    const myFriends = await prisma.friend.findMany({ where: { OR: [{ userId: id, status: "accepted" }, { friendId: id, status: "accepted" }] } });
-    const friendIds = myFriends.map(f => f.userId === id ? f.friendId : f.userId);
+    // Only exclude liked/friends for discover page (not browse)
+    if (!showAll) {
+      const myLikes = await prisma.like.findMany({ where: { fromUserId: id }, select: { toUserId: true } });
+      const likedIds = myLikes.map(l => l.toUserId);
 
-    const excludeIds = [...new Set([...blockedIds, ...likedIds, ...friendIds])];
+      const myFriends = await prisma.friend.findMany({ where: { OR: [{ userId: id, status: "accepted" }, { friendId: id, status: "accepted" }] } });
+      const friendIds = myFriends.map(f => f.userId === id ? f.friendId : f.userId);
+
+      excludeIds = [...new Set([...blockedIds, ...likedIds, ...friendIds])];
+    }
 
     const users = await prisma.user.findMany({
       where: {
