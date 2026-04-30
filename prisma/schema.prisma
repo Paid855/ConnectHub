@@ -305,3 +305,15 @@ model AdminLoginAttempt {
   @@index([email, createdAt])
   @@index([ip, createdAt])
 }
+
+
+model QotdAnswer {
+  id            String   @id @default(cuid())
+  userId        String
+  date          String
+  questionIndex Int
+  answer        String
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, date])
+}

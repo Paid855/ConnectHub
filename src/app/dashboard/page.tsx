@@ -23,6 +23,28 @@ export default function DiscoverPage() {
   const [matchPopup, setMatchPopup] = useState<any>(null);
   const [superLikeError, setSuperLikeError] = useState("");
   const [vibeStatus, setVibeStatus] = useState<string|null>(null);
+  const [qotd, setQotd] = useState<any>(null);
+  const [qotdAnswer, setQotdAnswer] = useState("");
+  const [qotdSubmitting, setQotdSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/qotd").then(r => r.json()).then(setQotd).catch(() => {});
+  }, []);
+
+  const submitQotd = async () => {
+    if (!qotdAnswer.trim() || qotdSubmitting) return;
+    setQotdSubmitting(true);
+    const res = await fetch("/api/qotd", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answer: qotdAnswer.trim() })
+    });
+    if (res.ok) {
+      fetch("/api/qotd").then(r => r.json()).then(setQotd).catch(() => {});
+      setQotdAnswer("");
+    }
+    setQotdSubmitting(false);
+  };
   const [showVibePicker, setShowVibePicker] = useState(false);
 
   useEffect(() => {
@@ -231,6 +253,55 @@ export default function DiscoverPage() {
           </div>
         );
       })()}
+
+      {/* ═══ QUESTION OF THE DAY ═══ */}
+      {qotd && (
+        <div className={"rounded-2xl border overflow-hidden mb-5 " + (dc?"bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20":"bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100")}>
+          <div className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">💭</span>
+              <h3 className={"text-xs font-extrabold uppercase tracking-widest " + (dc?"text-indigo-400":"text-indigo-600")}>Question of the Day</h3>
+              {qotd.totalAnswers > 0 && <span className={"text-[10px] px-2 py-0.5 rounded-full " + (dc?"bg-indigo-500/20 text-indigo-400":"bg-indigo-100 text-indigo-600")}>{qotd.totalAnswers} answered</span>}
+            </div>
+            <p className={"text-lg font-bold mb-4 " + (dc?"text-white":"text-gray-900")}>{qotd.question}</p>
+
+            {!qotd.myAnswer ? (
+              <div className="flex gap-2">
+                <input value={qotdAnswer} onChange={e => setQotdAnswer(e.target.value)} placeholder="Share your answer..." maxLength={200} className={"flex-1 px-4 py-3 rounded-xl border text-sm outline-none " + (dc?"bg-gray-800 border-gray-600 text-white placeholder:text-gray-500 focus:border-indigo-500":"bg-white border-gray-200 focus:ring-2 focus:ring-indigo-200")} onKeyDown={e => e.key === "Enter" && submitQotd()} />
+                <button onClick={submitQotd} disabled={!qotdAnswer.trim() || qotdSubmitting} className="px-5 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-bold text-sm disabled:opacity-40 hover:shadow-lg transition-all">
+                  {qotdSubmitting ? "..." : "Answer"}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className={"rounded-xl p-3 mb-3 " + (dc?"bg-indigo-500/10 border border-indigo-500/20":"bg-white border border-indigo-100")}>
+                  <p className={"text-xs font-bold mb-1 " + (dc?"text-indigo-400":"text-indigo-600")}>Your answer</p>
+                  <p className={"text-sm " + (dc?"text-gray-200":"text-gray-700")}>{qotd.myAnswer}</p>
+                </div>
+
+                {qotd.otherAnswers?.length > 0 && (
+                  <div className="space-y-2">
+                    <p className={"text-xs font-bold " + (dc?"text-gray-500":"text-gray-400")}>What others said:</p>
+                    {qotd.otherAnswers.slice(0, 5).map((a: any, i: number) => (
+                      <Link key={i} href={"/dashboard/user?id=" + a.user?.id} className={"flex items-center gap-3 p-2.5 rounded-xl transition-all " + (dc?"hover:bg-gray-700/50":"hover:bg-white")}>
+                        {a.user?.profilePhoto ? (
+                          <img src={a.user.profilePhoto} className="w-8 h-8 rounded-full object-cover" alt="" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center text-white text-xs font-bold">{a.user?.name?.[0]}</div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className={"text-xs font-bold " + (dc?"text-gray-300":"text-gray-700")}>{a.user?.name}</p>
+                          <p className={"text-xs truncate " + (dc?"text-gray-400":"text-gray-500")}>{a.answer}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ═══ TOP PICKS ═══ */}
       {profiles.length > 1 && (
