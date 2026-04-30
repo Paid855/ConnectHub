@@ -23,11 +23,13 @@ export async function GET(req: NextRequest) {
     select: { photos: true, profilePhoto: true }
   });
 
+  // Return only gallery photos (exclude profilePhoto to prevent duplicates)
   const photos: string[] = [];
-  if (user?.profilePhoto) photos.push(user.profilePhoto);
-  if (Array.isArray(user?.photos)) photos.push(...user.photos);
+  if (Array.isArray(user?.photos)) {
+    photos.push(...user.photos.filter((p: string) => p !== user?.profilePhoto));
+  }
 
-  return NextResponse.json({ photos: [...new Set(photos)] });
+  return NextResponse.json({ photos });
 }
 
 export async function POST(req: NextRequest) {

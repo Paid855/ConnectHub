@@ -26,10 +26,11 @@ export async function GET(req: NextRequest) {
 
   const isOwn = viewId === id;
 
-  // Build photos array
+  // Build photos array (exclude profilePhoto to prevent duplicates)
   let photos: string[] = [];
-  if (user.profilePhoto) photos.push(user.profilePhoto);
-  if (Array.isArray(user.photos)) photos.push(...user.photos);
+  if (Array.isArray(user.photos)) {
+    photos = user.photos.filter((p: string) => p !== user.profilePhoto);
+  }
 
   // Get stats
   const [postCount, friendCount] = await Promise.all([

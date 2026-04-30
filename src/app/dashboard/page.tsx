@@ -84,7 +84,10 @@ export default function DiscoverPage() {
       <p className={"text-sm mb-6 " + (dc?"text-gray-400":"text-gray-500")}>You have seen everyone for now. Check back later for new profiles!</p>
       <div className="flex flex-col gap-3">
         <Link href="/dashboard/browse" className="py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold text-sm hover:shadow-lg">Browse All People</Link>
-        <button onClick={()=>setCurrent(0)} className={"py-3 border-2 rounded-full font-bold text-sm " + (dc?"border-gray-600 text-gray-400":"border-gray-200 text-gray-600")}>Start Over</button>
+        <button onClick={()=>{
+          setLoading(true);
+          fetch("/api/users").then(r=>r.ok?r.json():{users:[]}).then(d=>{setProfiles(d.users||[]);setCurrent(0);setLoading(false);}).catch(()=>setLoading(false));
+        }} className={"py-3 border-2 rounded-full font-bold text-sm " + (dc?"border-gray-600 text-gray-400":"border-gray-200 text-gray-600")}>Refresh Profiles</button>
       </div>
     </div>
   );
