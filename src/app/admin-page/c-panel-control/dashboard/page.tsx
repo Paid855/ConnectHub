@@ -455,10 +455,9 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* ═══ ANALYTICS ═══ */}
-            {analytics && (
+              {/* ═══ ANALYTICS ═══ */}
+              {analytics && (
               <div className="space-y-6 mt-6">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
