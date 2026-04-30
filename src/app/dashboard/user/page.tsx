@@ -294,19 +294,7 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      {/* Photo gallery */}
-      {profile.photos && profile.photos.length > 0 && (
-        <div className={"mt-4 rounded-2xl border p-5 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100")}>
-          <h3 className={"text-sm font-bold mb-3 flex items-center gap-2 " + (dc ? "text-gray-300" : "text-gray-800")}><Camera className="w-4 h-4" /> Photos ({profile.photos.length})</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {profile.photos.map((p: string, i: number) => (
-              <div key={i} className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPhotoViewer(p)}>
-                <img src={p} className="w-full h-full object-cover" alt="" />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {/* Post count & friend count */}
       <div className={"mt-4 grid grid-cols-2 gap-3 "}>
