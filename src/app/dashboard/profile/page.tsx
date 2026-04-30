@@ -227,6 +227,18 @@ export default function ProfilePage() {
               <button onClick={()=>{setEditing(!editing);if(!editing)setActiveTab("about");}} className="flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-xl text-white rounded-2xl text-xs font-bold hover:bg-white/25 border border-white/20 transition-all active:scale-95">
                 <Edit3 className="w-3.5 h-3.5" /> {editing?"Cancel":"Edit"}
               </button>
+              <button onClick={async () => {
+                const url = "https://connecthub.love/dashboard/user?id=" + user.id;
+                if (navigator.share) {
+                  try { await navigator.share({ title: user.name + " on ConnectHub", text: "Check out " + user.name + "'s profile on ConnectHub!", url }); } catch {}
+                } else {
+                  await navigator.clipboard.writeText(url);
+                  setSuccess("Profile link copied!");
+                  setTimeout(() => setSuccess(""), 3000);
+                }
+              }} className="flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-xl text-white rounded-2xl text-xs font-bold hover:bg-white/25 border border-white/20 transition-all active:scale-95">
+                <Share2 className="w-3.5 h-3.5" /> Share
+              </button>
             </div>
           </div>
         </div>

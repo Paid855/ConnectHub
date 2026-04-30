@@ -38,6 +38,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [showReward, setShowReward] = useState(false);
   const [rewardClaimed, setRewardClaimed] = useState(false);
   const [rewardCoins, setRewardCoins] = useState(0);
+  const [rewardStreak, setRewardStreak] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -178,8 +179,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     try {
       const res = await fetch("/api/daily-reward", { method:"POST" });
       const data = await res.json();
-      if (res.ok) { setRewardCoins(data.reward); setRewardClaimed(true); loadUser(); }
-      else { setRewardClaimed(true); setRewardCoins(0); }
+      if (res.ok) { setRewardCoins(data.reward); setRewardStreak(data.streak || 1); setRewardClaimed(true); loadUser(); }
+      else { setRewardClaimed(true); setRewardCoins(0); setRewardStreak(data.streak || 0); }
     } catch {}
   };
 
@@ -452,6 +453,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="text-6xl mb-3">{rewardClaimed ? "🎉" : "🎁"}</div>
                 <h2 className="text-2xl font-bold text-white">{rewardClaimed ? "Coins Claimed!" : "Daily Reward!"}</h2>
                 <p className="text-amber-100 text-sm mt-1">{rewardClaimed ? (rewardCoins > 0 ? "+" + rewardCoins + " coins added!" : "Already claimed today!") : "Claim your free coins"}</p>
+                {rewardClaimed && rewardStreak > 0 && (
+                  <div className="mt-3 bg-white/10 backdrop-blur rounded-xl px-4 py-2.5 border border-white/20">
+                    <p className="text-white font-extrabold text-lg">🔥 {rewardStreak}-day streak!</p>
+                    <p className="text-amber-200 text-[10px]">{rewardStreak >= 7 ? "Streak bonus active! Keep it going!" : "Log in " + (7 - rewardStreak) + " more days for bonus coins!"}</p>
+                  </div>
+                )}
               </div>
               <div className="p-6 text-center">
                 {!rewardClaimed ? (

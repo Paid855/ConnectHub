@@ -56,6 +56,7 @@ model User {
   referredBy         String?
   interests          String[]  @default([])
   prompts            String?
+  loginStreak        Int       @default(0)
   lastSeen           DateTime @default(now())
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
