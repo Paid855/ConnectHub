@@ -22,6 +22,9 @@ export default function DiscoverPage() {
 
   const [matchPopup, setMatchPopup] = useState<any>(null);
   const [superLikeError, setSuperLikeError] = useState("");
+  const [lastPassed, setLastPassed] = useState<number|null>(null);
+  const [todayLikes, setTodayLikes] = useState(0);
+  const [todayPasses, setTodayPasses] = useState(0);
   const [superLikeAnim, setSuperLikeAnim] = useState(false);
 
   const handleAction = async (type: string) => {
@@ -231,6 +234,11 @@ export default function DiscoverPage() {
         )}
       {/* Action buttons */}
       <div className="flex items-center justify-center gap-4 mt-4 pb-4">
+        {lastPassed !== null && (
+          <button onClick={rewind} className={"w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center border-2 transition-all hover:scale-110 " + (dc?"border-gray-600 text-amber-400 hover:border-amber-500 bg-gray-800":"border-gray-200 text-amber-500 hover:border-amber-400 bg-white shadow-lg")} title="Rewind">
+            <RotateCcw className="w-5 h-5" />
+          </button>
+        )}
         <button onClick={()=>handleAction("pass")} className={"w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center border-2 transition-all hover:scale-110 " + (dc?"border-gray-600 text-gray-400 hover:border-red-500 hover:text-red-500 bg-gray-800":"border-gray-200 text-gray-400 hover:border-red-400 hover:text-red-500 bg-white shadow-lg")}>
           <X className="w-7 h-7" />
         </button>
@@ -280,7 +288,7 @@ export default function DiscoverPage() {
       </div>
       {/* Navigation hint */}
       <p className={"text-center text-xs mt-4 " + (dc?"text-gray-600":"text-gray-400")}>
-        Tap photo to see details · {current + 1} of {profiles.length}
+        {todayLikes + todayPasses > 0 && <><span className="text-rose-500">♥ {todayLikes}</span> · <span>✕ {todayPasses}</span> · </>}Card {current + 1} of {profiles.length}
       </p>
 
       {/* Quick Actions Bar */}
