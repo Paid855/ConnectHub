@@ -21,6 +21,7 @@ export default function FeedPage() {
   const [showEmoji, setShowEmoji] = useState(false);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [showComments, setShowComments] = useState<string|null>(null);
+  const [viewPost, setViewPost] = useState<any>(null);
   const [doubleTapId, setDoubleTapId] = useState<string|null>(null);
   const lastTap = useRef<{id:string;time:number}|null>(null);
 
@@ -168,7 +169,7 @@ export default function FeedPage() {
 
               {/* Media */}
               {post.image && !post.image.startsWith("[VID]") && !post.image.startsWith("[VOICE]") && (
-                <div className="relative cursor-pointer" onClick={() => handleDoubleTap(post.id, post.liked)}>
+                <div className="relative cursor-pointer" onDoubleClick={() => handleDoubleTap(post.id, post.liked)} onClick={() => setViewPost(post)}>
                   <img src={post.image.replace("[IMG]", "")} className="w-full max-h-[500px] object-cover" loading="lazy" />
                   {doubleTapId === post.id && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -178,7 +179,9 @@ export default function FeedPage() {
                 </div>
               )}
               {post.image && post.image.startsWith("[VID]") && (
-                <video src={post.image.replace("[VID]", "")} controls playsInline className="w-full max-h-[500px] bg-black" />
+                <div className="relative cursor-pointer" onClick={() => setViewPost(post)}>
+                  <video src={post.image.replace("[VID]", "")} controls playsInline className="w-full max-h-[500px] bg-black" onClick={e => e.stopPropagation()} />
+                </div>
               )}
 
               {/* Stats */}
@@ -229,6 +232,88 @@ export default function FeedPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ═══ POST VIEWER MODAL ═══ */}
+      {viewPost && (
+        <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col" onClick={() => setViewPost(null)}>
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 flex-shrink-0" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              <Link href={"/dashboard/user?id=" + (viewPost.user?.id || viewPost.userId)}>
+                {viewPost.user?.profilePhoto ? (
+                  <img src={viewPost.user.profilePhoto} className="w-10 h-10 rounded-full object-cover border-2 border-white/20" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white font-bold">{viewPost.user?.name?.[0]}</div>
+                )}
+              </Link>
+              <div>
+                <p className="text-white font-bold text-sm">{viewPost.user?.name}</p>
+                <p className="text-gray-400 text-xs">{timeAgo(viewPost.createdAt)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {viewPost.image && !viewPost.image.startsWith("[VID]") && (
+                <a href={viewPost.image.replace("[IMG]", "")} download className="p-2.5 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all" title="Download">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                </a>
+              )}
+              <button onClick={() => setViewPost(null)} className="p-2.5 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Media */}
+          <div className="flex-1 flex items-center justify-center overflow-hidden px-4" onClick={e => e.stopPropagation()}>
+            {viewPost.image && !viewPost.image.startsWith("[VID]") && !viewPost.image.startsWith("[VOICE]") && (
+              <img src={viewPost.image.replace("[IMG]", "")} className="max-w-full max-h-[70vh] object-contain rounded-lg" />
+            )}
+            {viewPost.image && viewPost.image.startsWith("[VID]") && (
+              <video src={viewPost.image.replace("[VID]", "")} controls autoPlay playsInline className="max-w-full max-h-[70vh] rounded-lg" />
+            )}
+          </div>
+
+          {/* Post content + comments */}
+          <div className="flex-shrink-0 max-h-[30vh] overflow-y-auto p-4" onClick={e => e.stopPropagation()}>
+            {viewPost.content && <p className="text-white text-sm mb-3">{viewPost.content}</p>}
+
+            {/* Like count */}
+            <div className="flex items-center gap-4 mb-3">
+              <button onClick={() => { toggleLike(viewPost.id); setViewPost((p: any) => p ? {...p, liked: !p.liked, likeCount: p.liked ? (p.likeCount||1)-1 : (p.likeCount||0)+1} : null); }} className={"flex items-center gap-2 text-sm font-semibold " + (viewPost.liked ? "text-rose-500" : "text-gray-400")}>
+                <Heart className={"w-5 h-5 " + (viewPost.liked ? "fill-rose-500" : "")} />
+                {viewPost.likeCount || 0} {viewPost.likeCount === 1 ? "like" : "likes"}
+              </button>
+              <span className="text-gray-500 text-sm">{viewPost.commentCount || 0} comments</span>
+            </div>
+
+            {/* Comments in viewer */}
+            {viewPost.comments?.length > 0 && (
+              <div className="space-y-2.5 mb-3 border-t border-white/10 pt-3">
+                {viewPost.comments.map((c: any) => (
+                  <div key={c.id} className="flex items-start gap-2">
+                    {c.user?.profilePhoto ? (
+                      <img src={c.user.profilePhoto} className="w-7 h-7 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center text-white text-[10px] font-bold">{c.user?.name?.[0]}</div>
+                    )}
+                    <div>
+                      <span className="text-white text-xs font-bold">{c.user?.name} </span>
+                      <span className="text-gray-300 text-xs">{c.content}</span>
+                      <p className="text-gray-600 text-[10px] mt-0.5">{timeAgo(c.createdAt)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Comment input in viewer */}
+            <div className="flex gap-2">
+              <input className="flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/10 text-white text-sm outline-none placeholder-gray-500 focus:border-rose-500" placeholder="Write a comment..." value={commentText[viewPost.id] || ""} onChange={e => setCommentText(p => ({...p, [viewPost.id]: e.target.value}))} onKeyDown={e => { if (e.key === "Enter") { submitComment(viewPost.id); }}} />
+              <button onClick={() => submitComment(viewPost.id)} disabled={!commentText[viewPost.id]?.trim()} className="w-10 h-10 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full flex items-center justify-center text-white disabled:opacity-40"><Send className="w-4 h-4" /></button>
+            </div>
+          </div>
         </div>
       )}
     </div>

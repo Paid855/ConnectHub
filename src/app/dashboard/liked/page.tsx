@@ -130,7 +130,7 @@ export default function WhoLikedMePage() {
                     <button onClick={() => likeBack(u.id)} className="flex-1 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl text-xs font-bold hover:shadow-lg transition-all flex items-center justify-center gap-1">
                       <Heart className="w-3.5 h-3.5 fill-white" /> Like Back
                     </button>
-                    <Link href={"/dashboard/messages?user=" + u.id} className={"py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center " + (dc ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600")}>
+                    <Link href={"/dashboard/messages?chat=" + u.id} className={"py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center " + (dc ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600")}>
                       <MessageCircle className="w-3.5 h-3.5" />
                     </Link>
                   </div>

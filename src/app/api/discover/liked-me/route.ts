@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   const likerIds = filteredLikes.map(l => l.fromUserId);
   const likers = await prisma.user.findMany({
     where: { id: { in: likerIds }, tier: { not: "banned" }, email: { not: "admin@connecthub.com" } },
-    select: { id:true, name:true, profilePhoto:true, age:true, gender:true, bio:true, tier:true, verified:true, city:true, country:true, lastActive:true },
+    select: { id:true, name:true, profilePhoto:true, age:true, gender:true, bio:true, tier:true, verified:true, city:true, country:true, lastSeen:true },
   });
 
   const canSee = user?.tier === "plus" || user?.tier === "premium" || user?.tier === "gold";
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     if (!liker) return null;
     return {
       likeId: l.id, type: l.type, createdAt: l.createdAt,
-      user: canSee ? { id:liker.id, name:liker.name, profilePhoto:liker.profilePhoto, age:liker.age, gender:liker.gender, bio:liker.bio, tier:liker.tier, verified:liker.verified, city:liker.city, country:liker.country, isOnline: liker.lastActive ? Date.now() - new Date(liker.lastActive).getTime() < 300000 : false } : { id:liker.id, name:"???", profilePhoto:null, blurred:true },
+      user: canSee ? { id:liker.id, name:liker.name, profilePhoto:liker.profilePhoto, age:liker.age, gender:liker.gender, bio:liker.bio, tier:liker.tier, verified:liker.verified, city:liker.city, country:liker.country, isOnline: liker.lastSeen ? Date.now() - new Date(liker.lastSeen).getTime() < 300000 : false } : { id:liker.id, name:"???", profilePhoto:null, blurred:true },
     };
   }).filter(Boolean);
 
