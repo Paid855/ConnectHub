@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notify";
-
-function getAdminId(req: NextRequest): string | null {
-  try {
-    const c = req.cookies.get("admin_session")?.value;
-    if (!c) return null;
-    return JSON.parse(c).id || null;
-  } catch { return null; }
-}
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function POST(req: NextRequest) {
-  const adminId = getAdminId(req);
-  if (!adminId) return NextResponse.json({ error: "Not admin" }, { status: 401 });
+  const admin = await requireAdmin(req);
+  if (!admin) return NextResponse.json({ error: "Not admin" }, { status: 401 });
 
   const { title, message, type } = await req.json();
   if (!title || !message) return NextResponse.json({ error: "Title and message required" }, { status: 400 });

@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-
-function getAdminId(req: NextRequest): string | null {
-  try {
-    const c = req.cookies.get("admin_session")?.value;
-    if (!c) return null;
-    return JSON.parse(c).id || null;
-  } catch { return null; }
-}
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET(req: NextRequest) {
-  const adminId = getAdminId(req);
-  if (!adminId) return NextResponse.json({ error: "Not admin" }, { status: 401 });
+  const admin = await requireAdmin(req);
+  if (!admin) return NextResponse.json({ error: "Not admin" }, { status: 401 });
 
   try {
     const now = new Date();
