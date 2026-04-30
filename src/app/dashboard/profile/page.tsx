@@ -16,6 +16,13 @@ export default function ProfilePage() {
   const dc = dark;
   const fileRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    if (editing) {
+      setTimeout(() => {
+        document.getElementById("edit-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [editing]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState("");
@@ -161,7 +168,7 @@ export default function ProfilePage() {
               {tierName}
             </div>
             <div className="flex gap-2">
-              <button onClick={()=>setEditing(!editing)} className="flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-xl text-white rounded-2xl text-xs font-bold hover:bg-white/25 border border-white/20 transition-all active:scale-95">
+              <button onClick={()=>{setEditing(!editing);if(!editing)setActiveTab("about");}} className="flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-xl text-white rounded-2xl text-xs font-bold hover:bg-white/25 border border-white/20 transition-all active:scale-95">
                 <Edit3 className="w-3.5 h-3.5" /> {editing?"Cancel":"Edit"}
               </button>
             </div>
@@ -336,7 +343,7 @@ export default function ProfilePage() {
 
           {/* Edit form */}
           {editing && (
-            <div className={"rounded-2xl border p-6 mb-5 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-sm")}>
+            <div id="edit-form" className={"rounded-2xl border p-6 mb-5 " + (dc?"bg-gray-800 border-gray-700":"bg-white border-gray-100 shadow-sm")}>
               <h3 className={"font-black mb-6 flex items-center gap-2 text-lg " + (dc?"text-white":"text-gray-900")}><Edit3 className="w-5 h-5 text-rose-500" /> Edit Profile</h3>
               <div className="space-y-5">
                 <div>
