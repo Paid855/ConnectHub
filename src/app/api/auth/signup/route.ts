@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendWelcomeEmail } from "@/lib/email";
+import { sendWelcomeEmail, sendAdminAlert } from "@/lib/email";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 

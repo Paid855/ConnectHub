@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET(req: NextRequest) {
   const admin = await requireAdmin(req);
-  if (!admin) return NextResponse.json({ error: "Not admin" }, { status: 401 });
+  if (admin instanceof NextResponse) return admin;
 
   try {
     const now = new Date();

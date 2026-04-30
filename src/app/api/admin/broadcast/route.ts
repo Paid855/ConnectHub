@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 
 export async function POST(req: NextRequest) {
   const admin = await requireAdmin(req);
-  if (!admin) return NextResponse.json({ error: "Not admin" }, { status: 401 });
+  if (admin instanceof NextResponse) return admin;
 
   const { title, message, type } = await req.json();
   if (!title || !message) return NextResponse.json({ error: "Title and message required" }, { status: 400 });

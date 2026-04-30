@@ -95,3 +95,35 @@ export async function sendVerifiedEmail(to: string, name: string) {
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
   await transporter.sendMail({ from: FROM, to, subject, html });
 }
+
+
+// Send alert to admin when important events happen
+export async function sendAdminAlert(subject: string, body: string) {
+  const ADMIN_EMAILS = ["yusluvoluwasegun855@gmail.com", "admin@connecthub.love"];
+  for (const to of ADMIN_EMAILS) {
+    try {
+      await transporter.sendMail({
+        from: FROM,
+        to,
+        subject: "🔔 ConnectHub Admin: " + subject,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+            <div style="background:linear-gradient(135deg,#f43f5e,#ec4899);padding:20px;border-radius:12px 12px 0 0;text-align:center;">
+              <h1 style="color:white;margin:0;font-size:22px;">💕 ConnectHub Admin</h1>
+            </div>
+            <div style="background:#f9fafb;padding:24px;border:1px solid #e5e7eb;border-radius:0 0 12px 12px;">
+              <h2 style="color:#111827;font-size:18px;margin:0 0 12px 0;">${subject}</h2>
+              <div style="color:#4b5563;font-size:14px;line-height:1.6;">${body}</div>
+              <div style="margin-top:20px;text-align:center;">
+                <a href="https://admin.connecthub.love" style="display:inline-block;background:linear-gradient(135deg,#f43f5e,#ec4899);color:white;padding:12px 30px;border-radius:25px;text-decoration:none;font-weight:bold;font-size:14px;">Open Admin Panel →</a>
+              </div>
+            </div>
+            <p style="color:#9ca3af;font-size:11px;text-align:center;margin-top:16px;">ConnectHub Admin Notifications</p>
+          </div>
+        `
+      });
+    } catch (e) {
+      console.error("Admin email failed for " + to + ":", e);
+    }
+  }
+}

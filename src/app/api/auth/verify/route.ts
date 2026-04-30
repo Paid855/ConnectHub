@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { sendAdminAlert } from "@/lib/email";
 
 function getUserId(req: NextRequest) {
   try {
@@ -71,6 +72,15 @@ export async function POST(req: NextRequest) {
         }
       }
     }
+
+    // Notify admin about new verification submission
+    const submitter = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
+    sendAdminAlert(
+      "New Verification Submission",
+      `<p><strong>${submitter?.name || "A user"}</strong> (${submitter?.email || "unknown"}) just submitted their verification.</p>
+      <p>📸 Selfie + 🪪 ID document uploaded and waiting for your review.</p>
+      <p style="color:#f43f5e;font-weight:bold;">Please review and approve/decline in the admin panel.</p>`
+    ).catch(() => {});
 
     return NextResponse.json({ success: true, message: "Verification submitted for review" });
   } catch (e: any) {
