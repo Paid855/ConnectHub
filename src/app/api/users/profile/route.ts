@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
       friendshipStatus: friendship?.status || null,
       isFriend: friendship?.status === "accepted",
       prompts: user.prompts || null,
+      vibeStatus: user.vibeStatus || null,
       detectedCity: user.detectedCity || null,
       detectedCountry: user.detectedCountry || null,
     }

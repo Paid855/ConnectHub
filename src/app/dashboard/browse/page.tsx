@@ -171,6 +171,7 @@ export default function BrowsePage() {
                 </div>
               </Link>
               <div className={"p-4 " + (dc?"":"")}>
+                {(p as any).vibeStatus && <p className={"text-xs font-medium px-2.5 py-1 rounded-full w-fit mb-2 " + (dc?"bg-purple-500/15 text-purple-400":"bg-purple-50 text-purple-600")}>✨ {(p as any).vibeStatus}</p>}
                 {p.bio && <p className={"text-sm line-clamp-2 mb-3 " + (dc?"text-gray-400":"text-gray-600")}>{p.bio}</p>}
                 {p.interests && p.interests.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-3">

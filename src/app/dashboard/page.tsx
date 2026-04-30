@@ -22,6 +22,37 @@ export default function DiscoverPage() {
 
   const [matchPopup, setMatchPopup] = useState<any>(null);
   const [superLikeError, setSuperLikeError] = useState("");
+  const [vibeStatus, setVibeStatus] = useState<string|null>(null);
+  const [showVibePicker, setShowVibePicker] = useState(false);
+
+  useEffect(() => {
+    if (user?.vibeStatus) setVibeStatus(user.vibeStatus);
+  }, [user]);
+
+  const VIBE_OPTIONS = [
+    { emoji: "💬", text: "Down for deep conversations" },
+    { emoji: "🎬", text: "Netflix & chill tonight" },
+    { emoji: "☕", text: "Coffee date this weekend" },
+    { emoji: "🏙️", text: "Exploring the city today" },
+    { emoji: "🎵", text: "Vibing to good music" },
+    { emoji: "💪", text: "Gym session then hangout" },
+    { emoji: "🍕", text: "Foodie adventure anyone?" },
+    { emoji: "✈️", text: "Planning my next trip" },
+    { emoji: "🌙", text: "Late night talks only" },
+    { emoji: "🎉", text: "Looking for my person" },
+    { emoji: "📸", text: "Photo walk around town" },
+    { emoji: "🤗", text: "Just want genuine connection" },
+  ];
+
+  const setVibe = async (text: string | null) => {
+    setVibeStatus(text);
+    setShowVibePicker(false);
+    await fetch("/api/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vibeStatus: text || "" })
+    });
+  };
   const [lastPassed, setLastPassed] = useState<number|null>(null);
   const [todayLikes, setTodayLikes] = useState(0);
   const [todayPasses, setTodayPasses] = useState(0);
@@ -134,6 +165,47 @@ export default function DiscoverPage() {
           {profiles.length - current > 0 ? <><Sparkles className="w-3.5 h-3.5 text-rose-500 inline mr-1" />{profiles.length - current} people waiting to meet you</> : "Check back soon for new matches!"}
         </p>
       </div>
+
+      {/* ═══ VIBE STATUS ═══ */}
+      <div className="mb-4">
+        {vibeStatus ? (
+          <button onClick={() => setShowVibePicker(true)} className={"inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-all hover:shadow-md " + (dc?"bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30 text-purple-300":"bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 text-purple-700")}>
+            <span className="animate-pulse">✨</span> {vibeStatus}
+            <span className={"text-xs " + (dc?"text-gray-500":"text-gray-400")}>· tap to change</span>
+          </button>
+        ) : (
+          <button onClick={() => setShowVibePicker(true)} className={"inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border border-dashed transition-all hover:shadow-sm " + (dc?"border-gray-600 text-gray-500 hover:border-purple-500/50 hover:text-purple-400":"border-gray-300 text-gray-400 hover:border-purple-300 hover:text-purple-600")}>
+            <span>✨</span> Set your vibe — what are you looking for today?
+          </button>
+        )}
+      </div>
+
+      {/* Vibe Picker Modal */}
+      {showVibePicker && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowVibePicker(false)}>
+          <div className={"w-full max-w-md rounded-3xl overflow-hidden shadow-2xl " + (dc?"bg-gray-800":"bg-white")} onClick={e => e.stopPropagation()}>
+            <div className={"p-5 border-b " + (dc?"border-gray-700":"border-gray-100")}>
+              <h3 className={"text-lg font-extrabold " + (dc?"text-white":"text-gray-900")}>Set Your Vibe ✨</h3>
+              <p className={"text-xs mt-1 " + (dc?"text-gray-400":"text-gray-500")}>Let others know what you&apos;re looking for right now</p>
+            </div>
+            <div className="p-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-1 gap-2">
+                {VIBE_OPTIONS.map((v, i) => (
+                  <button key={i} onClick={() => setVibe(v.emoji + " " + v.text)} className={"flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition-all " + (vibeStatus === v.emoji + " " + v.text ? (dc?"bg-purple-500/20 border border-purple-500/50 text-purple-300":"bg-purple-50 border border-purple-300 text-purple-700") : (dc?"hover:bg-gray-700 text-gray-300":"hover:bg-gray-50 text-gray-700"))}>
+                    <span className="text-2xl">{v.emoji}</span>
+                    <span className="text-sm font-medium">{v.text}</span>
+                  </button>
+                ))}
+              </div>
+              {vibeStatus && (
+                <button onClick={() => setVibe(null)} className={"w-full mt-3 py-3 rounded-2xl text-sm font-medium border " + (dc?"border-gray-600 text-gray-400 hover:bg-gray-700":"border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                  Clear vibe status
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Online Now */}
       {(() => {

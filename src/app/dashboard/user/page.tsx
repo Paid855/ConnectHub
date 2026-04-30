@@ -197,6 +197,13 @@ export default function UserProfilePage() {
         </div>
       )}
 
+      {/* Vibe Status */}
+      {profile.vibeStatus && (
+        <div className={"mt-4 rounded-2xl border px-5 py-3.5 " + (dc ? "bg-purple-500/5 border-purple-500/20" : "bg-gradient-to-r from-purple-50 to-pink-50 border-purple-100")}>
+          <p className={"text-sm font-medium " + (dc ? "text-purple-300" : "text-purple-700")}>{profile.vibeStatus}</p>
+        </div>
+      )}
+
       {/* Bio */}
       {profile.bio && (
         <div className={"mt-4 rounded-2xl border p-5 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100")}>

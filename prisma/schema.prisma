@@ -57,6 +57,7 @@ model User {
   interests          String[]  @default([])
   prompts            String?
   loginStreak        Int       @default(0)
+  vibeStatus         String?
   lastSeen           DateTime @default(now())
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
