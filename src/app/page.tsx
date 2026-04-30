@@ -575,6 +575,41 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ═══ GET THE APP ═══ */}
+      <section className="py-16 sm:py-20 bg-white font-body">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl p-8 sm:p-14 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-rose-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-pink-500/10 rounded-full blur-3xl" />
+            <div className="relative flex flex-col md:flex-row items-center gap-8 md:gap-14">
+              <div className="flex-1 text-center md:text-left">
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-4 tracking-tight">Take Love On The Go</h2>
+                <p className="text-gray-400 text-sm sm:text-base mb-8 max-w-md">Download ConnectHub on your phone. Get instant notifications when someone likes you, matches with you, or sends a message.</p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+                  <a href="https://play.google.com/store/apps/details?id=love.connecthub.app" target="_blank" rel="noopener" className="inline-flex items-center gap-3 px-6 py-3.5 bg-white rounded-xl hover:bg-gray-50 transition-all hover:shadow-lg">
+                    <svg className="w-7 h-7" viewBox="0 0 24 24"><path fill="#34A853" d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734c0-.382.218-.72.609-.92z"/><path fill="#FBBC04" d="M16.247 9.544L5.12.808A1.004 1.004 0 013.609 1.814l10.183 10.183 2.455-2.453z"/><path fill="#4285F4" d="M21.393 10.916l-3.146-1.764-2.455 2.453 2.455 2.453 3.146-1.764c.783-.44.783-1.537 0-1.978z"/><path fill="#EA4335" d="M3.609 22.186L16.247 14.06l-2.455-2.453L3.609 22.186z"/></svg>
+                    <div className="text-left"><p className="text-[10px] text-gray-500 font-medium">GET IT ON</p><p className="text-base font-bold text-gray-900 -mt-0.5">Google Play</p></div>
+                  </a>
+                  <div className="inline-flex items-center gap-3 px-6 py-3.5 bg-gray-700/50 rounded-xl border border-gray-600 cursor-default">
+                    <svg className="w-7 h-7 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                    <div className="text-left"><p className="text-[10px] text-gray-500 font-medium">COMING SOON</p><p className="text-base font-bold text-gray-400 -mt-0.5">App Store</p></div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-shrink-0 hidden sm:block">
+                <div className="w-48 h-48 sm:w-56 sm:h-56 bg-gradient-to-br from-rose-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-2xl shadow-rose-500/20 rotate-6 hover:rotate-0 transition-transform duration-500">
+                  <div className="text-center -rotate-6 hover:rotate-0 transition-transform duration-500">
+                    <span className="text-6xl">💕</span>
+                    <p className="text-white font-extrabold text-lg mt-2">ConnectHub</p>
+                    <p className="text-rose-200 text-xs">Find Your Match</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ═══ FOOTER ═══ */}
       <footer ref={s8.ref} className="bg-gray-950 text-white pt-20 pb-10 font-body">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
