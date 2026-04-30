@@ -103,6 +103,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     };
 
+    // Periodic check — catches Android background kills
+    const periodicCheck = setInterval(() => {
+      const last = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+      if (last > 0 && Date.now() - last >= TIMEOUT) {
+        localStorage.removeItem(STORAGE_KEY);
+        document.cookie = "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        window.location.href = "/login?reason=inactive";
+      }
+    }, 30000);
+
     const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
     events.forEach(e => window.addEventListener(e, resetTimer));
     document.addEventListener("visibilitychange", handleVisibility);
@@ -111,6 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => {
       events.forEach(e => window.removeEventListener(e, resetTimer));
       document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(periodicCheck);
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     };
   }, [router]);

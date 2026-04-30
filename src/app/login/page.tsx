@@ -21,6 +21,9 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Invalid credentials"); setLoading(false); return; }
+      // Clear stale inactivity timer so dashboard doesn't immediately log out
+      localStorage.removeItem("ch_last_active");
+      localStorage.removeItem("lastRewardCheck");
       window.location.replace("/dashboard");
     } catch { setError("Network error. Please try again."); setLoading(false); }
   };

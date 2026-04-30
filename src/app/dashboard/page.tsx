@@ -143,6 +143,36 @@ export default function DiscoverPage() {
         );
       })()}
 
+      {/* ═══ TOP PICKS ═══ */}
+      {profiles.length > 1 && (
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className={"text-sm font-bold " + (dc?"text-white":"text-gray-900")}>Top Picks For You ✨</h2>
+            <Link href="/dashboard/browse" className="text-xs text-rose-500 font-medium">See all</Link>
+          </div>
+          <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">
+            {profiles.filter((_, i) => i !== current).slice(0, 8).map(p => (
+              <Link key={p.id} href={"/dashboard/user?id=" + p.id} className="flex-shrink-0 group">
+                <div className="relative w-[72px]">
+                  <div className={"w-[72px] h-[96px] rounded-2xl overflow-hidden border-2 transition-all " + (dc ? "border-gray-700 group-hover:border-rose-500/50" : "border-gray-100 group-hover:border-rose-300")}>
+                    {p.profilePhoto ? (
+                      <img src={p.profilePhoto} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="" />
+                    ) : (
+                      <div className={"w-full h-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg"}>{p.name?.[0]}</div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <p className="absolute bottom-1.5 left-0 right-0 text-[9px] font-bold text-white text-center truncate px-1">{p.name?.split(" ")[0]}{p.age ? ", " + p.age : ""}</p>
+                  </div>
+                  {p.lastSeen && Date.now() - new Date(p.lastSeen).getTime() < 300000 && (
+                    <div className={"absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 " + (dc?"border-gray-900":"border-gray-50")} />
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Main card */}
       <div className={"relative rounded-3xl overflow-hidden shadow-2xl border mx-auto max-w-sm sm:max-w-md " + (dc?"border-gray-700 shadow-black/50":"border-gray-100 shadow-rose-100/50") + " " + (action==="like"?"translate-x-20 rotate-6 opacity-0":action==="pass"?"-translate-x-20 -rotate-6 opacity-0":"") + " transition-all duration-500"}>
         {/* Photo */}
