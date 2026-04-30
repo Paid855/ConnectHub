@@ -144,7 +144,7 @@ export default function MessagesPage() {
   const { user, dark, reload: reloadUser } = useUser();
   const dc = dark;
   const searchParams = useSearchParams();
-  const autoUser = searchParams.get("user");
+  const autoUser = searchParams.get("user") || searchParams.get("chat");
   const [conversations, setConversations] = useState<any[]>([]);
   const [chatWith, setChatWith] = useState<string|null>(autoUser);
   const [chatUser, setChatUser] = useState<any>(null);

@@ -9,6 +9,7 @@ const ALL_INTERESTS = ["Travel","Music","Cooking","Fitness","Photography","Art",
 export default function SearchPage() {
   const { user, dark } = useUser();
   const dc = dark;
+  const isPaid = user?.tier === "plus" || user?.tier === "premium" || user?.tier === "gold";
   const [query, setQuery] = useState("");
   const [selectedInterest, setSelectedInterest] = useState("");
   const [ageMin, setAgeMin] = useState("");

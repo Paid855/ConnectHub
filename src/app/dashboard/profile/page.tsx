@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from "react";
 import { useUser, TierBadge } from "../layout";
 import { Shield, Camera, Check, Heart, Edit3, Calendar, User, Mail, Crown, Settings, Globe, Gem, Phone, MessageCircle, Rss, Tag, X, AlertTriangle, ChevronDown, Eye, Lock, Coins, Sparkles, MapPin, Star, Zap, Image as ImageIcon, ExternalLink, Award, TrendingUp, Share2, Bookmark, Gift, Verified } from "lucide-react";
 import Link from "next/link";
-import PhotoGallery from "@/components/PhotoGallery";
 import { uploadProfilePhoto } from "@/lib/upload-photo";
 
 const COUNTRIES = ["Afghanistan","Albania","Algeria","Argentina","Australia","Bangladesh","Brazil","Canada","China","Colombia","Egypt","Ethiopia","France","Germany","Ghana","India","Indonesia","Iran","Iraq","Italy","Japan","Kenya","Malaysia","Mexico","Morocco","Nepal","Netherlands","New Zealand","Nigeria","Pakistan","Philippines","Poland","Russia","Saudi Arabia","Singapore","South Africa","South Korea","Spain","Sri Lanka","Sudan","Sweden","Switzerland","Tanzania","Thailand","Turkey","UAE","Uganda","UK","Ukraine","USA","Vietnam","Zimbabwe"];
@@ -510,7 +509,6 @@ export default function ProfilePage() {
             ))}
           </div>
 
-          {user && <div className="mb-5"><PhotoGallery userId={user.id} editable={true} dark={dc} /></div>}
 
           {/* Edit form */}
           {editing && (
