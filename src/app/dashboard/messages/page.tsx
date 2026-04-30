@@ -703,15 +703,12 @@ export default function MessagesPage() {
               placeholder="Type a message..."
               className={"flex-1 py-2.5 px-4 rounded-xl text-sm outline-none transition-colors " + (dc ? "bg-gray-700 text-white placeholder-gray-500 focus:ring-1 focus:ring-rose-500" : "bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-rose-300 focus:bg-white")}
             />
-            {recording ? (
-              <button onClick={stopVoice} className="p-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl hover:shadow-lg hover:shadow-rose-200 transition-all active:scale-95 animate-pulse">
-                <Send className="w-5 h-5" />
-              </button>
-            ) : newMsg.trim() ? (
+            {!recording && newMsg.trim() && (
               <button onClick={sendMessage} className="p-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl hover:shadow-lg hover:shadow-rose-200 transition-all active:scale-95">
                 <Send className="w-5 h-5" />
               </button>
-            ) : (
+            )}
+            {!recording && !newMsg.trim() && (
               <button
                 onClick={startVoice}
                 className={"p-2.5 rounded-xl transition-all " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}
@@ -720,17 +717,24 @@ export default function MessagesPage() {
               </button>
             )}
           </div>
+
+          {/* WhatsApp-style recording bar */}
           {recording && (
-            <div className={"flex items-center justify-between mt-2 px-2 py-2 rounded-xl " + (dc ? "bg-gray-700" : "bg-rose-50")}>
-              <button onClick={cancelVoice} className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50">
-                ✕ Cancel
+            <div className={"flex items-center gap-3 px-3 py-3 rounded-2xl mt-2 " + (dc ? "bg-gray-700" : "bg-gray-100")}>
+              <button onClick={cancelVoice} className={"p-2.5 rounded-full transition-all hover:scale-110 " + (dc ? "text-gray-400 hover:text-red-400 hover:bg-gray-600" : "text-gray-400 hover:text-red-500 hover:bg-red-50")}>
+                <Trash2 className="w-5 h-5" />
               </button>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                <span className={"text-xs font-bold tabular-nums " + (dc ? "text-rose-400" : "text-rose-600")}>{formatRecordTime(recordingTime)}</span>
+              <div className="flex-1 flex items-center gap-3">
+                <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+                <span className={"text-sm font-bold tabular-nums " + (dc ? "text-white" : "text-gray-900")}>{formatRecordTime(recordingTime)}</span>
+                <div className="flex-1 flex items-center gap-[3px]">
+                  {Array.from({length: 30}).map((_, i) => (
+                    <div key={i} className={"w-[3px] rounded-full transition-all duration-150 " + (dc ? "bg-rose-400" : "bg-rose-500")} style={{height: Math.max(4, Math.min(20, (Math.sin(i * 0.5 + recordingTime * 2) + 1) * 10 + Math.random() * 4)) + "px", opacity: i < (recordingTime % 30) ? 1 : 0.3}} />
+                  ))}
+                </div>
               </div>
-              <button onClick={stopVoice} className="flex items-center gap-1.5 text-xs font-semibold text-white bg-gradient-to-r from-rose-500 to-pink-500 px-3 py-1.5 rounded-lg hover:shadow-md transition-all">
-                <Send className="w-3.5 h-3.5" /> Send
+              <button onClick={stopVoice} className="p-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-full hover:shadow-lg hover:shadow-emerald-200/50 transition-all hover:scale-110 active:scale-95">
+                <Send className="w-5 h-5" />
               </button>
             </div>
           )}
