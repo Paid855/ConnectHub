@@ -91,6 +91,7 @@ export default function ProfilePage() {
   };
   const [postCount, setPostCount] = useState(0);
   const [myPosts, setMyPosts] = useState<any[]>([]);
+  const [viewCount, setViewCount] = useState(0);
   const [showDelete, setShowDelete] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -112,6 +113,7 @@ export default function ProfilePage() {
     }
     fetch("/api/feed").then(r=>r.json()).then(d=>{ const mine = (d.feed||[]).filter((p:any)=>p.userId===user?.id); setPostCount(mine.length); setMyPosts(mine.slice(0,10)); }).catch(()=>{});
     fetch("/api/friends").then(r=>r.json()).then(d=>{ setFriendCount((d.friends||[]).length); }).catch(()=>{});
+    fetch("/api/profile-views").then(r=>r.json()).then(d=>{ setViewCount(d.total || 0); }).catch(()=>{});
   }, [user]);
 
   const set = (k:string,v:string) => setForm(f=>({...f,[k]:v}));
@@ -331,6 +333,7 @@ export default function ProfilePage() {
           <div className={"grid grid-cols-4 gap-3 mt-6 pt-6 border-t " + (dc?"border-gray-700":"border-gray-100")}>
             {[
               { value: postCount, label: "Posts", icon: Rss, color: dc?"text-blue-400":"text-blue-500", bg: dc?"bg-blue-500/10":"bg-blue-50" },
+              { value: viewCount, label: "Views", icon: Eye, color: dc?"text-purple-400":"text-purple-500", bg: dc?"bg-purple-500/10":"bg-purple-50" },
               { value: friendCount, label: "Friends", icon: Heart, color: dc?"text-rose-400":"text-rose-500", bg: dc?"bg-rose-500/10":"bg-rose-50" },
               { value: interests.length, label: "Interests", icon: Tag, color: dc?"text-violet-400":"text-violet-500", bg: dc?"bg-violet-500/10":"bg-violet-50" },
               { value: user.coins?.toLocaleString()||"0", label: "Coins", icon: Coins, color: dc?"text-amber-400":"text-amber-500", bg: dc?"bg-amber-500/10":"bg-amber-50" },

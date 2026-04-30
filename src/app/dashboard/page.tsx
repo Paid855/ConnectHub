@@ -282,6 +282,25 @@ export default function DiscoverPage() {
       <p className={"text-center text-xs mt-4 " + (dc?"text-gray-600":"text-gray-400")}>
         Tap photo to see details · {current + 1} of {profiles.length}
       </p>
+
+      {/* Quick Actions Bar */}
+      <div className="flex gap-2 mt-5">
+        <button onClick={async () => {
+          const res = await fetch("/api/boost", { method: "POST" });
+          const data = await res.json();
+          if (res.ok) { alert("🚀 Profile boosted for 30 minutes! You'll appear at the top of everyone's feed."); }
+          else if (data.upgrade) { setSuperLikeError("Profile boost requires Plus or Premium. Upgrade to stand out!"); }
+          else { alert(data.error || "Could not boost"); }
+        }} className={"flex-1 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border transition-all hover:shadow-md " + (dc?"bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20":"bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 text-amber-600 hover:bg-amber-100")}>
+          <Zap className="w-4 h-4" /> Boost Profile
+        </button>
+        <Link href="/dashboard/liked" className={"flex-1 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border transition-all hover:shadow-md " + (dc?"bg-gradient-to-r from-rose-500/10 to-pink-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20":"bg-gradient-to-r from-rose-50 to-pink-50 border-rose-200 text-rose-600 hover:bg-rose-100")}>
+          <Heart className="w-4 h-4" /> Who Likes Me
+        </Link>
+        <Link href="/dashboard/video" className={"flex-1 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border transition-all hover:shadow-md " + (dc?"bg-gradient-to-r from-purple-500/10 to-violet-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20":"bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200 text-purple-600 hover:bg-violet-100")}>
+          <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /> Go Live
+        </Link>
+      </div>
       {/* Super Like error */}
       {superLikeError && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSuperLikeError("")}>
