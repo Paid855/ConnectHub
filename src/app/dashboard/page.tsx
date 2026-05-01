@@ -14,6 +14,7 @@ export default function DiscoverPage() {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
+    fetch("/api/users?online=1").then(r => r.json()).then(d => setOnlineUsers((d.users || []).filter((u: any) => u.id !== user?.id).slice(0, 15))).catch(() => {});
     fetch("/api/users").then(r => r.ok ? r.json() : { users: [] }).then(d => {
       setProfiles(d.users || []);
       setLoading(false);
@@ -187,6 +188,34 @@ export default function DiscoverPage() {
           {profiles.length - current > 0 ? <><Sparkles className="w-3.5 h-3.5 text-rose-500 inline mr-1" />{profiles.length - current} people waiting to meet you</> : "Check back soon for new matches!"}
         </p>
       </div>
+
+      {/* ═══ ONLINE NOW ═══ */}
+      {onlineUsers.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className={"text-xs font-extrabold uppercase tracking-[0.2em] flex items-center gap-2 " + (dc?"text-gray-500":"text-gray-400")}>
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              Online Now
+            </h3>
+            <span className={"text-[10px] " + (dc?"text-gray-600":"text-gray-400")}>{onlineUsers.length} active</span>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {onlineUsers.map((u: any) => (
+              <Link key={u.id} href={"/dashboard/user?id=" + u.id} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-[68px] group">
+                <div className="relative">
+                  {u.profilePhoto ? (
+                    <img src={u.profilePhoto} className="w-14 h-14 rounded-full object-cover border-2 border-emerald-400 group-hover:scale-105 transition-transform" alt="" loading="lazy" />
+                  ) : (
+                    <div className={"w-14 h-14 rounded-full border-2 border-emerald-400 flex items-center justify-center text-lg font-bold " + (dc?"bg-gray-700 text-white":"bg-gray-100 text-gray-600")}>{u.name?.[0]}</div>
+                  )}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-gray-900" />
+                </div>
+                <span className={"text-[10px] font-medium truncate w-full text-center " + (dc?"text-gray-400":"text-gray-500")}>{u.name?.split(" ")[0]}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ═══ VIBE STATUS ═══ */}
       <div className="mb-4">
