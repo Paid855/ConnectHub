@@ -541,27 +541,7 @@ export default function MessagesPage() {
   );
 
   // Media viewer modal
-  const MediaViewerModal = () => mediaViewer ? (
-    <div className="fixed inset-0 z-[300] bg-black/95 flex flex-col items-center justify-center">
-      <div className="absolute inset-0" onClick={() => setMediaViewer(null)} />
-      <div className="absolute top-4 right-4 flex gap-3 z-20">
-        <a href={mediaViewer.src} download={"connecthub_" + Date.now() + (mediaViewer.type === "image" ? ".jpg" : ".mp4")} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all border border-white/10">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> Download
-        </a>
-        <button onClick={() => setMediaViewer(null)} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white p-2.5 rounded-xl transition-all border border-white/10">
-          <XIcon className="w-5 h-5" />
-        </button>
-      </div>
-      <div className="relative z-10 max-w-[95vw] max-h-[85vh] flex items-center justify-center">
-        {mediaViewer.type === "image" ? (
-          <img src={mediaViewer.src} alt="" className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl" onClick={() => setMediaViewer(null)} />
-        ) : (
-          <video key={"viewer-" + mediaViewer.src} src={mediaViewer.src} controls playsInline className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl" />
-        )}
-      </div>
-      <p className="text-white/40 text-xs mt-4 relative z-10" onClick={() => setMediaViewer(null)}>Tap outside to close</p>
-    </div>
-  ) : null;
+  // Media viewer is rendered as stable JSX below, not as a component function
 
 
 
@@ -583,7 +563,27 @@ export default function MessagesPage() {
   if (chatWith) {
     return (
       <div className={"flex flex-col h-[calc(100vh-5rem)] " + (dc ? "bg-gray-900" : "bg-white")}>
-        <MediaViewerModal />
+        {mediaViewer && (
+          <div className="fixed inset-0 z-[300] bg-black/95 flex flex-col items-center justify-center">
+            <div className="absolute inset-0" onClick={() => setMediaViewer(null)} />
+            <div className="absolute top-4 right-4 flex gap-3 z-20">
+              <a href={mediaViewer.src} download={"connecthub_media." + (mediaViewer.type === "image" ? "jpg" : "mp4")} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all border border-white/10">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> Download
+              </a>
+              <button onClick={() => setMediaViewer(null)} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white p-2.5 rounded-xl transition-all border border-white/10">
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="relative z-10 max-w-[95vw] max-h-[85vh] flex items-center justify-center">
+              {mediaViewer.type === "image" ? (
+                <img src={mediaViewer.src} alt="" className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl" onClick={() => setMediaViewer(null)} />
+              ) : (
+                <video key={"stable-vid-" + mediaViewer.src} src={mediaViewer.src} controls playsInline className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl" />
+              )}
+            </div>
+            <p className="text-white/40 text-xs mt-4 relative z-10" onClick={() => setMediaViewer(null)}>Tap outside to close</p>
+          </div>
+        )}
         {/* Chat header */}
         <div className={"flex items-center gap-3 px-4 py-3 border-b " + (dc ? "border-gray-700 bg-gray-800" : "border-gray-100 bg-white")}>
           <button onClick={() => { setChatWith(null); setChatUser(null); setMessages([]); setIsTyping(false); loadConversations(); }} className={"p-2 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}>
