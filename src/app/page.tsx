@@ -555,6 +555,55 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ═══ FEATURED MEMBERS ═══ */}
+      <section ref={useInView().ref} className="py-20 sm:py-24 bg-white font-body">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
+          <span className="inline-block px-5 py-2.5 bg-gradient-to-r from-rose-100 to-pink-100 text-rose-600 rounded-full text-xs font-bold tracking-widest uppercase mb-6">Real People, Real Connections</span>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-5 tracking-tight">
+            Meet Our <span className="font-display italic gradient-text">Community</span>
+          </h2>
+          <p className="text-gray-400 max-w-2xl mx-auto text-base sm:text-lg mb-14">Thousands of verified singles are already finding love on ConnectHub. Will you be next?</p>
+          <div className="flex justify-center gap-6 flex-wrap">
+            {[
+              { name: "Join Today", emoji: "💕", desc: "Create your free profile in 2 minutes" },
+              { name: "Get Verified", emoji: "✓", desc: "Face scan + ID for trust & safety" },
+              { name: "Find Love", emoji: "💍", desc: "Match, chat, video call, and meet" },
+            ].map((s, i) => (
+              <div key={i} className="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100 rounded-2xl p-8 w-64 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+                <span className="text-4xl mb-4 block">{s.emoji}</span>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{s.name}</h3>
+                <p className="text-sm text-gray-500">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-12">
+            <a href="/signup" className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-rose-300/30 transition-all hover:scale-[1.02]">
+              Start Your Love Story <span>→</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ SOCIAL PROOF ═══ */}
+      <section className="py-12 bg-gray-50 font-body">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <div className="flex items-center justify-center gap-8 flex-wrap">
+            <a href="https://www.facebook.com/share/1BFqFtAP5X/?mibextid=wwXIfr" target="_blank" rel="noopener" className="flex items-center gap-2 text-gray-400 hover:text-blue-500 transition-colors">
+              <span className="text-2xl">📘</span>
+              <span className="text-sm font-medium">Facebook</span>
+            </a>
+            <a href="https://www.instagram.com/connecthub.love" target="_blank" rel="noopener" className="flex items-center gap-2 text-gray-400 hover:text-pink-500 transition-colors">
+              <span className="text-2xl">📷</span>
+              <span className="text-sm font-medium">Instagram</span>
+            </a>
+            <a href="https://play.google.com/store/apps/details?id=love.connecthub.app" target="_blank" rel="noopener" className="flex items-center gap-2 text-gray-400 hover:text-green-500 transition-colors">
+              <span className="text-2xl">▶️</span>
+              <span className="text-sm font-medium">Google Play</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ═══ FINAL CTA ═══ */}
       <section ref={s7.ref} className="py-24 sm:py-32 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />

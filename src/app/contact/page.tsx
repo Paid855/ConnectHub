@@ -71,6 +71,13 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
+      <div className="py-8 text-center">
+        <p className="text-sm text-gray-500 mb-3">Or reach us on social media</p>
+        <div className="flex justify-center gap-3">
+          <a href="https://www.facebook.com/share/1BFqFtAP5X/?mibextid=wwXIfr" target="_blank" rel="noopener" className="px-5 py-2.5 bg-blue-500 text-white rounded-full text-sm font-bold hover:bg-blue-600 transition-all flex items-center gap-2">📘 Facebook</a>
+          <a href="https://www.instagram.com/connecthub.love" target="_blank" rel="noopener" className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-sm font-bold hover:shadow-lg transition-all flex items-center gap-2">📷 Instagram</a>
+        </div>
+      </div>
     </>
   );
 }

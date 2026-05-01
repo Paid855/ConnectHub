@@ -81,6 +81,13 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
+      <div className="py-12 text-center">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Follow Us</h3>
+        <div className="flex justify-center gap-4">
+          <a href="https://www.facebook.com/share/1BFqFtAP5X/?mibextid=wwXIfr" target="_blank" rel="noopener" className="px-5 py-2.5 bg-blue-500 text-white rounded-full text-sm font-bold hover:bg-blue-600 transition-all flex items-center gap-2">📘 Facebook</a>
+          <a href="https://www.instagram.com/connecthub.love" target="_blank" rel="noopener" className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-sm font-bold hover:shadow-lg transition-all flex items-center gap-2">📷 Instagram</a>
+        </div>
+      </div>
     </>
   );
 }
