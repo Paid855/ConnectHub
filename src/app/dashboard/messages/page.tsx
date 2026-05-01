@@ -690,14 +690,16 @@ export default function MessagesPage() {
                     {isVid && (
                       <div className="relative rounded-2xl overflow-hidden max-w-[260px]">
                         <video
+                          key={"vid-" + msg.id}
                           src={msg.content.replace("[VID]", "")}
                           controls
                           playsInline
                           preload="metadata"
+                          loop={false}
                           className="w-full rounded-2xl max-h-[300px]"
                           style={{background:"#000"}}
-                          onClick={(e) => { e.stopPropagation(); setMediaViewer({ src: msg.content.replace("[VID]", ""), type: "video" }); }}
                         />
+                        <button onClick={(e) => { e.stopPropagation(); setMediaViewer({ src: msg.content.replace("[VID]", ""), type: "video" }); }} className="absolute top-2 right-2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white text-xs backdrop-blur-sm hover:bg-black/70 transition-all">⛶</button>
                       </div>
                     )}
                     {msg.content?.startsWith("[GIF]") && (
