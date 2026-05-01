@@ -572,13 +572,6 @@ export default function MessagesPage() {
   const [randomBreakers] = useState(() => ICEBREAKERS.sort(() => Math.random() - 0.5).slice(0, 3));
 
   // Chat view
-  // Load messages when chatWith changes
-  useEffect(() => {
-    if (chatWith) {
-      loadMessages(chatWith);
-    }
-  }, [chatWith]);
-
   if (chatWith) {
     return (
       <div className={"flex flex-col h-[calc(100vh-5rem)] " + (dc ? "bg-gray-900" : "bg-white")}>
