@@ -161,6 +161,34 @@ export default function MessagesPage() {
   const [reactions, setReactions] = useState<Record<string, {emoji:string;count:number;mine:boolean}[]>>({});
   const [showReactions, setShowReactions] = useState<string|null>(null);
   const [showGif, setShowGif] = useState(false);
+  const [showGiftPicker, setShowGiftPicker] = useState(false);
+  const [gifts, setGifts] = useState<any[]>([]);
+  const [sendingGift, setSendingGift] = useState<string|null>(null);
+
+  useEffect(() => {
+    fetch("/api/messages/gift").then(r => r.json()).then(d => setGifts(d.gifts || [])).catch(() => {});
+  }, []);
+
+  const sendGift = async (giftId: string) => {
+    if (!chatWith || sendingGift) return;
+    setSendingGift(giftId);
+    try {
+      const res = await fetch("/api/messages/gift", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receiverId: chatWith, giftId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowGiftPicker(false);
+        loadMessages(chatWith);
+        loadConversations();
+        reloadUser();
+      } else {
+        alert(data.error || "Could not send gift");
+      }
+    } catch {} finally { setSendingGift(null); }
+  };
   const [gifQuery, setGifQuery] = useState("");
   const [gifs, setGifs] = useState<string[]>([]);
   const [gifLoading, setGifLoading] = useState(false);
@@ -583,6 +611,19 @@ export default function MessagesPage() {
                         </div>
                       </div>
                     )}
+                    {msg.content?.startsWith("[GIFT]") && (() => {
+                      const parts = msg.content.replace("[GIFT]", "").split("|");
+                      const emoji = parts[0] || "🎁";
+                      const name = parts[1] || "Gift";
+                      const cost = parts[2] || "0";
+                      return (
+                        <div className={"rounded-2xl p-4 text-center min-w-[140px] " + (isMine ? "bg-white/10" : (dc ? "bg-amber-500/10" : "bg-amber-50"))}>
+                          <span className="text-4xl block mb-1 animate-bounce">{emoji}</span>
+                          <p className={"text-xs font-bold " + (isMine ? "text-white" : (dc ? "text-amber-400" : "text-amber-700"))}>{name}</p>
+                          <p className={"text-[10px] " + (isMine ? "text-white/60" : (dc ? "text-amber-500/60" : "text-amber-500"))}>{cost} coins</p>
+                        </div>
+                      );
+                    })()}
                     {msg.content?.startsWith("[GIF]") && (
                       <img src={msg.content.replace("[GIF]", "")} alt="GIF" className="max-w-[220px] rounded-xl cursor-pointer hover:brightness-90 transition-all" loading="lazy" onClick={(e) => { e.stopPropagation(); setMediaViewer({ src: msg.content.replace("[GIF]", ""), type: "image" }); }} />
                     )}
@@ -716,6 +757,9 @@ export default function MessagesPage() {
               </button>
             )}
             {!recording && !newMsg.trim() && (
+              <button onClick={() => setShowGiftPicker(!showGiftPicker)} className={"p-2.5 rounded-xl transition-all " + (dc ? "text-gray-400 hover:text-amber-400 hover:bg-gray-700" : "text-gray-400 hover:text-amber-500 hover:bg-amber-50")}>
+                <span className="text-lg">🎁</span>
+              </button>
               <button
                 onClick={startVoice}
                 className={"p-2.5 rounded-xl transition-all " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}
@@ -724,6 +768,28 @@ export default function MessagesPage() {
               </button>
             )}
           </div>
+
+          {/* Gift Picker */}
+          {showGiftPicker && (
+            <div className={"rounded-2xl border p-4 mt-2 " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200 shadow-lg")}>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className={"text-sm font-bold " + (dc ? "text-white" : "text-gray-900")}>🎁 Send a Gift</h4>
+                <button onClick={() => setShowGiftPicker(false)} className={"text-gray-400 hover:text-gray-300"}>
+                  <XIcon className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {gifts.map(g => (
+                  <button key={g.id} onClick={() => sendGift(g.id)} disabled={sendingGift === g.id} className={"flex flex-col items-center gap-1 p-2.5 rounded-xl transition-all " + (sendingGift === g.id ? "opacity-50" : "") + " " + (dc ? "hover:bg-gray-700 bg-gray-750" : "hover:bg-gray-50 bg-gray-50/50") + " border " + (dc ? "border-gray-700" : "border-gray-100")}>
+                    <span className="text-2xl">{g.emoji}</span>
+                    <span className={"text-[9px] font-bold " + (dc ? "text-gray-400" : "text-gray-500")}>{g.name}</span>
+                    <span className={"text-[9px] font-bold flex items-center gap-0.5 " + (dc ? "text-amber-400" : "text-amber-600")}>{g.cost} 🪙</span>
+                  </button>
+                ))}
+              </div>
+              <p className={"text-[10px] text-center mt-2 " + (dc ? "text-gray-500" : "text-gray-400")}>Gifts are sent as messages. Receiver gets 70% of coin value!</p>
+            </div>
+          )}
 
           {/* WhatsApp-style recording bar */}
           {recording && (
