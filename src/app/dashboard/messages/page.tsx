@@ -555,7 +555,7 @@ export default function MessagesPage() {
         {mediaViewer.type === "image" ? (
           <img src={mediaViewer.src} alt="" className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl" />
         ) : (
-          <video src={mediaViewer.src} controls autoPlay className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl" />
+          <video key={"viewer-" + mediaViewer.src} src={mediaViewer.src} controls playsInline loop={false} className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()} />
         )}
       </div>
       <p className="text-white/40 text-xs mt-4">Tap outside to close</p>
