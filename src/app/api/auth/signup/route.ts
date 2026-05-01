@@ -150,6 +150,12 @@ export async function POST(req: NextRequest) {
       data: { userId: user.id, type: "purchase", title: "Welcome to ConnectHub! 🎉", message: "You received 20 free coins as a welcome gift. Start exploring and find your perfect match!", read: false }
     }).catch(() => {});
 
+    // Notify admin of new signup
+    sendAdminAlert(
+      "New User Signup",
+      "<p><strong>" + name.trim() + "</strong> just joined ConnectHub!</p><p><strong>Email:</strong> " + cleanEmail + "</p><p><strong>Country:</strong> " + (country || "Not set") + "</p><p><strong>Gender:</strong> " + (gender || "Not set") + "</p>"
+    ).catch(() => {});
+
     // Set session FIRST so signup succeeds even if email fails
     const session = JSON.stringify({ id: user.id, email: cleanEmail, name: name.trim() });
     const res = NextResponse.json({ success: true, userId: user.id, step: "verify_email" });
