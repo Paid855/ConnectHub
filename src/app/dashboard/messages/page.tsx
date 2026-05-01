@@ -646,20 +646,9 @@ export default function MessagesPage() {
             const isDeleted = msg.content?.startsWith("[DELETED]");
             const isImage = msg.content?.startsWith("[IMG]");
             const isVoice = msg.content?.startsWith("[VOICE]");
-                    {msg.content?.startsWith("[VID]") && (
-                      <div className="relative rounded-2xl overflow-hidden max-w-[260px]">
-                        <video
-                          src={msg.content.replace("[VID]", "")}
-                          controls
-                          playsInline
-                          preload="metadata"
-                          className="w-full rounded-2xl max-h-[300px]"
-                          style={{background:"#000"}}
-                        />
-                      </div>
-                    )}
+            const isVid = msg.content?.startsWith("[VID]");
             const isGif = msg.content?.startsWith("[GIF]");
-            const content = isDeleted ? "This message was deleted" : isImage || isVoice || isGif ? null : msg.content;
+            const content = isDeleted ? "This message was deleted" : isImage || isVoice || isGif || isVid ? null : msg.content;
             const imgSrc = isImage ? msg.content.replace("[IMG]", "") : null;
             const voiceSrc = isVoice ? msg.content.replace("[VOICE]", "") : null;
             const showDate = i === 0 || new Date(msg.createdAt).toDateString() !== new Date(messages[i - 1]?.createdAt).toDateString();
@@ -698,6 +687,19 @@ export default function MessagesPage() {
                         </div>
                       );
                     })()}
+                    {isVid && (
+                      <div className="relative rounded-2xl overflow-hidden max-w-[260px]">
+                        <video
+                          src={msg.content.replace("[VID]", "")}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          className="w-full rounded-2xl max-h-[300px]"
+                          style={{background:"#000"}}
+                          onClick={(e) => { e.stopPropagation(); setMediaViewer({ src: msg.content.replace("[VID]", ""), type: "video" }); }}
+                        />
+                      </div>
+                    )}
                     {msg.content?.startsWith("[GIF]") && (
                       <img src={msg.content.replace("[GIF]", "")} alt="GIF" className="max-w-[220px] rounded-xl cursor-pointer hover:brightness-90 transition-all" loading="lazy" onClick={(e) => { e.stopPropagation(); setMediaViewer({ src: msg.content.replace("[GIF]", ""), type: "image" }); }} />
                     )}
