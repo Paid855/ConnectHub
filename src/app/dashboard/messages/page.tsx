@@ -757,15 +757,17 @@ export default function MessagesPage() {
               </button>
             )}
             {!recording && !newMsg.trim() && (
-              <button onClick={() => setShowGiftPicker(!showGiftPicker)} className={"p-2.5 rounded-xl transition-all " + (dc ? "text-gray-400 hover:text-amber-400 hover:bg-gray-700" : "text-gray-400 hover:text-amber-500 hover:bg-amber-50")}>
-                <span className="text-lg">🎁</span>
-              </button>
-              <button
-                onClick={startVoice}
-                className={"p-2.5 rounded-xl transition-all " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}
-              >
-                <Mic className="w-5 h-5" />
-              </button>
+              <>
+                <button onClick={() => setShowGiftPicker(!showGiftPicker)} className={"p-2.5 rounded-xl transition-all " + (dc ? "text-gray-400 hover:text-amber-400 hover:bg-gray-700" : "text-gray-400 hover:text-amber-500 hover:bg-amber-50")}>
+                  <span className="text-lg">🎁</span>
+                </button>
+                <button
+                  onClick={startVoice}
+                  className={"p-2.5 rounded-xl transition-all " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}
+                >
+                  <Mic className="w-5 h-5" />
+                </button>
+              </>
             )}
           </div>
 
