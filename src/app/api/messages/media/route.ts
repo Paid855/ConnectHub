@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const id = getUserId(req);
   if (!id) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
-  const { data, type } = await req.json();
+  const { data, type, hd } = await req.json();
   if (!data) return NextResponse.json({ error: "No file" }, { status: 400 });
 
   try {
@@ -14,7 +14,13 @@ export async function POST(req: NextRequest) {
     if (type === "video") {
       url = await uploadVideo(data, "messages");
     } else {
-      url = await uploadImage(data, "messages");
+      if (hd === false) {
+        // Compressed: smaller file, faster send
+        url = await uploadImage(data, "messages");
+      } else {
+        // HD: full resolution upload
+        url = await uploadImage(data, "messages-hd");
+      }
     }
 
     if (!url) return NextResponse.json({ error: "Upload failed" }, { status: 500 });

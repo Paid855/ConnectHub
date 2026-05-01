@@ -16,6 +16,22 @@ export default function SettingsPage() {
   const dc = dark;
   const [tab, setTab] = useState<TabId>("security");
   const [settings, setSettings] = useState<any>(null);
+  const [mediaPrefs, setMediaPrefs] = useState({ hdSend: true, hdReceive: true, autoLoad: true, showDownload: true });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ch_media_prefs");
+      if (saved) setMediaPrefs(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const updateMediaPref = (key: string, value: boolean) => {
+    setMediaPrefs(prev => {
+      const updated = { ...prev, [key]: value };
+      localStorage.setItem("ch_media_prefs", JSON.stringify(updated));
+      return updated;
+    });
+  };
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{type:"success"|"error";text:string}|null>(null);
 
@@ -297,18 +313,21 @@ export default function SettingsPage() {
               <p className={"text-xs mt-1 " + (dc ? "text-gray-500" : "text-gray-400")}>Control how photos and videos are sent and received</p>
             </div>
             <div className="p-5">
-              <SettingRow icon={Camera} label="Send in HD Quality" desc="Photos and videos sent at full resolution">
-                <Toggle value={settings?.hdSend !== false} onChange={v => toggleSetting("hdSend", v)} />
+              <SettingRow icon={Camera} label="Send in HD Quality" desc="Photos and videos sent at full resolution (uses more data)">
+                <Toggle value={mediaPrefs.hdSend} onChange={v => updateMediaPref("hdSend", v)} />
               </SettingRow>
-              <SettingRow icon={Camera} label="Download in HD Quality" desc="Receive media at full resolution (uses more data)">
-                <Toggle value={settings?.hdReceive !== false} onChange={v => toggleSetting("hdReceive", v)} />
+              <SettingRow icon={Camera} label="Receive in HD Quality" desc="View received media at full resolution">
+                <Toggle value={mediaPrefs.hdReceive} onChange={v => updateMediaPref("hdReceive", v)} />
               </SettingRow>
-              <SettingRow icon={Camera} label="Auto-download Media" desc="Automatically download photos and videos in chats">
-                <Toggle value={settings?.autoDownload !== false} onChange={v => toggleSetting("autoDownload", v)} />
+              <SettingRow icon={Camera} label="Auto-load Media" desc="Automatically load photos and videos in chats">
+                <Toggle value={mediaPrefs.autoLoad} onChange={v => updateMediaPref("autoLoad", v)} />
               </SettingRow>
-              <SettingRow icon={Camera} label="Save to Device" desc="Auto-save received media to your gallery" border={false}>
-                <Toggle value={settings?.saveMedia === true} onChange={v => toggleSetting("saveMedia", v)} />
+              <SettingRow icon={Camera} label="Show Download Button" desc="Display download button on all received media" border={false}>
+                <Toggle value={mediaPrefs.showDownload} onChange={v => updateMediaPref("showDownload", v)} />
               </SettingRow>
+            </div>
+            <div className={"p-4 border-t " + (dc ? "border-gray-700" : "border-gray-100")}>
+              <p className={"text-xs " + (dc ? "text-gray-500" : "text-gray-400")}>These settings are saved on this device. HD media uses more data on mobile networks.</p>
             </div>
           </div>
         )}
