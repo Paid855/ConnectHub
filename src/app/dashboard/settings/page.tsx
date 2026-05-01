@@ -1,9 +1,9 @@
 "use client";
-import { Camera, useState, useEffect } from "react";
-import { Camera, useRouter } from "next/navigation";
-import { Camera, useUser } from "../layout";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "../layout";
 import {
-  Lock, Eye, EyeOff, Trash2, AlertTriangle, CheckCircle, Shield, Key, UserX,
+  Camera, Lock, Eye, EyeOff, Trash2, AlertTriangle, CheckCircle, Shield, Key, UserX,
   Bell, BellOff, Mail, Phone, Globe, Users, MessageCircle, Heart, Gift,
   Fingerprint, MapPin, Clock, ChevronRight, Sparkles, Crown, Save
 } from "lucide-react";
