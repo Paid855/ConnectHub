@@ -162,6 +162,12 @@ export default function MessagesPage() {
   const [showReactions, setShowReactions] = useState<string|null>(null);
   const [showGif, setShowGif] = useState(false);
   const [showGiftPicker, setShowGiftPicker] = useState(false);
+  const [mediaPrefs] = useState(() => {
+    if (typeof window !== "undefined") {
+      try { return JSON.parse(localStorage.getItem("ch_media_prefs") || "{}"); } catch { return {}; }
+    }
+    return {};
+  });
   const [gifts, setGifts] = useState<any[]>([]);
   const [sendingGift, setSendingGift] = useState<string|null>(null);
 
