@@ -542,23 +542,24 @@ export default function MessagesPage() {
 
   // Media viewer modal
   const MediaViewerModal = () => mediaViewer ? (
-    <div className="fixed inset-0 z-[300] bg-black/95 flex flex-col items-center justify-center" onClick={() => setMediaViewer(null)}>
-      <div className="absolute top-4 right-4 flex gap-3 z-10">
-        <a href={mediaViewer.src} download={"connecthub_" + Date.now() + (mediaViewer.type === "image" ? ".jpg" : ".mp4")} onClick={(e) => e.stopPropagation()} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all border border-white/10">
+    <div className="fixed inset-0 z-[300] bg-black/95 flex flex-col items-center justify-center">
+      <div className="absolute inset-0" onClick={() => setMediaViewer(null)} />
+      <div className="absolute top-4 right-4 flex gap-3 z-20">
+        <a href={mediaViewer.src} download={"connecthub_" + Date.now() + (mediaViewer.type === "image" ? ".jpg" : ".mp4")} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all border border-white/10">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> Download
         </a>
         <button onClick={() => setMediaViewer(null)} className="bg-white/15 backdrop-blur-md hover:bg-white/25 text-white p-2.5 rounded-xl transition-all border border-white/10">
           <XIcon className="w-5 h-5" />
         </button>
       </div>
-      <div className="max-w-[95vw] max-h-[85vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+      <div className="relative z-10 max-w-[95vw] max-h-[85vh] flex items-center justify-center">
         {mediaViewer.type === "image" ? (
-          <img src={mediaViewer.src} alt="" className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl" />
+          <img src={mediaViewer.src} alt="" className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl" onClick={() => setMediaViewer(null)} />
         ) : (
-          <video key={"viewer-" + mediaViewer.src} src={mediaViewer.src} controls playsInline loop={false} className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()} />
+          <video key={"viewer-" + mediaViewer.src} src={mediaViewer.src} controls playsInline className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl" />
         )}
       </div>
-      <p className="text-white/40 text-xs mt-4">Tap outside to close</p>
+      <p className="text-white/40 text-xs mt-4 relative z-10" onClick={() => setMediaViewer(null)}>Tap outside to close</p>
     </div>
   ) : null;
 
