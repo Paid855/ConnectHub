@@ -22,11 +22,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Bonus coins for streaks: day 1-6 = 5 coins, day 7 = 15, day 14 = 25, day 30 = 50
-  let reward = 5;
-  if (streak >= 30) reward = 50;
-  else if (streak >= 14) reward = 25;
-  else if (streak >= 7) reward = 15;
-  else if (streak >= 3) reward = 10;
+  let reward = 2;
+  if (streak >= 30) reward = 8;
+  else if (streak >= 14) reward = 5;
+  else if (streak >= 7) reward = 3;
+  else if (streak >= 3) reward = 2;
 
   await prisma.user.update({ where: { id }, data: { coins: { increment: reward }, lastLoginReward: new Date(), loginStreak: streak } });
   await prisma.coinTransaction.create({ data: { userId: id, amount: reward, type: "daily_reward", description: streak >= 7 ? "🔥 " + streak + "-day streak bonus!" : "Daily login reward" } }).catch(() => {});

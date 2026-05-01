@@ -289,6 +289,42 @@ export default function UserProfilePage() {
         </div>
       )}
 
+      {/* Icebreakers */}
+      {profile && (
+        <div className={"mt-4 rounded-2xl border overflow-hidden " + (dc ? "bg-gradient-to-br from-amber-500/5 to-orange-500/5 border-amber-500/15" : "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100")}>
+          <div className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">💬</span>
+              <h3 className={"text-xs font-extrabold uppercase tracking-[0.2em] " + (dc ? "text-amber-400" : "text-amber-600")}>Conversation Starters</h3>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const starters = [
+                  profile.interests?.includes("Travel") && ("Ask about " + profile.name?.split(" ")[0] + "'s favorite travel destination ✈️"),
+                  profile.interests?.includes("Music") && ("What kind of music does " + profile.name?.split(" ")[0] + " vibe to? 🎵"),
+                  profile.interests?.includes("Cooking") && ("Ask " + profile.name?.split(" ")[0] + " what their signature dish is 🍳"),
+                  profile.interests?.includes("Fitness") && ("What's " + profile.name?.split(" ")[0] + "'s workout routine? 💪"),
+                  profile.interests?.includes("Movies") && ("Ask about " + profile.name?.split(" ")[0] + "'s all-time favorite movie 🎬"),
+                  profile.interests?.includes("Gaming") && ("What games does " + profile.name?.split(" ")[0] + " play? 🎮"),
+                  profile.interests?.includes("Coffee") && ("Ask " + profile.name?.split(" ")[0] + " their coffee order ☕"),
+                  profile.interests?.includes("Dogs") && ("Ask about " + profile.name?.split(" ")[0] + "'s dog! 🐕"),
+                  profile.interests?.includes("Photography") && ("What does " + profile.name?.split(" ")[0] + " love to photograph? 📸"),
+                  profile.vibeStatus && ("They're feeling '" + profile.vibeStatus.split(" ").slice(1).join(" ") + "' — start there!"),
+                  "What made you join ConnectHub? 😊",
+                  "If we went on a date right now, where would we go? 🌃",
+                  "What's the most spontaneous thing you've ever done? ✨",
+                ].filter(Boolean).slice(0, 3);
+                return starters.map((s: any, i: number) => (
+                  <button key={i} onClick={() => { navigator.clipboard.writeText(s.replace(/ [✈🎵🍳💪🎬🎮☕🐕📸😊🌃✨]/g, "")); }} className={"w-full text-left p-3 rounded-xl text-sm transition-all " + (dc ? "bg-gray-800/50 hover:bg-gray-700/50 text-gray-300" : "bg-white hover:bg-amber-50 text-gray-600") + " border " + (dc ? "border-gray-700/50" : "border-amber-100/50")}>
+                    {s}
+                  </button>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Prompts */}
       {profile.prompts && (() => {
         try {
