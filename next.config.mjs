@@ -25,6 +25,12 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "30mb",
+    },
+  },
+  serverExternalPackages: ["cloudinary"],
 };
 
 export default nextConfig;

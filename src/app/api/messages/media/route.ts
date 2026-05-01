@@ -1,4 +1,5 @@
 import { getUserId } from "@/lib/auth";
+
 import { NextRequest, NextResponse } from "next/server";
 import { uploadImage, uploadVideo } from "@/lib/cloudinary";
 
