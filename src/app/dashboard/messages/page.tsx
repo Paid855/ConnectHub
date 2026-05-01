@@ -854,42 +854,42 @@ export default function MessagesPage() {
               </div>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowEmoji(!showEmoji)} className={"p-2 rounded-lg transition-colors " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}>
-              <Smile className="w-5 h-5" />
-            </button>
-            <button onClick={() => { setShowGif(!showGif); if (!showGif && !gifs.length) searchGifs(""); }} className={"p-2 rounded-lg transition-colors text-xs font-bold " + (showGif ? (dc ? "bg-purple-500/20 text-purple-400" : "bg-purple-50 text-purple-500") : (dc ? "text-gray-400 hover:text-purple-400 hover:bg-gray-700" : "text-gray-400 hover:text-purple-500 hover:bg-purple-50"))}>
-              GIF
-            </button>
-            <label className={"p-2 rounded-lg cursor-pointer transition-colors " + (uploadingMedia ? "opacity-50 pointer-events-none " : "") + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}>
-              {uploadingMedia ? <div className="w-5 h-5 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" /> : <ImageIcon className="w-5 h-5" title="Send photos or videos" />}
-              <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={sendMedia} disabled={uploadingMedia} />
-            </label>
-            <input
-              value={newMsg}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
-              placeholder="Type a message..."
-              className={"flex-1 py-2.5 px-4 rounded-xl text-sm outline-none transition-colors " + (dc ? "bg-gray-700 text-white placeholder-gray-500 focus:ring-1 focus:ring-rose-500" : "bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-rose-300 focus:bg-white")}
-            />
-            {!recording && newMsg.trim() && (
-              <button onClick={sendMessage} className="p-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl hover:shadow-lg hover:shadow-rose-200 transition-all active:scale-95">
-                <Send className="w-5 h-5" />
+          <div className="space-y-2">
+            {/* Input row */}
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setShowEmoji(!showEmoji)} className={"p-2 rounded-lg transition-colors flex-shrink-0 " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}>
+                <Smile className="w-5 h-5" />
               </button>
-            )}
-            {!recording && !newMsg.trim() && (
-              <>
-                <button onClick={() => setShowGiftPicker(!showGiftPicker)} className={"p-2.5 rounded-xl transition-all " + (dc ? "text-gray-400 hover:text-amber-400 hover:bg-gray-700" : "text-gray-400 hover:text-amber-500 hover:bg-amber-50")}>
-                  <span className="text-lg">🎁</span>
+              <label className={"p-2 rounded-lg cursor-pointer transition-colors flex-shrink-0 " + (uploadingMedia ? "opacity-50 pointer-events-none " : "") + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}>
+                {uploadingMedia ? <div className="w-5 h-5 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" /> : <ImageIcon className="w-5 h-5" />}
+                <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={sendMedia} disabled={uploadingMedia} />
+              </label>
+              <input
+                value={newMsg}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
+                placeholder="Type a message..."
+                className={"flex-1 min-w-0 py-2.5 px-3 rounded-xl text-sm outline-none transition-colors " + (dc ? "bg-gray-700 text-white placeholder-gray-500 focus:ring-1 focus:ring-rose-500" : "bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-rose-300 focus:bg-white")}
+              />
+              {!recording && newMsg.trim() ? (
+                <button onClick={sendMessage} className="p-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all active:scale-95 flex-shrink-0">
+                  <Send className="w-5 h-5" />
                 </button>
-                <button
-                  onClick={startVoice}
-                  className={"p-2.5 rounded-xl transition-all " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}
-                >
+              ) : !recording ? (
+                <button onClick={startVoice} className={"p-2.5 rounded-xl transition-all flex-shrink-0 " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}>
                   <Mic className="w-5 h-5" />
                 </button>
-              </>
-            )}
+              ) : null}
+            </div>
+            {/* Quick actions row */}
+            <div className="flex items-center gap-1 px-1">
+              <button onClick={() => { setShowGif(!showGif); if (!showGif && !gifs.length) searchGifs(""); }} className={"px-2.5 py-1 rounded-lg transition-colors text-[10px] font-bold " + (showGif ? (dc ? "bg-purple-500/20 text-purple-400" : "bg-purple-50 text-purple-500") : (dc ? "text-gray-500 hover:text-purple-400 hover:bg-gray-800" : "text-gray-400 hover:text-purple-500 hover:bg-purple-50"))}>
+                GIF
+              </button>
+              <button onClick={() => setShowGiftPicker(!showGiftPicker)} className={"px-2.5 py-1 rounded-lg transition-all text-[10px] font-bold flex items-center gap-1 " + (dc ? "text-gray-500 hover:text-amber-400 hover:bg-gray-800" : "text-gray-400 hover:text-amber-500 hover:bg-amber-50")}>
+                🎁 Gift
+              </button>
+            </div>
           </div>
 
           {/* Gift Picker */}
