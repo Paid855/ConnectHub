@@ -635,8 +635,8 @@ export default function MessagesPage() {
               </div>
             </Link>
           )}
-          <button onClick={() => { window.dispatchEvent(new CustomEvent("startCall", { detail: { receiverId: chatUser.id, receiverName: chatUser.name, receiverPhoto: chatUser.profilePhoto, type: "voice" } })); }} className={"p-2.5 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}><Phone className="w-5 h-5" /></button>
-          <button onClick={() => { window.dispatchEvent(new CustomEvent("startCall", { detail: { receiverId: chatUser.id, receiverName: chatUser.name, receiverPhoto: chatUser.profilePhoto, type: "video" } })); }} className={"p-2.5 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}><Video className="w-5 h-5" /></button>
+          <button onClick={() => { window.dispatchEvent(new CustomEvent("startCall", { detail: { receiverId: chatUser?.id, receiverName: chatUser?.name, receiverPhoto: chatUser?.profilePhoto, type: "voice" } })); }} className={"p-2.5 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}><Phone className="w-5 h-5" /></button>
+          <button onClick={() => { window.dispatchEvent(new CustomEvent("startCall", { detail: { receiverId: chatUser?.id, receiverName: chatUser?.name, receiverPhoto: chatUser?.profilePhoto, type: "video" } })); }} className={"p-2.5 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}><Video className="w-5 h-5" /></button>
         </div>
 
         {/* Messages area */}
