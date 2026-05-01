@@ -193,7 +193,22 @@ export default function MessagesPage() {
   const [gifs, setGifs] = useState<string[]>([]);
   const [gifLoading, setGifLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const userScrolledUp = useRef(false);
+  const justSentMsg = useRef(false);
   const notifSound = useRef<HTMLAudioElement|null>(null);
+
+  // Detect when user scrolls up to read old messages
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      userScrolledUp.current = scrollHeight - scrollTop - clientHeight > 150;
+    };
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [chatWith]);
 
   useEffect(() => {
     notifSound.current = new Audio("/sounds/notify.wav");
@@ -222,7 +237,7 @@ export default function MessagesPage() {
       const prev = messages.length;
       setMessages(data.messages || []);
       setChatUser(data.otherUser || null);
-      if ((data.messages || []).length > prev) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      if ((data.messages || []).length > prev && !userScrolledUp.current) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     } catch {}
   };
 
@@ -330,7 +345,13 @@ export default function MessagesPage() {
   // Load reactions when messages change
   useEffect(() => { if (messages.length) loadReactions(messages); }, [messages.length]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    // Only auto-scroll if user just sent a message OR it's the first load
+    if (justSentMsg.current || !userScrolledUp.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      justSentMsg.current = false;
+    }
+  }, [messages]);
 
   const typingInterval = useRef<NodeJS.Timeout|null>(null);
 
@@ -360,16 +381,37 @@ export default function MessagesPage() {
     loadConversations();
   };
 
-  const sendImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !chatWith) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ receiverId: chatWith, content: "[IMG]" + ev.target?.result }) });
-      loadMessages(chatWith);
-      loadConversations();
-    };
-    reader.readAsDataURL(file);
+  const sendMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !chatWith) return;
+
+    for (let i = 0; i < Math.min(files.length, 5); i++) {
+      const file = files[i];
+      if (!file) continue;
+
+      // Check file size (max 10MB for images, 25MB for videos)
+      const isVideo = file.type.startsWith("video/");
+      const maxSize = isVideo ? 25 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert((isVideo ? "Video" : "Image") + " too large. Max " + (isVideo ? "25MB" : "10MB"));
+        continue;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const dataUrl = ev.target?.result as string;
+        const prefix = isVideo ? "[VID]" : "[IMG]";
+        await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ receiverId: chatWith, content: prefix + dataUrl })
+        });
+        justSentMsg.current = true;
+        loadMessages(chatWith);
+        loadConversations();
+      };
+      reader.readAsDataURL(file);
+    }
     e.target.value = "";
   };
 
@@ -558,7 +600,7 @@ export default function MessagesPage() {
         </div>
 
         {/* Messages area */}
-        <div className={"flex-1 overflow-y-auto px-4 py-4 space-y-1 " + (dc ? "bg-gray-900" : "bg-gradient-to-b from-rose-50/30 to-white")}>
+        <div ref={chatContainerRef} className={"flex-1 overflow-y-auto px-4 py-4 space-y-1 " + (dc ? "bg-gray-900" : "bg-gradient-to-b from-rose-50/30 to-white")}>
           {messages.length === 0 && chatUser && (
             <div className={"text-center py-8 px-4"}>
               <div className="mb-4">
@@ -700,7 +742,7 @@ export default function MessagesPage() {
               </div>
             </div>
           )}
-          <div ref={bottomRef} />
+          <div ref={bottomRef} style={{height:1}} />
         </div>
 
         {/* Input area */}
@@ -741,8 +783,8 @@ export default function MessagesPage() {
               GIF
             </button>
             <label className={"p-2 rounded-lg cursor-pointer transition-colors " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}>
-              <ImageIcon className="w-5 h-5" />
-              <input type="file" accept="image/*" className="hidden" onChange={sendImage} />
+              <ImageIcon className="w-5 h-5" title="Send photos or videos" />
+              <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={sendMedia} />
             </label>
             <input
               value={newMsg}
