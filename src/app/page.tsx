@@ -621,8 +621,12 @@ export default function HomePage() {
               </div>
               <p className="text-gray-400 text-sm leading-relaxed mb-6">Where meaningful connections begin. Find love, friendship, and everything in between.</p>
               <div className="flex gap-3">
-                {["𝕏", "📷", "📘"].map((icon, i) => (
-                  <a key={i} href="#" className="w-9 h-9 bg-gray-800 hover:bg-rose-500/20 border border-gray-700 hover:border-rose-500/50 rounded-lg flex items-center justify-center text-gray-400 hover:text-rose-400 transition-all text-sm">{icon}</a>
+                {[
+                  { icon: "📘", href: "https://www.facebook.com/share/1BFqFtAP5X/?mibextid=wwXIfr", label: "Facebook" },
+                  { icon: "📷", href: "https://www.instagram.com/connecthub.love", label: "Instagram" },
+                  { icon: "𝕏", href: "#", label: "X" },
+                ].map((s, i) => (
+                  <a key={i} href={s.href} target="_blank" rel="noopener" className="w-9 h-9 bg-gray-800 hover:bg-rose-500/20 border border-gray-700 hover:border-rose-500/50 rounded-lg flex items-center justify-center text-gray-400 hover:text-rose-400 transition-all text-sm" title={s.label}>{s.icon}</a>
                 ))}
               </div>
             </div>
