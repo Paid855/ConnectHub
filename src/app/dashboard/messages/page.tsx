@@ -655,7 +655,7 @@ export default function MessagesPage() {
               <p className={"text-xs mb-5 " + (dc ? "text-gray-500" : "text-gray-400")}>Break the ice with a fun question!</p>
               <div className="space-y-2 max-w-sm mx-auto">
                 {randomBreakers.map((q: string, i: number) => (
-                  <button key={i} onClick={() => { setMsg(q); }} className={"w-full text-left px-4 py-3 rounded-2xl text-sm transition-all border " + (dc ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-750 hover:border-rose-500/30" : "bg-white border-gray-100 text-gray-700 hover:bg-rose-50 hover:border-rose-200 shadow-sm")}>
+                  <button key={i} onClick={() => { setNewMsg(q); }} className={"w-full text-left px-4 py-3 rounded-2xl text-sm transition-all border " + (dc ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-750 hover:border-rose-500/30" : "bg-white border-gray-100 text-gray-700 hover:bg-rose-50 hover:border-rose-200 shadow-sm")}>
                     {q}
                   </button>
                 ))}
