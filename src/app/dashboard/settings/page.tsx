@@ -1,14 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useUser } from "../layout";
+import { Camera, useState, useEffect } from "react";
+import { Camera, useRouter } from "next/navigation";
+import { Camera, useUser } from "../layout";
 import {
   Lock, Eye, EyeOff, Trash2, AlertTriangle, CheckCircle, Shield, Key, UserX,
   Bell, BellOff, Mail, Phone, Globe, Users, MessageCircle, Heart, Gift,
   Fingerprint, MapPin, Clock, ChevronRight, Sparkles, Crown, Save
 } from "lucide-react";
 
-type TabId = "security" | "privacy" | "notifications" | "account";
+type TabId = "security" | "privacy" | "notifications" | "media" | "account";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -81,6 +81,7 @@ export default function SettingsPage() {
     { id: "security", label: "Security", icon: Shield, desc: "Password & login" },
     { id: "privacy", label: "Privacy", icon: Eye, desc: "Control your visibility" },
     { id: "notifications", label: "Notifications", icon: Bell, desc: "What alerts you get" },
+    { id: "media", label: "Media", icon: Camera, desc: "Photos & video quality" },
     { id: "account", label: "Account", icon: Fingerprint, desc: "Data & deletion" },
   ];
 
@@ -289,6 +290,29 @@ export default function SettingsPage() {
         )}
 
         {/* Account Tab */}
+        {tab === "media" && (
+          <div className={"rounded-2xl border overflow-hidden " + (dc ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200 shadow-sm")}>
+            <div className={"p-5 border-b " + (dc ? "border-gray-700" : "border-gray-100")}>
+              <h3 className={"font-bold " + (dc ? "text-white" : "text-gray-900")}>Media Quality</h3>
+              <p className={"text-xs mt-1 " + (dc ? "text-gray-500" : "text-gray-400")}>Control how photos and videos are sent and received</p>
+            </div>
+            <div className="p-5">
+              <SettingRow icon={Camera} label="Send in HD Quality" desc="Photos and videos sent at full resolution">
+                <Toggle value={settings?.hdSend !== false} onChange={v => toggleSetting("hdSend", v)} />
+              </SettingRow>
+              <SettingRow icon={Camera} label="Download in HD Quality" desc="Receive media at full resolution (uses more data)">
+                <Toggle value={settings?.hdReceive !== false} onChange={v => toggleSetting("hdReceive", v)} />
+              </SettingRow>
+              <SettingRow icon={Camera} label="Auto-download Media" desc="Automatically download photos and videos in chats">
+                <Toggle value={settings?.autoDownload !== false} onChange={v => toggleSetting("autoDownload", v)} />
+              </SettingRow>
+              <SettingRow icon={Camera} label="Save to Device" desc="Auto-save received media to your gallery" border={false}>
+                <Toggle value={settings?.saveMedia === true} onChange={v => toggleSetting("saveMedia", v)} />
+              </SettingRow>
+            </div>
+          </div>
+        )}
+
         {tab === "account" && (
           <div className="space-y-4">
             {/* Verification status */}

@@ -381,15 +381,17 @@ export default function MessagesPage() {
     loadConversations();
   };
 
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+
   const sendMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !chatWith) return;
+    setUploadingMedia(true);
 
     for (let i = 0; i < Math.min(files.length, 5); i++) {
       const file = files[i];
       if (!file) continue;
 
-      // Check file size (max 10MB for images, 25MB for videos)
       const isVideo = file.type.startsWith("video/");
       const maxSize = isVideo ? 25 * 1024 * 1024 : 10 * 1024 * 1024;
       if (file.size > maxSize) {
@@ -397,21 +399,39 @@ export default function MessagesPage() {
         continue;
       }
 
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        const dataUrl = ev.target?.result as string;
-        const prefix = isVideo ? "[VID]" : "[IMG]";
-        await fetch("/api/messages", {
+      try {
+        const reader = new FileReader();
+        const dataUrl = await new Promise<string>((resolve) => {
+          reader.onload = (ev) => resolve(ev.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+
+        // Upload to Cloudinary first
+        const uploadRes = await fetch("/api/messages/media", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ receiverId: chatWith, content: prefix + dataUrl })
+          body: JSON.stringify({ data: dataUrl, type: isVideo ? "video" : "image" })
         });
-        justSentMsg.current = true;
-        loadMessages(chatWith);
-        loadConversations();
-      };
-      reader.readAsDataURL(file);
+        const uploadData = await uploadRes.json();
+
+        if (uploadRes.ok && uploadData.url) {
+          const prefix = isVideo ? "[VID]" : "[IMG]";
+          await fetch("/api/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ receiverId: chatWith, content: prefix + uploadData.url })
+          });
+          justSentMsg.current = true;
+          loadMessages(chatWith);
+          loadConversations();
+        } else {
+          alert(uploadData.error || "Failed to upload media");
+        }
+      } catch {
+        alert("Failed to upload. Check your connection.");
+      }
     }
+    setUploadingMedia(false);
     e.target.value = "";
   };
 
@@ -626,6 +646,18 @@ export default function MessagesPage() {
             const isDeleted = msg.content?.startsWith("[DELETED]");
             const isImage = msg.content?.startsWith("[IMG]");
             const isVoice = msg.content?.startsWith("[VOICE]");
+                    {msg.content?.startsWith("[VID]") && (
+                      <div className="relative rounded-2xl overflow-hidden max-w-[260px]">
+                        <video
+                          src={msg.content.replace("[VID]", "")}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          className="w-full rounded-2xl max-h-[300px]"
+                          style={{background:"#000"}}
+                        />
+                      </div>
+                    )}
             const isGif = msg.content?.startsWith("[GIF]");
             const content = isDeleted ? "This message was deleted" : isImage || isVoice || isGif ? null : msg.content;
             const imgSrc = isImage ? msg.content.replace("[IMG]", "") : null;
@@ -731,6 +763,12 @@ export default function MessagesPage() {
           })}
 
           {/* Typing indicator bubble */}
+          {uploadingMedia && (
+            <div className={"flex items-center gap-3 px-5 py-3 " + (dc ? "text-gray-400" : "text-gray-500")}>
+              <div className="w-4 h-4 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm font-medium">Uploading media...</span>
+            </div>
+          )}
           {isTyping && (
             <div className="flex justify-start">
               <div className={"rounded-2xl px-4 py-3 " + (dc ? "bg-gray-800" : "bg-white shadow-sm border border-gray-100")}>
@@ -782,9 +820,9 @@ export default function MessagesPage() {
             <button onClick={() => { setShowGif(!showGif); if (!showGif && !gifs.length) searchGifs(""); }} className={"p-2 rounded-lg transition-colors text-xs font-bold " + (showGif ? (dc ? "bg-purple-500/20 text-purple-400" : "bg-purple-50 text-purple-500") : (dc ? "text-gray-400 hover:text-purple-400 hover:bg-gray-700" : "text-gray-400 hover:text-purple-500 hover:bg-purple-50"))}>
               GIF
             </button>
-            <label className={"p-2 rounded-lg cursor-pointer transition-colors " + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}>
-              <ImageIcon className="w-5 h-5" title="Send photos or videos" />
-              <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={sendMedia} />
+            <label className={"p-2 rounded-lg cursor-pointer transition-colors " + (uploadingMedia ? "opacity-50 pointer-events-none " : "") + (dc ? "text-gray-400 hover:text-rose-400 hover:bg-gray-700" : "text-gray-400 hover:text-rose-500 hover:bg-rose-50")}>
+              {uploadingMedia ? <div className="w-5 h-5 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" /> : <ImageIcon className="w-5 h-5" title="Send photos or videos" />}
+              <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={sendMedia} disabled={uploadingMedia} />
             </label>
             <input
               value={newMsg}
