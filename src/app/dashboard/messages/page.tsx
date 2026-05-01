@@ -400,34 +400,43 @@ export default function MessagesPage() {
       }
 
       try {
-        const reader = new FileReader();
-        const dataUrl = await new Promise<string>((resolve) => {
-          reader.onload = (ev) => resolve(ev.target?.result as string);
-          reader.readAsDataURL(file);
-        });
+        // Get signed upload params from our API
+        const signRes = await fetch("/api/cloudinary-sign", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ folder: "connecthub/messages" }) });
+        if (!signRes.ok) { alert("Upload auth failed. Try again."); continue; }
+        const signData = await signRes.json();
 
-        // Upload to Cloudinary first
-        const uploadRes = await fetch("/api/messages/media", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: dataUrl, type: isVideo ? "video" : "image", hd: mediaPrefs.hdSend })
-        });
-        const uploadData = await uploadRes.json();
+        // Upload directly to Cloudinary (no base64 through our server)
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("timestamp", signData.timestamp);
+        formData.append("signature", signData.signature);
+        formData.append("api_key", signData.apiKey);
+        formData.append("folder", signData.folder);
+        if (!isVideo && !mediaPrefs.hdSend) {
+          formData.append("transformation", "w_800,q_auto:good");
+        }
 
-        if (uploadRes.ok && uploadData.url) {
+        const cloudRes = await fetch(
+          "https://api.cloudinary.com/v1_1/" + signData.cloudName + "/" + (isVideo ? "video" : "image") + "/upload",
+          { method: "POST", body: formData }
+        );
+        const cloudData = await cloudRes.json();
+
+        if (cloudData.secure_url) {
           const prefix = isVideo ? "[VID]" : "[IMG]";
           await fetch("/api/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ receiverId: chatWith, content: prefix + uploadData.url })
+            body: JSON.stringify({ receiverId: chatWith, content: prefix + cloudData.secure_url })
           });
           justSentMsg.current = true;
           loadMessages(chatWith);
           loadConversations();
         } else {
-          alert(uploadData.error || "Failed to upload media");
+          alert("Upload failed. Try again.");
         }
-      } catch {
+      } catch (err) {
+        console.error("Upload error:", err);
         alert("Failed to upload. Check your connection.");
       }
     }

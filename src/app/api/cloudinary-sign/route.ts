@@ -11,8 +11,10 @@ export async function POST(req: NextRequest) {
   if (sess) userId = sess.id;
   else { try { userId = JSON.parse(sessionCookie.value).id; } catch { return NextResponse.json({ error: "Invalid session" }, { status: 401 }); } }
 
+  let body: any = {};
+  try { body = await req.json(); } catch {}
   const timestamp = Math.round(Date.now() / 1000);
-  const folder = "connecthub/profiles";
+  const folder = body.folder || "connecthub/profiles";
   const apiSecret = process.env.CLOUDINARY_API_SECRET!;
   const stringToSign = "folder=" + folder + "&timestamp=" + timestamp + apiSecret;
   const signature = crypto.createHash("sha1").update(stringToSign).digest("hex");
