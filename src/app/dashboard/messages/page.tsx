@@ -573,6 +573,14 @@ export default function MessagesPage() {
 
   // Chat view
   if (chatWith) {
+    if (!chatUser) {
+      return (
+        <div className={"flex flex-col h-[calc(100vh-5rem)] items-center justify-center " + (dc ? "bg-gray-900" : "bg-white")}>
+          <div className="w-8 h-8 border-3 border-rose-500 border-t-transparent rounded-full animate-spin mb-3" />
+          <p className={"text-sm " + (dc ? "text-gray-500" : "text-gray-400")}>Loading conversation...</p>
+        </div>
+      );
+    }
     return (
       <div className={"flex flex-col h-[calc(100vh-5rem)] " + (dc ? "bg-gray-900" : "bg-white")}>
         {mediaViewer && (
