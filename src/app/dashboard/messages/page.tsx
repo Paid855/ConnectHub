@@ -283,10 +283,8 @@ export default function MessagesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ senderId }),
       });
-      // Refresh unread count in sidebar
-      if (typeof reloadUser === "function") reloadUser();
     } catch {}
-  }, [reloadUser]);
+  }, []);
 
   // Send typing indicator
   const sendTypingSignal = useCallback(async () => {
