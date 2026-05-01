@@ -700,7 +700,10 @@ export default function MessagesPage() {
                           className="w-full rounded-2xl max-h-[300px]"
                           style={{background:"#000"}}
                         />
-                        <button onClick={(e) => { e.stopPropagation(); setMediaViewer({ src: msg.content.replace("[VID]", ""), type: "video" }); }} className="absolute top-2 right-2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white text-xs backdrop-blur-sm hover:bg-black/70 transition-all">⛶</button>
+                        <div className="absolute top-2 right-2 flex gap-1.5">
+                          <button onClick={(e) => { e.stopPropagation(); setMediaViewer({ src: msg.content.replace("[VID]", ""), type: "video" }); }} className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white text-xs backdrop-blur-sm hover:bg-black/70 transition-all">⛶</button>
+                          {isMine && <button onClick={(e) => { e.stopPropagation(); setShowMenu(showMenu === msg.id ? null : msg.id); }} className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white text-xs backdrop-blur-sm hover:bg-black/70 transition-all">⋮</button>}
+                        </div>
                       </div>
                     )}
                     {msg.content?.startsWith("[GIF]") && (
@@ -954,7 +957,7 @@ export default function MessagesPage() {
                           {canSeeRead && conv.lastMessage?.read ? <CheckCheck className="w-3 h-3 text-sky-400 inline" /> : conv.lastMessage?.read || conv.user?.isOnline ? <CheckCheck className="w-3 h-3 text-gray-400 inline" /> : <Check className="w-3 h-3 text-gray-400 inline" />}
                         </span>
                       )}
-                      {conv.lastMessage?.content?.startsWith("[DELETED]") ? "🚫 Message deleted" : conv.lastMessage?.content?.startsWith("[IMG]") ? "📷 Photo" : conv.lastMessage?.content?.startsWith("[VOICE]") ? "🎤 Voice message" : conv.lastMessage?.content?.startsWith("[GIF]") ? "GIF 🎞️" : conv.lastMessage?.content?.substring(0, 40) || "Start chatting"}
+                      {conv.lastMessage?.content?.startsWith("[DELETED]") ? "🚫 Message deleted" : conv.lastMessage?.content?.startsWith("[IMG]") ? "📷 Photo" : conv.lastMessage?.content?.startsWith("[VID]") ? "📹 Video" : conv.lastMessage?.content?.startsWith("[VOICE]") ? "🎤 Voice message" : conv.lastMessage?.content?.startsWith("[GIF]") ? "GIF 🎞️" : conv.lastMessage?.content?.startsWith("[GIFT]") ? "🎁 Gift" : conv.lastMessage?.content?.substring(0, 40) || "Start chatting"}
                     </p>
                     {conv.unreadCount > 0 && <span className="w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">{conv.unreadCount}</span>}
                   </div>
