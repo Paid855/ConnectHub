@@ -634,9 +634,17 @@ export default function MessagesPage() {
                 )}
               </div>
             </Link>
+          ) : (
+            <div className="flex items-center gap-3 flex-1">
+              <div className={"w-10 h-10 rounded-full animate-pulse flex-shrink-0 " + (dc ? "bg-gray-700" : "bg-gray-200")} />
+              <div className="flex-1">
+                <div className={"h-4 w-24 rounded animate-pulse " + (dc ? "bg-gray-700" : "bg-gray-200")} />
+                <div className={"h-3 w-16 rounded mt-1 animate-pulse " + (dc ? "bg-gray-700" : "bg-gray-200")} />
+              </div>
+            </div>
           )}
-          <button onClick={() => { window.dispatchEvent(new CustomEvent("startCall", { detail: { receiverId: chatUser?.id, receiverName: chatUser?.name, receiverPhoto: chatUser?.profilePhoto, type: "voice" } })); }} className={"p-2.5 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}><Phone className="w-5 h-5" /></button>
-          <button onClick={() => { window.dispatchEvent(new CustomEvent("startCall", { detail: { receiverId: chatUser?.id, receiverName: chatUser?.name, receiverPhoto: chatUser?.profilePhoto, type: "video" } })); }} className={"p-2.5 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}><Video className="w-5 h-5" /></button>
+          {chatUser && <button onClick={() => { window.dispatchEvent(new CustomEvent("startCall", { detail: { receiverId: chatUser.id, receiverName: chatUser.name, receiverPhoto: chatUser.profilePhoto, type: "voice" } })); }} className={"p-2.5 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}><Phone className="w-5 h-5" /></button>}
+          {chatUser && <button onClick={() => { window.dispatchEvent(new CustomEvent("startCall", { detail: { receiverId: chatUser.id, receiverName: chatUser.name, receiverPhoto: chatUser.profilePhoto, type: "video" } })); }} className={"p-2.5 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}><Video className="w-5 h-5" /></button>}
         </div>
 
         {/* Messages area */}
