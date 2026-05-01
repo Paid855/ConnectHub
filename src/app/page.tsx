@@ -432,9 +432,9 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-6 sm:gap-7 max-w-5xl mx-auto">
             {[
-              { name: "Free", price: "$0", period: "/forever", desc: "Perfect for getting started", features: ["Browse profiles", "Limited daily matches", "5 messages per day", "Basic search filters", "Voice and video calls"], excluded: ["Ads shown", "Limited photos", "No rewinds", "No live streaming"], cta: "Get Started", popular: false },
-              { name: "Plus", price: isMonthly ? "$12" : "$10", period: "/month", desc: "Best for active daters", features: ["Everything in Free", "No ads anywhere", "16 photo uploads", "Unlimited likes", "Rewind last swipe", "Extended profile views", "Live streaming access", "Priority matching"], excluded: [], cta: "Upgrade to Plus", popular: true },
-              { name: "Premium", price: isMonthly ? "$25" : "$20", period: "/month", desc: "The ultimate experience", features: ["Everything in Plus", "See who likes you", "5 Super Likes per week", "Daily Top Picks", "Read receipts", "Higher profile visibility", "Monthly profile boost", "Priority support"], excluded: [], cta: "Go Premium", popular: false },
+              { name: "Free", price: "$0", period: "/forever", desc: "Explore and connect for free", features: ["Unlimited photo uploads", "Daily matches & discover", "5 messages per day", "Voice bio recording", "Question of the day", "Vibe status", "Profile prompts"], excluded: ["Rewind swipes", "Advanced search", "Live streaming", "Read receipts"], cta: "Get Started", popular: false },
+              { name: "Plus", price: isMonthly ? "$12" : "$10", period: "/month", desc: "For serious daters ready to connect", features: ["Everything in Free", "Unlimited messages", "Unlimited likes & rewinds", "Advanced search filters", "Live streaming & co-host", "Whisper mode (unlimited)", "In-chat gifts", "No ads anywhere"], excluded: [], cta: "Upgrade to Plus", popular: true },
+              { name: "Premium", price: isMonthly ? "$25" : "$20", period: "/month", desc: "The ultimate dating experience", features: ["Everything in Plus", "See who viewed your profile", "See who likes you", "5 Super Likes per week", "Read receipts in chat", "Monthly profile boost", "Priority in discover feed", "VIP support & early features"], excluded: [], cta: "Go Premium", popular: false },
             ].map((plan, i) => (
               <div key={i} className={"reveal " + (s4.visible ? "visible" : "") + " reveal-delay-" + (i + 1)}>
                 <div className={"rounded-2xl border overflow-hidden transition-all duration-500 hover:shadow-xl hover:-translate-y-2 h-full " + (plan.popular ? "border-rose-300 border-2 relative shadow-xl shadow-rose-100/50 bg-gradient-to-b from-white to-rose-50/30 scale-[1.03]" : "border-gray-200 bg-white hover:border-rose-200")}>
@@ -555,54 +555,56 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══ FEATURED MEMBERS ═══ */}
-      <section ref={useInView().ref} className="py-20 sm:py-24 bg-white font-body">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-          <span className="inline-block px-5 py-2.5 bg-gradient-to-r from-rose-100 to-pink-100 text-rose-600 rounded-full text-xs font-bold tracking-widest uppercase mb-6">Real People, Real Connections</span>
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-5 tracking-tight">
-            Meet Our <span className="font-display italic gradient-text">Community</span>
-          </h2>
-          <p className="text-gray-400 max-w-2xl mx-auto text-base sm:text-lg mb-14">Thousands of verified singles are already finding love on ConnectHub. Will you be next?</p>
-          <div className="flex justify-center gap-6 flex-wrap">
+      {/* ═══ WHY CONNECTHUB ═══ */}
+      <section ref={s7.ref} className="py-24 sm:py-32 bg-gradient-to-b from-white via-rose-50/20 to-white font-body overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className={"text-center mb-16 reveal " + (s7.visible ? "visible" : "")}>
+            <span className="inline-block px-5 py-2.5 bg-gradient-to-r from-rose-100 to-pink-100 text-rose-600 rounded-full text-xs font-bold tracking-widest uppercase mb-6">Why ConnectHub</span>
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-5 tracking-tight">
+              More Than Just <span className="font-display italic gradient-text">Swiping</span>
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto text-base sm:text-lg">We built features that create real chemistry — not just matches.</p>
+          </div>
+          <div className={"grid grid-cols-2 lg:grid-cols-4 gap-5 mb-16 reveal " + (s7.visible ? "visible" : "")}>
             {[
-              { name: "Join Today", emoji: "💕", desc: "Create your free profile in 2 minutes" },
-              { name: "Get Verified", emoji: "✓", desc: "Face scan + ID for trust & safety" },
-              { name: "Find Love", emoji: "💍", desc: "Match, chat, video call, and meet" },
-            ].map((s, i) => (
-              <div key={i} className="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100 rounded-2xl p-8 w-64 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-                <span className="text-4xl mb-4 block">{s.emoji}</span>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{s.name}</h3>
-                <p className="text-sm text-gray-500">{s.desc}</p>
+              { emoji: "🎙️", title: "Voice Bios", desc: "Hear someone's voice before you meet. It's the most attractive thing after looks." },
+              { emoji: "🤫", title: "Whisper Mode", desc: "Send anonymous flirty messages. If they like it — your identity is revealed." },
+              { emoji: "💭", title: "Daily Questions", desc: "Fun questions every day. See how your matches answer and spark conversations." },
+              { emoji: "✨", title: "Vibe Status", desc: "Show what you're looking for right now — coffee date, deep talks, or adventure." },
+              { emoji: "🎁", title: "In-Chat Gifts", desc: "Send roses, champagne, or a diamond ring to show someone they're special." },
+              { emoji: "🔴", title: "Go Live", desc: "Stream in HD, get gifts from viewers, and co-host with your match." },
+              { emoji: "🛡️", title: "Face Verified", desc: "Real selfie scan + ID check. Every profile is a real person, guaranteed." },
+              { emoji: "💕", title: "Smart Matching", desc: "Our algorithm learns what you love and delivers better matches every day." },
+            ].map((f, i) => (
+              <div key={i} className="group bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-2xl hover:shadow-rose-100/50 hover:-translate-y-2 hover:border-rose-200 transition-all duration-500">
+                <span className="text-3xl mb-4 block group-hover:scale-125 transition-transform duration-300">{f.emoji}</span>
+                <h3 className="text-base font-bold text-gray-900 mb-2">{f.title}</h3>
+                <p className="text-sm text-gray-400 leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
-          <div className="mt-12">
-            <a href="/signup" className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-rose-300/30 transition-all hover:scale-[1.02]">
-              Start Your Love Story <span>→</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-3xl mx-auto">
+            {[
+              { num: "50K+", label: "Active Members" },
+              { num: "12K+", label: "Matches Made" },
+              { num: "190+", label: "Countries" },
+              { num: "30+", label: "Languages" },
+            ].map((s, i) => (
+              <div key={i} className="text-center">
+                <p className="text-3xl sm:text-4xl font-extrabold gradient-text">{s.num}</p>
+                <p className="text-sm text-gray-400 mt-1 font-medium">{s.label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-14 text-center">
+            <a href="/signup" className="inline-flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-rose-300/30 transition-all hover:scale-[1.02] group">
+              Start Your Love Story <span className="group-hover:translate-x-1 transition-transform">→</span>
             </a>
           </div>
         </div>
       </section>
 
-      {/* ═══ SOCIAL PROOF ═══ */}
-      <section className="py-12 bg-gray-50 font-body">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <div className="flex items-center justify-center gap-8 flex-wrap">
-            <a href="https://www.facebook.com/share/1BFqFtAP5X/?mibextid=wwXIfr" target="_blank" rel="noopener" className="flex items-center gap-2 text-gray-400 hover:text-blue-500 transition-colors">
-              <span className="text-2xl">📘</span>
-              <span className="text-sm font-medium">Facebook</span>
-            </a>
-            <a href="https://www.instagram.com/connecthub.love" target="_blank" rel="noopener" className="flex items-center gap-2 text-gray-400 hover:text-pink-500 transition-colors">
-              <span className="text-2xl">📷</span>
-              <span className="text-sm font-medium">Instagram</span>
-            </a>
-            <a href="https://play.google.com/store/apps/details?id=love.connecthub.app" target="_blank" rel="noopener" className="flex items-center gap-2 text-gray-400 hover:text-green-500 transition-colors">
-              <span className="text-2xl">▶️</span>
-              <span className="text-sm font-medium">Google Play</span>
-            </a>
-          </div>
-        </div>
-      </section>
+
 
       {/* ═══ FINAL CTA ═══ */}
       <section ref={s7.ref} className="py-24 sm:py-32 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 relative overflow-hidden">
@@ -673,7 +675,7 @@ export default function HomePage() {
                 {[
                   { icon: "📘", href: "https://www.facebook.com/share/1BFqFtAP5X/?mibextid=wwXIfr", label: "Facebook" },
                   { icon: "📷", href: "https://www.instagram.com/connecthub.love", label: "Instagram" },
-                  { icon: "𝕏", href: "#", label: "X" },
+                  { icon: "𝕏", href: "https://x.com/connecthubho8a", label: "X" },
                 ].map((s, i) => (
                   <a key={i} href={s.href} target="_blank" rel="noopener" className="w-9 h-9 bg-gray-800 hover:bg-rose-500/20 border border-gray-700 hover:border-rose-500/50 rounded-lg flex items-center justify-center text-gray-400 hover:text-rose-400 transition-all text-sm" title={s.label}>{s.icon}</a>
                 ))}

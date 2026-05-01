@@ -133,6 +133,7 @@ export default function LanguageSelector({ dark = true }: { dark?: boolean }) {
       writeCookie("googtrans", `/${SOURCE_LANGUAGE}/${selected}`, 60 * 60 * 24 * 365);
     }
 
+    window.scrollTo(0, 0);
     window.location.reload();
   }
 
