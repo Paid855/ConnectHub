@@ -412,9 +412,7 @@ export default function MessagesPage() {
         formData.append("signature", signData.signature);
         formData.append("api_key", signData.apiKey);
         formData.append("folder", signData.folder);
-        if (!isVideo && !mediaPrefs.hdSend) {
-          formData.append("transformation", "w_800,q_auto:good");
-        }
+
 
         const cloudRes = await fetch(
           "https://api.cloudinary.com/v1_1/" + signData.cloudName + "/" + (isVideo ? "video" : "image") + "/upload",
@@ -422,6 +420,11 @@ export default function MessagesPage() {
         );
         const cloudData = await cloudRes.json();
 
+        if (cloudData.error) {
+          console.error("Cloudinary error:", cloudData.error);
+          alert("Upload failed: " + (cloudData.error.message || "Unknown error"));
+          continue;
+        }
         if (cloudData.secure_url) {
           const prefix = isVideo ? "[VID]" : "[IMG]";
           await fetch("/api/messages", {
