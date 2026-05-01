@@ -143,7 +143,7 @@ export default function BrowsePage() {
                   </div>
                 )}
                 {p.profilePhoto ? (
-                  <img src={p.profilePhoto} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img src={p.profilePhoto} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 ) : (
                   <div className={"w-full h-full bg-gradient-to-br "+gradients[i%gradients.length]+" flex items-center justify-center"}>
                     <span className="text-6xl font-bold text-white/30">{p.name[0]}</span>

@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       },
       select: { id:true, name:true, age:true, gender:true, lookingFor:true, bio:true, country:true, city:true, detectedCity:true, detectedCountry:true, profilePhoto:true, tier:true, verified:true, interests:true, lastSeen:true, vibeStatus:true },
       orderBy: { lastSeen: "desc" },
-      take: 500
+      take: 100
     });
 
     // Simple sort: online first, then verified, then has photo
@@ -50,7 +50,9 @@ export async function GET(req: NextRequest) {
       return bS - aS;
     });
 
-    return NextResponse.json({ users });
+    const response = NextResponse.json({ users });
+    response.headers.set("Cache-Control", "private, max-age=30");
+    return response;
   } catch (e) {
     console.error("Users API error:", e);
     return NextResponse.json({ users: [] });

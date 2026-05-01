@@ -316,7 +316,7 @@ export default function DiscoverPage() {
                 <div className="relative w-[72px]">
                   <div className={"w-[72px] h-[96px] rounded-2xl overflow-hidden border-2 transition-all " + (dc ? "border-gray-700 group-hover:border-rose-500/50" : "border-gray-100 group-hover:border-rose-300")}>
                     {p.profilePhoto ? (
-                      <img src={p.profilePhoto} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="" />
+                      <img src={p.profilePhoto} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="" loading="lazy" />
                     ) : (
                       <div className={"w-full h-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg"}>{p.name?.[0]}</div>
                     )}

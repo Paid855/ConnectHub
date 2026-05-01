@@ -294,7 +294,7 @@ export default function MessagesPage() {
         loadMessages(chatWith);
         markAsRead(chatWith);
       }, 3000);
-      const typingInterval = setInterval(checkTyping, 2000);
+      const typingInterval = setInterval(checkTyping, 3000);
       return () => { clearInterval(msgInterval); clearInterval(typingInterval); };
     }
   }, [chatWith]);

@@ -256,7 +256,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     } catch {}
   };
 
-  useEffect(() => { if (user) { loadUnread(); loadNotifications(); checkDailyReward(); const i = setInterval(loadUnread, 10000); const j = setInterval(loadNotifications, 15000); return () => { clearInterval(i); clearInterval(j); }; } }, [user]);
+  // Prefetch key data for speed
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const prefetchPaths = ["/api/users", "/api/friends", "/api/feed"];
+      prefetchPaths.forEach(p => fetch(p).catch(() => {}));
+    }
+  }, []);
+
+  useEffect(() => { if (user) { loadUnread(); loadNotifications(); checkDailyReward(); const i = setInterval(loadUnread, 15000); const j = setInterval(loadNotifications, 20000); return () => { clearInterval(i); clearInterval(j); }; } }, [user]);
   useEffect(() => { const s = typeof window !== "undefined" ? localStorage.getItem("dark") : null; if (s === "true") setDark(true); }, []);
   useEffect(() => { if (dark) document.documentElement.classList.add("dark"); else document.documentElement.classList.remove("dark"); if (typeof window !== "undefined") localStorage.setItem("dark", String(dark)); }, [dark]);
 

@@ -42,7 +42,9 @@ export async function GET(req: NextRequest) {
       take: 30,
       orderBy: { lastSeen: "desc" }
     });
-    return NextResponse.json({ users });
+    const response = NextResponse.json({ users });
+    response.headers.set("Cache-Control", "private, max-age=15");
+    return response;
   } catch (e: any) {
     console.error("Search API error:", e?.message);
     return NextResponse.json({ users: [], error: "Search failed" });
