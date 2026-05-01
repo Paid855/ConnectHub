@@ -661,6 +661,43 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
+                    {/* Quick Actions */}
+                    <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
+                      <h4 className="font-bold mb-3">⚡ Quick Actions</h4>
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        <button onClick={async () => {
+                          const msg = prompt("Warning message to send:");
+                          if (!msg) return;
+                          await fetch("/api/admin/users", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "warn", userId: selectedUser.id, message: msg }) });
+                          alert("⚠️ Warning sent to " + selectedUser.name);
+                        }} className="p-2.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl text-xs font-bold hover:bg-amber-500/20 transition-all flex items-center justify-center gap-1.5">
+                          ⚠️ Warn
+                        </button>
+                        <button onClick={async () => {
+                          if (!confirm("Suspend " + selectedUser.name + " for 24 hours?")) return;
+                          await fetch("/api/admin/users", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "suspend", userId: selectedUser.id, hours: 24 }) });
+                          alert("🚫 Suspended for 24h");
+                        }} className="p-2.5 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-xl text-xs font-bold hover:bg-orange-500/20 transition-all flex items-center justify-center gap-1.5">
+                          🚫 Suspend 24h
+                        </button>
+                        <button onClick={async () => {
+                          await fetch("/api/admin/users", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "feature", userId: selectedUser.id }) });
+                          alert("⭐ " + selectedUser.name + " featured!");
+                        }} className="p-2.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-xl text-xs font-bold hover:bg-purple-500/20 transition-all flex items-center justify-center gap-1.5">
+                          ⭐ Feature
+                        </button>
+                        <button onClick={async () => {
+                          const amt = prompt("Bonus coins for " + selectedUser.name + ":");
+                          if (!amt || isNaN(Number(amt))) return;
+                          await fetch("/api/admin/users", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "give-coins", userId: selectedUser.id, coins: Number(amt) }) });
+                          alert("🎁 Gave " + amt + " coins");
+                          loadAll();
+                        }} className="p-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-1.5">
+                          🎁 Bonus Coins
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Actions */}
                     <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
                       <h4 className="font-bold mb-3">Actions</h4>
@@ -1137,9 +1174,30 @@ export default function AdminDashboard() {
                       🗑️ Delete
                     </button>
                   </div>
-                  {post.content && <p className="text-sm text-gray-300 mb-2">{post.content}</p>}
-                  {post.image && !post.image.startsWith("[VID]") && <img src={post.image.replace("[IMG]", "")} className="w-full max-h-48 object-cover rounded-xl" />}
-                  {post.image && post.image.startsWith("[VID]") && <video src={post.image.replace("[VID]", "")} controls className="w-full max-h-48 rounded-xl" />}
+                  {post.content && <p className="text-sm text-gray-300 mb-3 whitespace-pre-wrap">{post.content}</p>}
+                  {post.image && !post.image.startsWith("[VID]") && !post.image.startsWith("[VOICE]") && (
+                    <div className="relative group cursor-pointer" onClick={() => setPhotoViewer(post.image.replace("[IMG]", ""))}>
+                      <img src={post.image.replace("[IMG]", "")} className="w-full max-h-80 object-contain rounded-xl bg-gray-900" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-xl transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <span className="text-white text-sm font-bold bg-black/50 px-3 py-1.5 rounded-full">🔍 View Full</span>
+                      </div>
+                    </div>
+                  )}
+                  {post.image && post.image.startsWith("[VID]") && (
+                    <video src={post.image.replace("[VID]", "")} controls playsInline className="w-full max-h-80 rounded-xl bg-black" />
+                  )}
+                  {post.image && post.image.startsWith("[VOICE]") && (
+                    <div className="flex items-center gap-2 bg-gray-700 rounded-xl p-3">
+                      <span className="text-lg">🎤</span>
+                      <audio src={post.image.replace("[VOICE]", "")} controls className="flex-1 h-8" />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-700">
+                    <span className="text-xs text-gray-500">❤️ {post.likeCount || 0} likes</span>
+                    <span className="text-xs text-gray-500">💬 {post.commentCount || 0} comments</span>
+                    <span className={"text-xs px-2 py-0.5 rounded-full " + (post.user?.tier === "gold" ? "bg-amber-500/20 text-amber-400" : post.user?.tier === "premium" ? "bg-rose-500/20 text-rose-400" : "bg-gray-700 text-gray-400")}>{post.user?.tier}</span>
+                    {post.user?.verified && <span className="text-xs text-blue-400">✓ Verified</span>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1149,7 +1207,15 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {contentStories.map((story: any) => (
                 <div key={story.id} className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
-                  {story.image && <img src={story.image} className="w-full h-40 object-cover" />}
+                  {story.image && !story.image.startsWith("[VID]") ? (
+                    <img src={story.image.replace("[IMG]", "")} className="w-full h-40 object-cover cursor-pointer" onClick={() => setPhotoViewer(story.image.replace("[IMG]", ""))} />
+                  ) : story.image?.startsWith("[VID]") ? (
+                    <video src={story.image.replace("[VID]", "")} controls playsInline className="w-full h-40 object-cover" />
+                  ) : (
+                    <div className="w-full h-40 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                      <p className="text-white text-sm font-bold p-3 text-center">{story.text || "No media"}</p>
+                    </div>
+                  )}
                   <div className="p-3">
                     <p className="text-xs font-bold text-white truncate">{story.user?.name || "Unknown"}</p>
                     <p className="text-[10px] text-gray-500">{new Date(story.createdAt).toLocaleString()}</p>
