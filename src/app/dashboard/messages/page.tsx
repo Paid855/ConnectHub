@@ -572,15 +572,14 @@ export default function MessagesPage() {
   const [randomBreakers] = useState(() => ICEBREAKERS.sort(() => Math.random() - 0.5).slice(0, 3));
 
   // Chat view
-  if (chatWith) {
-    if (!chatUser) {
-      return (
-        <div className={"flex flex-col h-[calc(100vh-5rem)] items-center justify-center " + (dc ? "bg-gray-900" : "bg-white")}>
-          <div className="w-8 h-8 border-3 border-rose-500 border-t-transparent rounded-full animate-spin mb-3" />
-          <p className={"text-sm " + (dc ? "text-gray-500" : "text-gray-400")}>Loading conversation...</p>
-        </div>
-      );
+  // Load messages when chatWith changes
+  useEffect(() => {
+    if (chatWith) {
+      loadMessages(chatWith);
     }
+  }, [chatWith]);
+
+  if (chatWith) {
     return (
       <div className={"flex flex-col h-[calc(100vh-5rem)] " + (dc ? "bg-gray-900" : "bg-white")}>
         {mediaViewer && (
@@ -609,7 +608,7 @@ export default function MessagesPage() {
           <button onClick={() => { setChatWith(null); setChatUser(null); setMessages([]); setIsTyping(false); loadConversations(); }} className={"p-2 rounded-lg " + (dc ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}>
             <ArrowLeft className="w-5 h-5" />
           </button>
-          {chatUser && (
+          {chatUser ? (
             <Link href={"/dashboard/user?id=" + chatUser.id} className="flex items-center gap-3 flex-1 min-w-0">
               <div className="relative flex-shrink-0">
                 <img src={chatUser.profilePhoto || "/default-avatar.png"} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-rose-100" />
