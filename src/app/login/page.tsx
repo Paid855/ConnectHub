@@ -43,7 +43,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage:"radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize:"24px 24px" }} />
 
         <div className={"relative z-10 flex flex-col justify-between p-12 transition-all duration-1000 " + (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8")}>
-          <a href="/" className="flex items-center gap-3 group">
+          <a href={typeof window !== "undefined" && (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) ? "/welcome" : "/"} className="flex items-center gap-3 group">
             <div className="w-12 h-12 bg-white/15 backdrop-blur-xl rounded-xl flex items-center justify-center border border-white/20 group-hover:scale-105 transition-transform">
               <span className="text-2xl">💕</span>
             </div>
