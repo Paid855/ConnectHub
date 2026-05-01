@@ -8,6 +8,7 @@ export default function DiscoverPage() {
   const { user, dark } = useUser();
   const dc = dark;
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<string|null>(null);
